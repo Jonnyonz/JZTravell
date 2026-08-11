@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>JZ Tech Solutions - Administración Logística</title>
+    <style>
+        :root { 
+            --primary: #007bff; --bg: #f4f6f9; --text: #333; --sidebar: #1e2229; 
+            --success: #28a745; --danger: #dc3545; --warning: #ffc107; --info: #17a2b8;
+            --card-bg: #ffffff;
+        }
+        body { margin: 0; font-family: system-ui, -apple-system, sans-serif; display: flex; height: 100vh; background: var(--bg); color: var(--text); }
+        
+        .sidebar { width: 250px; background: var(--sidebar); color: white; padding: 1rem; display: flex; flex-direction: column; overflow-y:auto; justify-content: space-between; box-sizing: border-box; }
+        .sidebar h2 { margin: 0; font-size: 1.5rem; text-align: center; }
+        .nav-item { padding: 12px 16px; cursor: pointer; border-radius: 6px; margin-bottom: 5px; transition: 0.2s; display: flex; align-items: center; gap: 10px; font-weight: 500;}
+        .nav-item:hover, .nav-item.active { background: #2c313c; }
+        .btn-solicitar { background: var(--success); text-align: center; font-weight: bold; margin-top: 10px; justify-content: center;}
+        
+        .content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .topbar { background: #fff; padding: 1rem 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; z-index: 10; }
+        
+        .tab-content { display: none; flex: 1; padding: 2rem; overflow-y: auto; }
+        .tab-content.active { display: block; }
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(3px);}
+        .modal.active { display: flex; }
+        .modal-content { background: white; padding: 2.5rem; border-radius: 12px; width: 500px; position: relative; max-height: 90vh; overflow-y: auto; box-shadow: 0 15px 35px rgba(0,0,0,0.2); box-sizing: border-box;}
+        .modal-large { width: 850px; } 
+        .close-btn { position: absolute; top: 15px; right: 20px; cursor: pointer; font-size: 1.5rem; border: none; background: none; color: #888;}
+        
+        .form-group { margin-bottom: 1.2rem; position: relative; }
+        .form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.85rem; color: #555; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 0.9rem; transition: background-color 0.2s, border-color 0.2s; }
+        .btn { padding: 10px 20px; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.9rem; transition: 0.2s;}
+        .btn:hover { opacity: 0.9; }
+        
+        .is-invalid { border-color: var(--danger) !important; background-color: #fff5f5 !important; box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.15) !important; }
+        
+        .grid-filters { display: flex; gap: 15px; margin-bottom: 15px; align-items: center; background: white; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .grid-filters input { max-width: 300px; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem; }
+        .grid-filters label { font-size: 0.85rem; font-weight: 600; color: #475569; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+        th.sortable { cursor: pointer; user-select: none; position: relative; }
+        th.sortable:hover { background: #f1f5f9; color: #000; }
+        
+        .autocomplete-results {
+            position: absolute; top: 100%; left: 0; width: 100%; background: white;
+            border: 1px solid #ccc; border-radius: 6px; max-height: 150px; overflow-y: auto;
+            z-index: 999; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: none; margin-top: 2px;
+        }
+        .autocomplete-item { padding: 10px; cursor: pointer; font-size: 0.9rem; border-bottom: 1px solid #eee; color: #333; }
+        .autocomplete-item:hover { background: #f0f4f8; font-weight: bold; }
+        
+        .kanban-board { display: flex; flex-direction: row; gap: 1.5rem; height: 100%; padding-bottom: 1rem; align-items: flex-start; box-sizing: border-box;}
+        .kanban-column { background: #ebecf0; border-radius: 12px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; flex-direction: column; flex: 1; min-width: 280px; max-width: 450px; max-height: 100%; box-sizing: border-box;}
+        .kanban-column h3 { margin: 0 0 12px 0; font-size: 1.1rem; color: #172b4d; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ddd; padding-bottom: 8px;}
+        .kanban-column-count { background: #dfe1e6; border-radius: 12px; padding: 2px 8px; font-size: 0.8rem; font-weight: bold; }
+        .kanban-cards-container { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; flex: 1; padding-right:5px;}
+        
+        .kanban-card { background: var(--card-bg); border-radius: 8px; padding: 14px; box-shadow: 0 2px 5px rgba(0,0,0,0.08); border-left: 5px solid #ccc; transition: 0.2s; }
+        .card-priority-alta { border-left-color: var(--danger); }
+        .card-priority-normal { border-left-color: var(--primary); }
+        .card-header { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.8rem; font-weight: bold;}
+        .card-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;}
+        .btn-card { padding: 6px 10px; font-size: 0.8rem; border-radius: 4px; font-weight: bold; border: none; cursor: pointer; transition: 0.2s;}
+        
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        th, td { padding: 14px 18px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #f8f9fa; font-weight: 700; color: #555; }
+        .badge { padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; color: white; background: #6c757d; }
+        
+        .system-footer { font-size: 0.75rem; color: #888; text-align: center; line-height: 1.4; padding-top: 15px; border-top: 1px solid #333; margin-top: 15px; }
+        .system-footer a { color: #f06a25; text-decoration: none; font-weight: bold; }
+        
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            .sidebar { width: 100%; height: auto; padding: 10px; flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 5px;}
+            .sidebar h2 { display: none; }
+            .nav-item { padding: 8px; font-size: 0.85rem; margin: 0;}
+            .content { padding: 1rem; overflow-y: auto; }
+            .kanban-board { flex-direction: column; height: auto; }
+            .kanban-column { width: 100% !important; min-width: 100% !important; max-width: 100% !important; margin-bottom: 1.5rem; max-height: none;}
+            .modal-content { padding: 1.5rem; width: 95%;}
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div style="width: 100%;">
+            <h2>BazarChef</h2><hr style="border-color: #333;">
+            <div class="nav-item active" onclick="switchTab('kanban', this)">Tablero de Control</div>
+            <div class="nav-item btn-solicitar" onclick="openFletePanel()">Despachar Flete</div>
+            <hr style="border-color: #333;">
+            <div class="nav-item" onclick="switchTab('usuarios', this)">Usuarios</div>
+            <div class="nav-item" onclick="switchTab('vehiculos', this)">Flota</div>
+            <div class="nav-item" onclick="switchTab('sucursales', this)">Sucursales</div>
+            <div class="nav-item" onclick="switchTab('clientes', this)">Destinatarios</div>
+        </div>
+        <div style="width: 100%; padding-top: 1rem;">
+            <div class="nav-item" onclick="switchTab('config', this)">Configuración</div>
+            <div class="nav-item" style="color:var(--danger); margin-top:10px;" onclick="cerrarSesion()">Salir</div>
+            
+            <div class="system-footer">
+                Versión 1.9<br>
+                Powered by <a href="https://jz-tech.mywire.org" target="_blank">JZ Tech Solutions</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="content">
+        <div class="topbar">
+            <strong>Sistema de Gestión Logística</strong>
+            <span id="userStatus" class="badge" style="background:var(--success);">Administrador</span>
+        </div>
+        
+        <div id="tab-kanban" class="tab-content active" style="height:100%;">
+            <div class="header-section" style="margin-bottom: 1.5rem;">
+                <h2 style="margin:0;">Flujo de Trabajo Central</h2>
+                <button class="btn" style="background:var(--sidebar); margin-top:10px;" onclick="loadData()">Actualizar Tablero</button>
+            </div>
+            <div class="kanban-board" id="kanban-board"></div>
+        </div>
+        
+        <div id="tab-usuarios" class="tab-content">
+            <div class="header-section"><h2>Usuarios del Sistema</h2><button class="btn" onclick="openModal('modal-usuario')">Registrar Usuario</button></div>
+            <div class="grid-filters">
+                <input type="text" placeholder="Filtrar por nombre o usuario..." oninput="updateGridFilter('usuarios', this.value)">
+                <label><input type="checkbox" onchange="toggleGridInactive('usuarios', this.checked)"> Mostrar usuarios bloqueados</label>
+            </div>
+            <div style="overflow-x:auto; margin-bottom: 30px;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="sortable" onclick="setGridSort('usuarios', 'username')">Usuario<span id="s-usuarios-username"></span></th>
+                            <th class="sortable" onclick="setGridSort('usuarios', 'nombre_completo')">Nombre Completo<span id="s-usuarios-nombre_completo"></span></th>
+                            <th class="sortable" onclick="setGridSort('usuarios', 'rol')">Rol de Acceso<span id="s-usuarios-rol"></span></th>
+                            <th class="sortable" onclick="setGridSort('usuarios', 'activo')">Estado<span id="s-usuarios-activo"></span></th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-usuarios"></tbody>
+                </table>
+            </div>
+            <h3>Solicitudes de Registro Pendientes (Google Auth)</h3>
+            <div style="overflow-x:auto;"><table><thead><tr><th>Correo Electrónico</th><th>Nombre Completo</th><th>Asignar Rol Obligatorio</th><th>Acción</th></tr></thead><tbody id="tabla-solicitudes"></tbody></table></div>
+        </div>
+        
+        <div id="tab-vehiculos" class="tab-content">
+            <div class="header-section"><h2>Flota Activa</h2><button class="btn" onclick="openModal('modal-vehiculo')">Añadir Vehículo</button></div>
+            <div class="grid-filters">
+                <input type="text" placeholder="Filtrar flota por patente o modelo..." oninput="updateGridFilter('vehiculos', this.value)">
+                <label><input type="checkbox" onchange="toggleGridInactive('vehiculos', this.checked)"> Mostrar unidades en taller o de baja</label>
+            </div>
+            <div style="overflow-x:auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="sortable" onclick="setGridSort('vehiculos', 'patente_identificador')">Patente<span id="s-vehiculos-patente_identificador"></span></th>
+                            <th class="sortable" onclick="setGridSort('vehiculos', 'marca_modelo')">Marca / Modelo<span id="s-vehiculos-marca_modelo"></span></th>
+                            <th class="sortable" onclick="setGridSort('vehiculos', 'tipo')">Motor<span id="s-vehiculos-tipo"></span></th>
+                            <th class="sortable" onclick="setGridSort('vehiculos', 'autonomia_maxima_km')">Autonomía<span id="s-vehiculos-autonomia_maxima_km"></span></th>
+                            <th class="sortable" onclick="setGridSort('vehiculos', 'capacidad_volumen_m3')">Capacidad (m³)<span id="s-vehiculos-capacidad_volumen_m3"></span></th>
+                            <th class="sortable" onclick="setGridSort('vehiculos', 'estado')">Estado<span id="s-vehiculos-estado"></span></th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-vehiculos"></tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div id="tab-sucursales" class="tab-content">
+            <div class="header-section"><h2>Bases y Sucursales</h2><button class="btn" onclick="openModal('modal-sucursal')">Crear Sucursal</button></div>
+            <div class="grid-filters">
+                <input type="text" placeholder="Filtrar bases por nombre o dirección..." oninput="updateGridFilter('sucursales', this.value)">
+                <label><input type="checkbox" onchange="toggleGridInactive('sucursales', this.checked)"> Mostrar bases inactivas</label>
+            </div>
+            <div style="overflow-x:auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="sortable" onclick="setGridSort('sucursales', 'nombre')">Nombre<span id="s-sucursales-nombre"></span></th>
+                            <th class="sortable" onclick="setGridSort('sucursales', 'calle')">Dirección<span id="s-sucursales-calle"></span></th>
+                            <th class="sortable" onclick="setGridSort('sucursales', 'ciudad')">Ciudad<span id="s-sucursales-ciudad"></span></th>
+                            <th class="sortable" onclick="setGridSort('sucursales', 'codigo_postal')">CP<span id="s-sucursales-codigo_postal"></span></th>
+                            <th class="sortable" onclick="setGridSort('sucursales', 'activa')">Estado<span id="s-sucursales-activa"></span></th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-sucursales"></tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div id="tab-clientes" class="tab-content">
+            <div class="header-section"><h2>Catálogo de Destinatarios</h2><button class="btn" onclick="openModal('modal-cliente')">Crear Destinatario</button></div>
+            <div class="grid-filters">
+                <input type="text" placeholder="Filtrar por razón social o CUIT..." oninput="updateGridFilter('clientes', this.value)">
+                <label><input type="checkbox" onchange="toggleGridInactive('clientes', this.checked)"> Mostrar cuentas inactivas</label>
+            </div>
+            <div style="overflow-x:auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="sortable" onclick="setGridSort('clientes', 'razon_social')">Razón Social<span id="s-clientes-razon_social"></span></th>
+                            <th class="sortable" onclick="setGridSort('clientes', 'cuit_rut')">Identificación Comercial (CUIT)<span id="s-clientes-cuit_rut"></span></th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-clientes"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="tab-config" class="tab-content">
+            <div class="header-section"><h2>Configuración Global</h2></div>
+            <div style="background:white; padding:2rem; border-radius:10px; max-width:600px; box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+                <form id="form-config" onsubmit="guardarConfig(event)">
+                    <div class="form-group"><label>Nombre Comercial <span style="color:var(--danger);">*</span></label><input type="text" id="conf-nombre" required></div>
+                    <div class="form-group"><label>Frecuencia de Actualización Ubicación (Segundos) <span style="color:var(--danger);">*</span></label><input type="number" id="conf-gps" min="5" max="60" required></div>
+                    
+                    <h3 style="border-top:1px solid #eee; padding-top:15px; margin-top:15px;">Localización por Defecto PyME</h3>
+                    <div style="display:flex; gap:10px;">
+                        <div class="form-group" style="flex:1;"><label>Ciudad</label><input type="text" id="conf-ciudad"></div>
+                        <div class="form-group" style="flex:1;"><label>Provincia</label><input type="text" id="conf-provincia"></div>
+                    </div>
+                    <div class="form-group"><label>País</label><input type="text" id="conf-pais"></div>
+
+                    <h3 style="border-top:1px solid #eee; padding-top:15px; margin-top:15px;">Restricciones y Controles</h3>
+                    <div class="form-group"><label>Habilitar Control Volumétrico Colectivo (m³)</label><select id="conf-volumenes"><option value="true">Activado</option><option value="false">Desactivado</option></select></div>
+
+                    <h3 style="border-top:1px solid #eee; padding-top:15px; margin-top:15px;">Integrador de Autenticación Google</h3>
+                    <div class="form-group"><label>Habilitar Acceso con Cuentas Google</label><select id="conf-oauth-enabled"><option value="true">Activado</option><option value="false">Desactivado</option></select></div>
+                    <div class="form-group"><label>Google Client ID</label><input type="text" id="conf-client-id"></div>
+                    <div class="form-group"><label>Google Client Secret</label><input type="password" id="conf-client-secret"></div>
+                    <div class="form-group"><label>Google Redirect URI (Callback)</label><input type="text" id="conf-redirect-url" readonly style="background:#eee; color:#555; cursor:not-allowed;"></div>
+                    
+                    <button type="submit" class="btn" style="width:100%; background:var(--warning); color:black; font-weight:bold; margin-top:10px;">Guardar Parámetros</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-usuario" class="modal"><div class="modal-content"><button class="close-btn" onclick="closeModal('modal-usuario')">Cerrar</button><h3>Registrar Usuario</h3><form onsubmit="validarYEnviarForm(event, '/api/usuarios', 'modal-usuario', loadData)"><div class="form-group"><label>Nombre de Usuario <span style="color:var(--danger);">*</span></label><input type="text" name="username"></div><div class="form-group"><label>Contraseña (Min 8 caracteres, 1 Mayuscula, 1 Numero) <span style="color:var(--danger);">*</span></label><input type="password" name="password"></div><div class="form-group"><label>Nombre Completo <span style="color:var(--danger);">*</span></label><input type="text" name="nombre_completo"></div><div class="form-group"><label>Rol de Acceso <span style="color:var(--danger);">*</span></label><select name="role_select" onchange="this.form.rol.value=this.value;"><option value="chofer">Transportista</option><option value="cliente">Cliente Comercial</option><option value="admin">Administrador</option></select><input type="hidden" name="rol" value="chofer"></div><button type="submit" class="btn" style="width:100%">Dar de Alta</button></form></div></div>
+    <div id="modal-editar-usuario" class="modal"><div class="modal-content"><button class="close-btn" onclick="closeModal('modal-editar-usuario')">Cerrar</button><h3>Modificar Usuario</h3><form id="form-editar-usuario" onsubmit="ejecutarEdicionUsuario(event)"><input type="hidden" id="edit-user-username" readonly style="background:#eee; color:#555;"></div><div class="form-group"><label>Nombre Completo <span style="color:var(--danger);">*</span></label><input type="text" id="edit-user-nombre" required></div><div class="form-group"><label>Rol de Acceso <span style="color:var(--danger);">*</span></label><select id="edit-user-rol"><option value="chofer">Transportista</option><option value="cliente">Cliente Comercial</option><option value="admin">Administrador</option></select></div><div class="form-group"><label>Estado de Cuenta <span style="color:var(--danger);">*</span></label><select id="edit-user-activo"><option value="true">Activo / Autorizado</option><option value="false">Bloqueado / Suspendido</option></select></div><div class="form-group"><label>Blanquear Contraseña</label><input type="password" id="edit-user-password" placeholder="Nueva contraseña normativa"></div><button type="submit" class="btn" style="width:100%; background:var(--warning); color:black;">Guardar Cambios</button></form></div></div>
+    <div id="modal-vehiculo" class="modal"><div class="modal-content"><button class="close-btn" onclick="closeModal('modal-vehiculo')">Cerrar</button><h3>Añadir Vehículo</h3><form onsubmit="validarYEnviarForm(event, '/api/vehiculos', 'modal-vehiculo', loadData)"><div class="form-group"><label>Patente <span style="color:var(--danger);">*</span></label><input type="text" name="patente_identificador"></div><div class="form-group"><label>Marca y Modelo <span style="color:var(--danger);">*</span></label><input type="text" name="marca_modelo"></div><div class="form-group"><label>Motor <span style="color:var(--danger);">*</span></label><select name="tipo"><option value="electrico">Eléctrico</option><option value="combustion">Combustión</option></select></div><div class="form-group"><label>Autonomía (KM) <span style="color:var(--danger);">*</span></label><input type="number" step="0.1" name="autonomia_maxima_km"></div><div class="form-group f-vol-input"><label>Capacidad Carga (m³) <span style="color:var(--danger);">*</span></label><input type="number" step="0.01" name="capacidad_volumen_m3" value="0.00"></div><button type="submit" class="btn" style="width:100%">Guardar Unidad</button></form></div></div>
+    <div id="modal-editar-vehiculo" class="modal"><div class="modal-content"><button class="close-btn" onclick="closeModal('modal-editar-vehiculo')">Cerrar</button><h3>Modificar Vehículo</h3><form id="form-editar-vehiculo" onsubmit="ejecutarEdicionVehiculo(event)"><input type="hidden" id="edit-veh-id"><div class="form-group"><label>Patente <span style="color:var(--danger);">*</span></label><input type="text" id="edit-veh-patente" required></div><div class="form-group"><label>Marca y Modelo <span style="color:var(--danger);">*</span></label><input type="text" id="edit-veh-marca" required></div><div class="form-group"><label>Motor <span style="color:var(--danger);">*</span></label><select id="edit-veh-tipo"><option value="electrico">Eléctrico</option><option value="combustion">Combustión</option></select></div><div class="form-group"><label>Autonomía (KM) <span style="color:var(--danger);">*</span></label><input type="number" step="0.1" id="edit-veh-autonomia" required></div><div class="form-group f-vol-input"><label>Capacidad Caja (m³) <span style="color:var(--danger);">*</span></label><input type="number" step="0.01" id="edit-veh-volumen" required></div><div class="form-group"><label>Estado Operativo <span style="color:var(--danger);">*</span></label><select id="edit-veh-estado"><option value="activo">Activo / Disponible</option><option value="mantenimiento">En Taller (Mantenimiento)</option><option value="baja">Baja Operativa (Soft Delete)</option></select></div><button type="submit" class="btn" style="width:100%; background:var(--warning); color:black;">Guardar Parámetros</button></form></div></div>
+    <div id="modal-sucursal" class="modal"><div class="modal-content"><button class="close-btn" onclick="closeModal('modal-sucursal')">Cerrar</button><h3>Crear Sucursal</h3><form onsubmit="validarYEnviarForm(event, '/api/sucursales', 'modal-sucursal', loadData)"><div class="form-group"><label>Nombre <span style="color:var(--danger);">*</span></label><input type="text" name="nombre"></div><div class="form-group"><label>Calle <span style="color:var(--danger);">*</span></label><input type="text" name="calle"></div><div class="form-group"><label>Altura <span style="color:var(--danger);">*</span></label><input type="text" name="altura"></div><div class="form-group"><label>CP <span style="color:var(--danger);">*</span></label><input type="text" name="codigo_postal"></div><button type="submit" class="btn" style="width:100%">Guardar Base</button></form></div></div>
+    <div id="modal-cliente" class="modal"><div class="modal-content" style="max-width:550px;"><button class="close-btn" onclick="closeModal('modal-cliente')">Cerrar</button><h3>Crear Destinatario Base</h3><form onsubmit="validarYEnviarForm(event, '/api/clientes', 'modal-cliente', loadData)"><div class="form-group"><label>Razón Social <span style="color:var(--danger);">*</span></label><input type="text" name="razon_social"></div><div class="form-group"><label>Identificación Comercial (CUIT) <span style="color:var(--danger);">*</span></label><input type="text" name="cuit_rut"></div><h4 style="border-top:1px solid #eee; padding-top:10px; margin-top:15px; color:#444;">Dirección Principal de Entrega</h4><div class="form-group"><label>Alias de Sucursal <span style="color:var(--danger);">*</span></label><input type="text" name="alias" value="Sede Principal"></div><div style="display:flex; gap:10px;"><div class="form-group" style="flex:2;"><label>Calle <span style="color:var(--danger);">*</span></label><input type="text" name="calle"></div><div class="form-group" style="flex:1;"><label>Altura <span style="color:var(--danger);">*</span></label><input type="text" name="altura"></div></div><div class="form-group"><label>CP <span style="color:var(--danger);">*</span></label><input type="text" name="codigo_postal"></div><button type="submit" class="btn" style="width:100%">Guardar Registro</button></form></div></div>
+    <div id="modal-editar-sucursal" class="modal"><div class="modal-content"><button class="close-btn" onclick="closeModal('modal-editar-sucursal')">Cerrar</button><h3>Modificar Sucursal</h3><form id="form-editar-sucursal" onsubmit="ejecutarEdicionSucursal(event)"><input type="hidden" id="edit-suc-id"><div class="form-group"><label>Nombre Comercial <span style="color:var(--danger);">*</span></label><input type="text" id="edit-suc-nombre" required></div><div class="form-group"><label>Calle <span style="color:var(--danger);">*</span></label><input type="text" id="edit-suc-calle" required></div><div class="form-group"><label>Altura <span style="color:var(--danger);">*</span></label><input type="text" id="edit-suc-altura" required></div><div class="form-group"><label>Ciudad</label><input type="text" id="edit-suc-ciudad"></div><div class="form-group"><label>Código Postal <span style="color:var(--danger);">*</span></label><input type="text" id="edit-suc-cp" required></div><div class="form-group"><label>Provincia <span style="color:var(--danger);">*</span></label><input type="text" id="edit-suc-provincia"></div><div class="form-group"><label>Estado Operativo <span style="color:var(--danger);">*</span></label><select id="edit-suc-activa"><option value="true">Activa / Disponible</option><option value="false">Inactiva / Mantenimiento</option></select></div><button type="submit" class="btn" style="width:100%; background:var(--warning); color:black;">Guardar Cambios</button></form></div></div>
+    <div id="modal-lista-estado" class="modal"><div class="modal-content modal-large"><button class="close-btn" onclick="closeModal('modal-lista-estado')">Cerrar</button><h3 id="titulo-modal-estado">Vista Extendida</h3><div style="max-height:60vh; overflow:auto; overflow-x: auto;"><table><thead><tr><th>Número de Control</th><th>Prioridad</th><th>Origen</th><th>Vehículo</th><th>Acciones</th></tr></thead><tbody id="tabla-estado-mas"></tbody></table></div></div></div>
+    <div id="modal-direcciones-cliente" class="modal"><div class="modal-content modal-large"><button class="close-btn" onclick="closeModal('modal-direcciones-cliente')">Cerrar</button><h3>Direcciones de Entrega: <span id="nombre-cliente-modal"></span></h3><div style="display: flex; gap: 20px; margin-top:15px; flex-wrap: wrap;"><div style="flex: 1.5; min-width: 300px; max-height: 50vh; overflow-y: auto;"><table><thead><tr><th>Alias Sucursal</th><th>Dirección</th><th>Ciudad</th></tr></thead><tbody id="tabla-direcciones-cliente"></tbody></table></div><div style="flex: 1; min-width: 250px; background: #fafafa; padding: 15px; border-radius: 8px; border: 1px solid #eee;"><h4>Nueva Dirección</h4><form id="form-nueva-direccion" onsubmit="validarYEnviarForm(event, '', 'modal-direcciones-cliente', null, true)"><input type="hidden" id="dir-cliente-id"><div class="form-group"><label>Alias <span style="color:var(--danger);">*</span></label><input type="text" id="dir-alias"></div><div class="form-group"><label>Calle <span style="color:var(--danger);">*</span></label><input type="text" id="dir-calle"></div><div class="form-group"><label>Altura <span style="color:var(--danger);">*</span></label><input type="text" name="altura"></div><div class="form-group"><label>Ciudad</label><input type="text" id="dir-ciudad"></div><div class="form-group"><label>CP <span style="color:var(--danger);">*</span></label><input type="text" id="dir-cp"></div><div class="form-group"><label>Provincia</label><input type="text" id="dir-provincia"></div><button type="submit" class="btn" style="width:100%;">Agregar</button></form></div></div></div></div>
+    <div id="panel-flete" class="modal"><div class="modal-content" style="max-width: 550px;"><button class="close-btn" onclick="closeModal('panel-flete')">Cerrar</button><h3>Armar Solicitud de Flete</h3><div class="form-group"><label>Vehículo <span style="color:var(--danger);">*</span></label><select id="flete-vehiculo"><option value="">Seleccione...</option></select></div><div class="form-group"><label>Origen <span style="color:var(--danger);">*</span></label><select id="flete-origen"><option value="">Seleccione...</option></select></div><div class="form-group"><label>Prioridad <span style="color:var(--danger);">*</span></label><select id="flete-prioridad"><option value="normal">Normal</option><option value="alta">Alta</option></select></div><hr><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;"><strong>Paradas de Ruta</strong><button class="btn" style="background:var(--sidebar); padding:6px 12px; font-size:0.8rem;" onclick="addParada()">Añadir Parada</button></div><div id="paradas-container" style="max-height:40vh; overflow-y:auto; padding-right:5px;"></div><button class="btn" style="width:100%; background:var(--success); margin-top:15px;" onclick="confirmarFlete()">Lanzar Flete</button></div></div>
+
+    <script>
+        var DB = { vehiculos: [], sucursales: [], clientes: [], tipos_docs: [], fletes: [], usuarios: [], solicitudes: [] };
+        var globalConfig = {}; var paradaCount = 0; var direccionesCache = {}; 
+        
+        var GridState = {
+            usuarios: { query: '', showInactive: false, col: 'username', dir: 'asc' },
+            vehiculos: { query: '', showInactive: false, col: 'patente_identificador', dir: 'asc' },
+            sucursales: { query: '', showInactive: false, col: 'nombre', dir: 'asc' },
+            clientes: { query: '', showInactive: false, col: 'razon_social', dir: 'asc' }
+        };
+
+        // Utilidad vital restituida para las cabeceras de Fetch
+        function getCookie(name) { let match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)')); return match ? match[2] : null; }
+        function cerrarSesion() { fetch('/api/logout', {method:'POST', headers:{'X-CSRF-Token':getCookie('csrf_token')}}).then(()=>{ window.location.href = "/index.html"; }); }
+
+        function switchTab(tabId, element) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+            if(element) element.classList.add('active');
+            loadData();
+        }
+        function openModal(id) { document.getElementById(id).classList.add('active'); }
+        function closeModal(id) { 
+            document.getElementById(id).classList.remove('active'); 
+            document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+        }
+
+        document.addEventListener('input', (e) => { if (e.target.classList.contains('is-invalid')) e.target.classList.remove('is-invalid'); });
+        document.addEventListener('change', (e) => { if (e.target.classList.contains('is-invalid')) e.target.classList.remove('is-invalid'); });
+
+        async function validarYEnviarForm(e, url, modalId, reloadCb, esDireccionCliente = false) {
+            e.preventDefault(); const form = e.target; let errores = 0;
+            form.querySelectorAll('input, select').forEach(el => {
+                if (el.type !== 'hidden' && el.id !== 'user-role-select' && el.style.display !== 'none' && !el.value && !el.closest('.f-vol-input')) { el.classList.add('is-invalid'); errores++; }
+            });
+            if (errores > 0) { alert("Operación rechazada: Complete todos los casilleros obligatorios marcados en rojo."); return; }
+            if (esDireccionCliente) { await guardarDireccionCliente(); return; }
+            
+            try {
+                const data = Object.fromEntries(new FormData(form));
+                const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCookie('csrf_token') }, body: JSON.stringify(data) });
+                if(res.ok) { 
+                    alert("¡Excelente! El nuevo registro ha sido guardado exitosamente en el sistema.");
+                    closeModal(modalId); form.reset(); reloadCb(); 
+                } else { 
+                    const err = await res.json();
+                    alert("No se pudo completar el alta: " + (err.detail || "Verifique los datos o restricciones de duplicación.")); 
+                }
+            } catch (err) { alert("Error de red: No hay conexión con el servidor local."); }
+        }
+
+        async function safeFetch(url, isArray = true) {
+            try {
+                let res = await fetch(url);
+                if (res.status === 401) { forzarReautenticacion(); return isArray ? [] : {}; }
+                if (!res.ok) { 
+                    alert(`JZ Tech Alerta: El servidor devolvió un error (${res.status}) al consultar la ruta [ ${url} ].`);
+                    return isArray ? [] : {}; 
+                }
+                let data = await res.json();
+                return isArray ? (Array.isArray(data) ? data : []) : (data && typeof data === 'object' ? data : {});
+            } catch (e) {
+                alert(`JZ Tech Alerta: Error crítico de red o de comunicación al conectar con la ruta [ ${url} ]. Verifique el contenedor Docker.`);
+                return isArray ? [] : {};
+            }
+        }
+
+        function esActivo(val) {
+            if (val === true || val === 1 || val === '1' || val === 't' || val === 'true') return true;
+            if (typeof val === 'string') {
+                let s = val.toLowerCase().trim();
+                return s === 't' || s === 'true' || s === 'activo' || s === 'activa';
+            }
+            return false;
+        }
+
+        async function loadData() {
+            try {
+                let confRes = await fetch('/api/config').catch(() => null);
+                if (confRes && confRes.status === 401) return forzarReautenticacion();
+                globalConfig = (confRes && confRes.ok) ? await confRes.json().catch(() => ({})) : {};
+
+                DB.vehiculos = await safeFetch('/api/vehiculos', true);
+                DB.sucursales = await safeFetch('/api/sucursales', true);
+                DB.clientes = await safeFetch('/api/clientes', true);
+                DB.tipos_docs = await safeFetch('/api/tipos_documentos', true);
+                DB.fletes = await safeFetch('/api/fletes', true);
+                DB.usuarios = await safeFetch('/api/usuarios', true);
+                DB.solicitudes = await safeFetch('/api/admin/solicitudes', true);
+                
+                if(globalConfig.nombre_empresa) document.getElementById('conf-nombre').value = globalConfig.nombre_empresa;
+                if(globalConfig.gps_polling_sec) document.getElementById('conf-gps').value = globalConfig.gps_polling_sec;
+                document.getElementById('conf-ciudad').value = globalConfig.ciudad_defecto || "";
+                document.getElementById('conf-provincia').value = globalConfig.provincia_defecto || "";
+                document.getElementById('conf-pais').value = globalConfig.pais_defecto || "";
+                document.getElementById('conf-volumenes').value = globalConfig.manejar_volumenes ? "true" : "false";
+
+                document.getElementById('conf-oauth-enabled').value = globalConfig.google_oauth_enabled ? "true" : "false";
+                document.getElementById('conf-client-id').value = globalConfig.google_client_id || "";
+                document.getElementById('conf-redirect-url').value = window.location.origin + "/api/auth/google/callback";
+
+                document.querySelectorAll('.f-vol-input').forEach(el => el.style.display = globalConfig.manejar_volumenes ? 'block' : 'none');
+
+                const fleteOrigenEl = document.getElementById('flete-origen');
+                if (fleteOrigenEl) {
+                    fleteOrigenEl.innerHTML = '<option value="">Seleccione...</option>' + DB.sucursales.filter(s=>esActivo(s.activa)).map(s=>`<option value="${s.id}">${s.nombre}</option>`).join('');
+                }
+                const fleteVehiculoEl = document.getElementById('flete-vehiculo');
+                if (fleteVehiculoEl) {
+                    fleteVehiculoEl.innerHTML = '<option value="">Seleccione...</option>' + DB.vehiculos.filter(v=>v.estado==='activo').map(v=>`<option value="${v.id}">${v.marca_modelo} (${v.patente_identificador})</option>`).join('');
+                }
+                
+                try { renderUsuarios(); } catch(e){ console.error(e); }
+                try { renderVehiculos(); } catch(e){ console.error(e); }
+                try { renderSucursales(); } catch(e){ console.error(e); }
+                try { renderClientes(); } catch(e){ console.error(e); }
+                try { renderKanban(); } catch(e){ console.error(e); }
+            } catch (error) { console.error("Error crítico general:", error); }
+        }
+
+        function forzarReautenticacion() { window.location.href = "/index.html"; }
+
+        function sortEngine(array, col, dir) {
+            return array.sort((a, b) => {
+                let vA = a[col], vB = b[col];
+                if (typeof vA === 'boolean') { vA = vA ? 1 : 0; vB = vB ? 1 : 0; }
+                if (vA === null || vA === undefined) vA = '';
+                if (vB === null || vB === undefined) vB = '';
+                if (!isNaN(vA) && !isNaN(vB) && typeof vA !== 'string' && typeof vB !== 'string') return dir === 'asc' ? vA - vB : vB - vA;
+                vA = vA.toString().toLowerCase(); vB = vB.toString().toLowerCase();
+                if (vA < vB) return dir === 'asc' ? -1 : 1;
+                if (vA > vB) return dir === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+        
+        function updateArrows(tab) {
+            const state = GridState[tab];
+            document.querySelectorAll(`[id^="s-${tab}-"]`).forEach(el => el.innerText = '');
+            const activeHeader = document.getElementById(`s-${tab}-${state.col}`);
+            if (activeHeader) activeHeader.innerText = state.dir === 'asc' ? ' ▲' : ' ▼';
+        }
+
+        function updateGridFilter(tab, query) { GridState[tab].query = query.toLowerCase().trim(); window['render' + tab.charAt(0).toUpperCase() + tab.slice(1)](); }
+        function toggleGridInactive(tab, checked) { GridState[tab].showInactive = checked; window['render' + tab.charAt(0).toUpperCase() + tab.slice(1)](); }
+        function setGridSort(tab, col) {
+            if (GridState[tab].col === col) { GridState[tab].dir = GridState[tab].dir === 'asc' ? 'desc' : 'asc'; } 
+            else { GridState[tab].col = col; GridState[tab].dir = 'asc'; }
+            window['render' + tab.charAt(0).toUpperCase() + tab.slice(1)]();
+        }
+
+        function renderUsuarios() {
+            let res = [...DB.usuarios]; const st = GridState.usuarios;
+            if (!st.showInactive) res = res.filter(u => esActivo(u.activo));
+            if (st.query) res = res.filter(u => (u.username || '').toLowerCase().includes(st.query) || (u.nombre_completo || '').toLowerCase().includes(st.query));
+            sortEngine(res, st.col, st.dir); updateArrows('usuarios');
+            if (res.length === 0) { document.getElementById('tabla-usuarios').innerHTML = `<tr><td colspan="5" style="text-align:center; color:#666; font-style:italic; padding:20px;">No hay usuarios registrados que coincidan con la búsqueda.</td></tr>`; return; }
+            document.getElementById('tabla-usuarios').innerHTML = res.map(u=>`<tr><td><strong>${u.username}</strong></td><td>${u.nombre_completo || ''}</td><td><span class="badge">${(u.rol || '').toUpperCase()}</span></td><td>${esActivo(u.activo) ? 'Activo':'Bloqueado'}</td><td><button class="btn" style="padding:5px 10px; font-size:0.8rem; background:var(--warning); color:black;" onclick="abrirEditarUsuario('${u.username}')">Editar</button></td></tr>`).join('');
+        }
+
+        function renderVehiculos() {
+            let res = [...DB.vehiculos]; const st = GridState.vehiculos;
+            if (!st.showInactive) res = res.filter(v => v.estado === 'activo');
+            if (st.query) res = res.filter(v => (v.patente_identificador || '').toLowerCase().includes(st.query) || (v.marca_modelo || '').toLowerCase().includes(st.query));
+            sortEngine(res, st.col, st.dir); updateArrows('vehiculos');
+            if (res.length === 0) { document.getElementById('tabla-vehiculos').innerHTML = `<tr><td colspan="7" style="text-align:center; color:#666; font-style:italic; padding:20px;">No hay vehículos disponibles en la flota activa.</td></tr>`; return; }
+            document.getElementById('tabla-vehiculos').innerHTML = res.map(v=>`<tr><td><strong>${v.patente_identificador || ''}</strong></td><td>${v.marca_modelo || ''}</td><td>${(v.tipo || '').toUpperCase()}</td><td>${v.autonomia_maxima_km || 0} KM</td><td>${v.capacidad_volumen_m3 || 0} m³</td><td><span class="badge" style="background:${v.estado==='activo'?'var(--success)':v.estado==='mantenimiento'?'var(--warning)':'var(--danger)'}">${(v.estado || '').toUpperCase()}</span></td><td><button class="btn" style="padding:5px 10px; font-size:0.8rem; background:var(--warning); color:black;" onclick="abrirEditarVehiculo(${v.id})">Editar</button></td></tr>`).join('');
+        }
+
+        function renderSucursales() {
+            let res = [...DB.sucursales]; const st = GridState.sucursales;
+            if (!st.showInactive) res = res.filter(s => esActivo(s.activa));
+            if (st.query) res = res.filter(s => (s.nombre || '').toLowerCase().includes(st.query) || (s.calle || '').toLowerCase().includes(st.query));
+            sortEngine(res, st.col, st.dir); updateArrows('sucursales');
+            if (res.length === 0) { document.getElementById('tabla-sucursales').innerHTML = `<tr><td colspan="6" style="text-align:center; color:#666; font-style:italic; padding:20px;">No hay sucursales o bases de salida operativas registradas.</td></tr>`; return; }
+            document.getElementById('tabla-sucursales').innerHTML = res.map(s=>`<tr><td><strong>${s.nombre || ''}</strong></td><td>${s.calle || ''} ${s.altura || ''}</td><td>${s.ciudad || ''}</td><td>${s.codigo_postal || ''}</td><td><span class="badge" style="background:${esActivo(s.activa)?'var(--success)':'var(--danger)'}">${esActivo(s.activa) ? 'Activa':'Inactiva'}</span></td><td><button class="btn" style="padding:5px 10px; font-size:0.8rem; background:var(--warning); color:black;" onclick="abrirEditarSucursal(${s.id})">Editar</button></td></tr>`).join('');
+        }
+
+        function renderClientes() {
+            let res = [...DB.clientes]; const st = GridState.clientes;
+            if (!st.showInactive) res = res.filter(c => esActivo(c.activo));
+            if (st.query) res = res.filter(c => (c.razon_social || '').toLowerCase().includes(st.query) || (c.cuit_rut || '').includes(st.query));
+            sortEngine(res, st.col, st.dir); updateArrows('clientes');
+            if (res.length === 0) { document.getElementById('tabla-clientes').innerHTML = `<tr><td colspan="3" style="text-align:center; color:#666; font-style:italic; padding:20px;">No hay destinatarios comerciales cargados en el sistema.</td></tr>`; return; }
+            document.getElementById('tabla-clientes').innerHTML = res.map(c=>`<tr><td><strong>${c.razon_social || ''}</strong></td><td>${c.cuit_rut || ''}</td><td><button class="btn" style="padding:6px 10px; font-size:0.8rem; background:var(--info); margin-right:5px;" onclick="abrirModalDirecciones(${c.id}, '${(c.razon_social || '').replace(/'/g, "\\'")}')">Direcciones</button></td></tr>`).join('');
+        }
+
+        function abrirEditarVehiculo(id) {
+            const v = DB.vehiculos.find(x => x.id === id); if(!v) return;
+            document.getElementById('edit-veh-id').value = v.id; document.getElementById('edit-veh-patente').value = v.patente_identificador;
+            document.getElementById('edit-veh-marca').value = v.marca_modelo; document.getElementById('edit-veh-tipo').value = v.tipo;
+            document.getElementById('edit-veh-autonomia').value = v.autonomia_maxima_km; document.getElementById('edit-veh-volumen').value = v.capacidad_volumen_m3;
+            document.getElementById('edit-veh-estado').value = v.estado; openModal('modal-editar-vehiculo');
+        }
+
+        async function ejecutarEdicionVehiculo(e) {
+            e.preventDefault(); const id = document.getElementById('edit-veh-id').value;
+            try {
+                const payload = { patente_identificador: document.getElementById('edit-veh-patente').value, marca_modelo: document.getElementById('edit-veh-marca').value, tipo: document.getElementById('edit-veh-tipo').value, autonomia_maxima_km: parseFloat(document.getElementById('edit-veh-autonomia').value), capacidad_volumen_m3: parseFloat(document.getElementById('edit-veh-volumen').value), estado: document.getElementById('edit-veh-estado').value };
+                const res = await fetch(`/api/vehiculos/${id}`, { method:'PUT', headers:{ 'Content-Type':'application/json', 'X-CSRF-Token':getCookie('csrf_token') }, body:JSON.stringify(payload) });
+                if (res.ok) { alert("¡Confirmado! Las características del vehículo se actualizaron correctamente."); closeModal('modal-editar-vehiculo'); loadData(); } 
+                else { alert("Error: Parámetros inválidos ingresados en la flota."); }
+            } catch(x) { alert("Error crítico de red: Sin respuesta del host local."); }
+        }
+
+        function abrirEditarUsuario(username) {
+            const u = DB.usuarios.find(x => x.username === username); if (!u) return;
+            document.getElementById('edit-user-username').value = u.username; document.getElementById('edit-user-nombre').value = u.nombre_completo;
+            document.getElementById('edit-user-rol').value = u.rol; document.getElementById('edit-user-activo').value = u.activo ? "true" : "false";
+            document.getElementById('edit-user-password').value = ""; openModal('modal-editar-usuario');
+        }
+
+        async function ejecutarEdicionUsuario(e) {
+            e.preventDefault(); const username = document.getElementById('edit-user-username').value;
+            try {
+                const payload = { nombre_completo: document.getElementById('edit-user-nombre').value, rol: document.getElementById('edit-user-rol').value, activo: document.getElementById('edit-user-activo').value === "true", password: document.getElementById('edit-user-password').value || null };
+                const res = await fetch(`/api/usuarios/${username}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCookie('csrf_token') }, body: JSON.stringify(payload) });
+                if(res.ok) { alert("¡Perfil de usuario reconfigurado exitosamente!"); closeModal('modal-editar-usuario'); loadData(); } 
+                else { alert("Error: Requisitos de complejidad de contraseña insatisfechos."); }
+            } catch(x) { alert("Error de red."); }
+        }
+
+        function renderKanban() {
+            const container = document.getElementById('kanban-board'); container.innerHTML = '';
+            const columnas = [{ id: 'pendiente', titulo: 'Pendiente Salida' }, { id: 'camino', titulo: 'En Tránsito' }, { id: 'completado', titulo: 'Completado' }, { id: 'problema', titulo: 'Incidencia' }];
+            const maxTarjetas = 5;
+            columnas.forEach(col => {
+                const colHTML = document.createElement('div'); colHTML.className = 'kanban-column';
+                const fletesFiltrados = DB.fletes.filter(f => f.estado === col.id);
+                const cardsHTML = fletesFiltrados.slice(0, maxTarjetas).map(f => `<div class="kanban-card ${f.prioridad === 'alta' ? 'card-priority-alta' : 'card-priority-normal'}"><div class="card-header"><span class="card-id" style="color:#111; font-weight:bold; letter-spacing:0.5px;">N° ${String(f.id).padStart(6, '0')}</span><span class="card-priority" style="background:${f.prioridad==='alta'?'var(--danger)':'var(--primary)'}">${f.prioridad}</span></div><div style="font-size: 0.85rem; color: #172b4d; margin-bottom: 12px;"><strong>Origen:</strong> ${f.origen || 'S/D'}<br><strong>Unidad:</strong> ${f.patente_identificador || 'Sin asignar'}</div><div class="card-actions">${getBotonesAccion(f)}</div></div>`).join('');
+                
+                colHTML.innerHTML = `<h3><span>${col.titulo}</span><span class="kanban-column-count">${fletesFiltrados.length}</span></h3><div class="kanban-cards-container">${cardsHTML}</div>`;
+                if (fletesFiltrados.length > maxTarjetas) colHTML.innerHTML += `<button class="btn" style="width:100%; background:#d0d4dc; color:#333; margin-top:10px; font-size:0.85rem;" onclick="abrirModalLista('${col.id}', '${col.titulo}')">Ver listado completo</button>`;
+                container.appendChild(colHTML);
+            });
+        }
+
+        function getBotonesAccion(f) {
+            let acts = '';
+            if (f.estado === 'pendiente') acts += `<button class="btn-card" style="background:var(--success); color:white;" onclick="cambiarEstadoFlete(${f.id}, 'camino')">Despachar</button>`;
+            else if (f.estado === 'camino') acts += `<button class="btn-card" style="background:var(--primary); color:white;" onclick="cambiarEstadoFlete(${f.id}, 'completado')">Finalizar</button><button class="btn-card" style="background:var(--danger); color:white;" onclick="cambiarEstadoFlete(${f.id}, 'problema')">Incidencia</button>`;
+            else if (f.estado === 'problema') acts += `<button class="btn-card" style="background:var(--warning); color:black;" onclick="cambiarEstadoFlete(${f.id}, 'pendiente')">Re-procesar</button>`;
+            return acts;
+        }
+
+        function abrirModalLista(estadoId, titulo) {
+            const fletes = DB.fletes.filter(f => f.estado === estadoId);
+            document.getElementById('titulo-modal-estado').innerText = `${titulo}`;
+            document.getElementById('tabla-estado-mas').innerHTML = fletes.map(f => `<tr><td><strong>${String(f.id).padStart(6, '0')}</strong></td><td><span class="badge" style="background:${f.prioridad==='alta'?'var(--danger)':'var(--primary)'}">${f.prioridad}</span></td><td>${f.origen || ''}</td><td>${f.patente_identificador || ''}</td><td><div style="display:flex; gap:5px;">${getBotonesAccion(f)}</div></td></tr>`).join('');
+            openModal('modal-lista-estado');
+        }
+
+        async function cambiarEstadoFlete(id, estado) { const res = await fetch(`/api/fletes/${id}/estado`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCookie('csrf_token') }, body: JSON.stringify({ estado }) }); if (res.ok) { closeModal('modal-lista-estado'); loadData(); } }
+        function abrirEditarSucursal(id) { const s = DB.sucursales.find(x => x.id === id); if (!s) return; document.getElementById('edit-suc-id').value = s.id; document.getElementById('edit-suc-nombre').value = s.nombre; document.getElementById('edit-suc-calle').value = s.calle; document.getElementById('edit-suc-altura').value = s.altura || ''; document.getElementById('edit-suc-ciudad').value = s.ciudad || ''; document.getElementById('edit-suc-cp').value = s.codigo_postal || ''; document.getElementById('edit-suc-provincia').value = s.provincia || ''; openModal('modal-editar-sucursal'); }
+        
+        async function ejecutarEdicionSucursal(e) { 
+            e.preventDefault(); const id = document.getElementById('edit-suc-id').value; 
+            try {
+                const payload = { nombre: document.getElementById('edit-suc-nombre').value, calle: document.getElementById('edit-suc-calle').value, altura: document.getElementById('edit-suc-altura').value, ciudad: document.getElementById('edit-suc-ciudad').value, codigo_postal: document.getElementById('edit-suc-cp').value, provincia: document.getElementById('edit-suc-provincia').value, latitud: -34.6037, longitud: -58.3816, activa: document.getElementById('edit-suc-activa').value === "true" }; 
+                const res = await fetch(`/api/sucursales/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCookie('csrf_token') }, body: JSON.stringify(payload) }); 
+                if (res.ok) { alert("¡Cambios en base operativa guardados con éxito!"); closeModal('modal-editar-sucursal'); loadData(); } 
+                else { alert("Error: Fallo de consistencia fiscal."); }
+            } catch(x) { alert("Error de red."); }
+        }
+        
+        async function abrirModalDirecciones(clienteId, razonSocial) { document.getElementById('nombre-cliente-modal').innerText = razonSocial; document.getElementById('dir-cliente-id').value = clienteId; document.getElementById('form-nueva-direccion').reset(); document.getElementById('dir-ciudad').value=globalConfig.ciudad_defecto; document.getElementById('dir-provincia').value=globalConfig.provincia_defecto; await cargarDireccionesEnModal(clienteId); openModal('modal-direcciones-cliente'); }
+        async function cargarDireccionesEnModal(clienteId) { const res = await fetch(`/api/clientes/${clienteId}/direcciones`); if (res.ok) { const dirs = await res.json(); document.getElementById('tabla-direcciones-cliente').innerHTML = dirs.map(d => `<tr><td><strong>${d.alias}</strong></td><td>${d.calle} ${d.altura}</td><td>${d.ciudad}</td></tr>`).join(''); } }
+        async function guardarDireccionCliente() { 
+            try {
+                const clienteId = document.getElementById('dir-cliente-id').value; const payload = { alias: document.getElementById('dir-alias').value, calle: document.getElementById('dir-calle').value, altura: document.getElementById('dir-altura').value, ciudad: document.getElementById('dir-ciudad').value, codigo_postal: document.getElementById('dir-cp').value, provincia: document.getElementById('dir-provincia').value, latitud: -34.6037, longitud: -58.3816 }; 
+                const res = await fetch(`/api/clientes/${clienteId}/direcciones`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCookie('csrf_token') }, body: JSON.stringify(payload) }); 
+                if (res.ok) { alert("¡Dirección incorporada a la libreta logisica con éxito!"); document.getElementById('form-nueva-direccion').reset(); cargarDireccionesEnModal(clienteId); delete direccionesCache[clienteId]; }
+            } catch(x) { alert("Error de comunicación."); }
+        }
+        
+        function openFletePanel() { openModal('panel-flete'); if (paradaCount === 0) addParada(); }
+        
+        function addParada() {
+            paradaCount++; const div = document.createElement('div'); div.className = 'parada-box'; div.id = 'parada-' + paradaCount; div.style = 'border:1px solid #ddd; padding:15px; margin-bottom:12px; border-radius:8px; background:#fafafa;';
+            let docOptions = '<option value="">Seleccione Tipo...</option>' + DB.tipos_docs.map(t=>`<option value="${t.codigo}">${t.nombre}</option>`).join('');
+            let volFieldHTML = globalConfig.manejar_volumenes ? `<div class="form-group"><label>Volumen Requerido (m³) <span style="color:var(--danger);">*</span></label><input type="number" step="0.01" class="p-volumen" value="0.00" min="0.00"></div>` : `<input type="hidden" class="p-volumen" value="0.00">`;
+
+            div.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;"><h4 style="margin:0;">Destino ${paradaCount}</h4><button class="btn" style="background:var(--danger); padding:4px 8px; font-size:0.75rem;" onclick="document.getElementById('${div.id}').remove()">Quitar</button></div>
+                <div class="form-group"><label>Documento <span style="color:var(--danger);">*</span></label><select class="p-tipo" onchange="validarCampos(this)">${docOptions}</select></div>
+                <div style="display:flex; gap:10px;">
+                    <div class="form-group c-id" style="flex:1"><label>ID <span style="color:var(--danger);">*</span></label><input type="text" name="p-id" class="p-id"></div>
+                    <div class="form-group c-pv" style="flex:1"><label>Pto. Venta <span style="color:var(--danger);">*</span></label><input type="text" name="p-pv" class="p-pv"></div>
+                    <div class="form-group c-num" style="flex:1.5"><label>Número <span style="color:var(--danger);">*</span></label><input type="text" name="p-num" class="p-num"></div>
+                </div>
+                <div class="form-group"><label>Cantidad de Bultos <span style="color:var(--danger);">*</span></label><input type="number" class="p-bultos" value="1" min="1"></div>
+                ${volFieldHTML}
+                <div class="form-group"><label>Tipo de Destino <span style="color:var(--danger);">*</span></label><select class="p-tipo-destino" onchange="conmutarTipoDestino(this)"><option value="">Seleccione tipo...</option><option value="sucursal">Sucursal Interna</option><option value="destinatario">Destinatario Registrado</option><option value="esporadico">Destinatario Manual (Esporádico)</option></select></div>
+                <div class="panel-sucursal" style="display:none;"><div class="form-group"><label>Seleccionar Sucursal <span style="color:var(--danger);">*</span></label><select class="p-sucursal-select"></select></div></div>
+                <div class="panel-destinatario" style="display:none; position:relative;"><div class="form-group"><label>Buscar Destinatario Maestro <span style="color:var(--danger);">*</span></label><input type="text" class="p-dest-search" placeholder="Escriba Razón Social..." oninput="filtrarDestinatariosPredictivo(this)"><input type="hidden" class="p-dest-id"><div class="autocomplete-results"></div></div><div class="panel-punto-entrega" style="display:none; background:#e8f4fd; padding:12px; border-radius:6px; margin-bottom:10px;"><div class="form-group"><label style="color:#0056b3;">Punto de Entrega Asociado <span style="color:var(--danger);">*</span></label><select class="p-punto-select"></select></div></div></div>
+                <div class="panel-esporadico" style="display:none; background:#ebecf0; padding:12px; border-radius:6px; margin-bottom:10px;"><div class="form-group"><label>Nombre Destinatario <span style="color:var(--danger);">*</span></label><input type="text" class="p-alias"></div><div style="display:flex; gap:10px;"><div class="form-group" style="flex:2;"><label>Calle <span style="color:var(--danger);">*</span></label><input type="text" class="p-calle"></div><div class="form-group" style="flex:1;"><label>Altura <span style="color:var(--danger);">*</span></label><input type="text" class="p-alt"></div></div><div style="display:flex; gap:10px;"><div class="form-group" style="flex:1;"><label>Ciudad <span style="color:var(--danger);">*</span></label><input type="text" class="p-ciudad" value="${globalConfig.ciudad_defecto || 'CABA'}"></div><div class="form-group" style="flex:1;"><label>Provincia <span style="color:var(--danger);">*</span></label><input type="text" class="p-prov" value="${globalConfig.provincia_defecto || 'Buenos Aires'}"></div></div></div>
+            `;
+            document.getElementById('paradas-container').appendChild(div); validarCampos(div.querySelector('.p-tipo'));
+        }
+
+        function conmutarTipoDestino(sel) { 
+            const caja = sel.closest('.parada-box'); const tipo = sel.value; 
+            caja.querySelector('.panel-sucursal').style.display = (tipo === 'sucursal') ? 'block' : 'none'; 
+            caja.querySelector('.panel-destinatario').style.display = (tipo === 'destinatario') ? 'block' : 'none'; 
+            caja.querySelector('.panel-esporadico').style.display = (tipo === 'esporadico') ? 'block' : 'none'; 
+            if (tipo === 'sucursal') { 
+                caja.querySelector('.p-sucursal-select').innerHTML = DB.sucursales.filter(s=>esActivo(s.activa)).map(s=>`<option value="${s.id}">${s.nombre}</option>`).join(''); 
+            } 
+        }
+        function filtrarDestinatariosPredictivo(input) { const caja = input.closest('.parada-box'); const query = input.value.toLowerCase().trim(); const resultsDiv = caja.querySelector('.autocomplete-results'); if (!query) { resultsDiv.style.display = 'none'; return; } const filtrados = DB.clientes.filter(c => c.razon_social.toLowerCase().includes(query) || c.cuit_rut.includes(query)); if (filtrados.length === 0) { resultsDiv.innerHTML = '<div class="autocomplete-item">Sin coincidencias</div>'; } else { resultsDiv.innerHTML = filtrados.map(c => `<div class="autocomplete-item" onclick="seleccionarDestinatarioOpcion(this, ${c.id}, '${c.razon_social.replace(/'/g, "\\'")}')"><strong>${c.razon_social}</strong></div>`).join(''); } resultsDiv.style.display = 'block'; }
+        function seleccionarDestinatarioOpcion(item, id, nombre) { const caja = item.closest('.parada-box'); caja.querySelector('.p-dest-search').value = nombre; caja.querySelector('.p-dest-id').value = id; caja.querySelector('.autocomplete-results').style.display = 'none'; cargarPuntosEntregaParaFlete(id, caja.querySelector('.p-punto-select'), caja.querySelector('.panel-punto-entrega')); }
+        async function cargarPuntosEntregaParaFlete(clienteId, sel, panel) { sel.innerHTML = '<option value="">Cargando...</option>'; panel.style.display = 'block'; if (!direccionesCache[clienteId]) { const res = await fetch(`/api/clientes/${clienteId}/direcciones`); direccionesCache[clienteId] = res.ok ? await res.json() : []; } const dirs = direccionesCache[clienteId]; sel.innerHTML = dirs.length === 0 ? '<option value="">Sin direcciones</option>' : dirs.map(d => `<option value="${d.id}" data-calle="${d.calle}" data-altura="${d.altura}" data-ciudad="${d.ciudad}" data-provincia="${d.provincia}" data-alias="${d.alias}">${d.alias}</option>`).join(''); }
+        function validarCampos(sel) { const caja = sel.closest('.parada-box'); const r = DB.tipos_docs.find(t => t.codigo === sel.value); caja.querySelector('.c-id').style.display = (r && r.requiere_id) ? 'block' : 'none'; caja.querySelector('.c-pv').style.display = (r && r.requiere_pto_venta) ? 'block' : 'none'; caja.querySelector('.c-num').style.display = (r && r.requiere_numero) ? 'block' : 'none'; }
+        
+        async function confirmarFlete() {
+            document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid')); let errores = 0;
+            const vehiculoEl = document.getElementById('flete-vehiculo'); const origenEl = document.getElementById('flete-origen'); const prioridadEl = document.getElementById('flete-prioridad');
+            if (!vehiculoEl.value) { vehiculoEl.classList.add('is-invalid'); errores++; } if (!origenEl.value) { origenEl.classList.add('is-invalid'); errores++; } if (!prioridadEl.value) { prioridadEl.classList.add('is-invalid'); errores++; }
+            
+            const payload = { vehiculo_id: parseInt(vehiculoEl.value) || 0, origen_id: parseInt(origenEl.value) || 0, prioridad: prioridadEl.value, distancia_estimada_km: 0.0, documentos: [] };
+            const cajas = document.querySelectorAll('.parada-box'); if (cajas.length === 0) return alert("Añada al menos una parada.");
+            
+            for(let caja of cajas) {
+                const tipoDocEl = caja.querySelector('.p-tipo'); const bultosEl = caja.querySelector('.p-bultos'); const tipoDestinoSel = caja.querySelector('.p-tipo-destino'); const volInput = caja.querySelector('.p-volumen');
+                if (!tipoDocEl.value) { tipoDocEl.classList.add('is-invalid'); errores++; } if (!bultosEl.value || parseInt(bultosEl.value) < 1) { bultosEl.classList.add('is-invalid'); errores++; } if (!tipoDestinoSel.value) { tipoDestinoSel.classList.add('is-invalid'); errores++; }
+                if (!tipoDocEl.value || !tipoDestinoSel.value) continue;
+
+                let doc = { tipo_documento: tipoDocEl.value, doc_id: "", punto_venta: "", numero: "", destino_tipo: tipoDestinoSel.value, destino_id: 0, bultos: parseInt(bultosEl.value) || 1, volumen_m3: parseFloat(volInput.value) || 0.0 };
+                
+                const idEl = caja.querySelector('.p-id'); const pvEl = caja.querySelector('.p-pv'); const numEl = caja.querySelector('.p-num');
+                if (caja.querySelector('.c-id').style.display !== 'none') { if (!idEl.value) { idEl.classList.add('is-invalid'); errores++; } doc.doc_id = idEl.value; }
+                if (caja.querySelector('.c-pv').style.display !== 'none') { if (!pvEl.value) { pvEl.classList.add('is-invalid'); errores++; } doc.punto_venta = pvEl.value; }
+                if (caja.querySelector('.c-num').style.display !== 'none') { if (!numEl.value) { numEl.classList.add('is-invalid'); errores++; } doc.numero = numEl.value; }
+
+                if (tipoDestinoSel.value === 'sucursal') {
+                    const sucSel = caja.querySelector('.p-sucursal-select'); if (!sucSel.value) { errores++; sucSel.classList.add('is-invalid'); }
+                    const s = DB.sucursales.find(x => x.id == sucSel.value);
+                    if(s) { doc.destino_id = s.id; doc.destino_alias = s.nombre; doc.destino_calle = s.calle; doc.destino_altura = s.altura; doc.destino_ciudad = s.ciudad; doc.destino_provincia = s.provincia; }
+                } 
+                else if (tipoDestinoSel.value === 'destinatario') {
+                    const destSearchInput = caja.querySelector('.p-dest-search'); const hiddenDestId = caja.querySelector('.p-dest-id'); const puntoSel = caja.querySelector('.p-punto-select');
+                    if (!hiddenDestId.value) { destSearchInput.classList.add('is-invalid'); errores++; } if (!puntoSel.value) { puntoSel.classList.add('is-invalid'); errores++; }
+                    if (hiddenDestId.value && puntoSel.value) {
+                        const opt = puntoSel.options[puntoSel.selectedIndex]; doc.destino_id = parseInt(puntoSel.value); doc.destino_alias = opt.getAttribute('data-alias'); doc.destino_calle = opt.getAttribute('data-calle'); doc.destino_altura = opt.getAttribute('data-altura'); doc.destino_ciudad = opt.getAttribute('data-ciudad'); doc.destino_provincia = opt.getAttribute('data-provincia');
+                    }
+                } 
+                else if (tipoDestinoSel.value === 'esporadico') {
+                    const aliasEl = caja.querySelector('.p-alias'); const calleEl = caja.querySelector('.p-calle'); const altEl = caja.querySelector('.p-alt');
+                    if (!aliasEl.value) { aliasEl.classList.add('is-invalid'); errores++; } if (!calleEl.value) { calleEl.classList.add('is-invalid'); errores++; } if (!altEl.value) { altEl.classList.add('is-invalid'); errores++; }
+                    doc.destino_alias = aliasEl.value; doc.destino_calle = calleEl.value; doc.destino_altura = altEl.value; doc.destino_ciudad = caja.querySelector('.p-ciudad').value; doc.destino_provincia = caja.querySelector('.p-prov').value;
+                }   payload.documentos.push(doc);
+            }
+
+            if (errores > 0) return alert("Complete los campos obligatorios.");
+            try {
+                const res = await fetch('/api/fletes', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCookie('csrf_token') }, body: JSON.stringify(payload) });
+                if (res.ok) { alert("¡Flete lanzado con éxito! La orden de carga ya se encuentra disponible para los transportistas."); closeModal('panel-flete'); document.getElementById('paradas-container').innerHTML = ''; paradaCount = 0; loadData(); } 
+                else { alert("Error de validación: " + (await res.json()).detail); }
+            } catch(x) { alert("Error de red: Imposible contactar con el servidor central."); }
+        }
+
+        async function guardarConfig(e) { 
+            e.preventDefault(); 
+            try {
+                const payload = {
+                    nombre_empresa: document.getElementById('conf-nombre').value, gps_polling_sec: parseInt(document.getElementById('conf-gps').value),
+                    ciudad_defecto: document.getElementById('conf-ciudad').value, provincia_defecto: document.getElementById('conf-provincia').value,
+                    pais_defecto: document.getElementById('conf-pais').value, manejar_volumenes: document.getElementById('conf-volumenes').value === "true",
+                    google_oauth_enabled: document.getElementById('conf-oauth-enabled').value === "true", google_client_id: document.getElementById('conf-client-id').value || null, google_client_secret: document.getElementById('conf-client-secret').value || null, google_redirect_url: document.getElementById('conf-redirect-url').value || null
+                };
+                const res = await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCookie('csrf_token') }, body: JSON.stringify(payload) }); 
+                if (res.ok) { alert("¡Configuración global guardada de forma segura!"); loadData(); } 
+                else { alert("Error al guardar parámetros: " + (await res.json()).detail); }
+            } catch (err) { alert("Fallo crítico de red: Revise la conectividad local de la PC."); }
+        }
+        window.onload = loadData;
+    </script>
+</body>
+</html>

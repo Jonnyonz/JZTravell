@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BazarChef - Iniciar Sesión</title>
+    <style>
+        :root {
+            --primary: #f06a25; 
+            --primary-hover: #d65518;
+            --bg: #1e2229;
+            --card-bg: #ffffff;
+            --text: #333333;
+        }
+        body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: var(--bg); display: flex; justify-content: center; align-items: center; height: 100vh; color: var(--text); }
+        .login-card { background: var(--card-bg); padding: 2.5rem; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); width: 100%; max-width: 400px; box-sizing: border-box; }
+        .login-card h2 { margin: 0 0 0.5rem 0; font-size: 1.8rem; color: #111; text-align: center; }
+        .login-card p { margin: 0 0 2rem 0; color: #666; text-align: center; font-size: 0.9rem; }
+        .form-group { margin-bottom: 1.5rem; }
+        .form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.85rem; color: #444; }
+        .form-group input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
+        .form-group input:focus { border-color: var(--primary); outline: none; }
+        .btn-login { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-login:hover { background: var(--primary-hover); }
+        .btn-google { width: 100%; padding: 12px; background: #ffffff; color: #444; border: 1px solid #ccd1d9; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 15px; display: none; align-items: center; justify-content: center; gap: 10px; }
+        .error-msg { color: #dc3545; font-size: 0.85rem; margin-top: 15px; text-align: center; display: none; padding: 10px; border-radius: 6px; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <h2>BazarChef</h2>
+        <p>Sistema de Gestión Logística</p>
+        <form id="login-form" onsubmit="handleLogin(event)">
+            <div class="form-group"><label>Usuario</label><input type="text" id="username" required></div>
+            <div class="form-group"><label>Contraseña</label><input type="password" id="password" required></div>
+            <button type="submit" class="btn-login">Ingresar al Portal</button>
+        </form>
+        <button class="btn-google" id="btn-google-oauth" onclick="redireccionarAGoogle()">Iniciar Sesión con Google</button>
+        <div id="error-box" class="error-msg"></div>
+    </div>
+    <script>
+        function getCookie(name) { let match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)')); return match ? match[2] : null; }
+        
+        async function evaluarConfiguracionOAuth() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const status = urlParams.get('status');
+            const error = urlParams.get('error');
+            const errorBox = document.getElementById('error-box');
+
+            // 🔥 INTERCEPTACIÓN DE PARAMETROS NATIVOS DEL SERVIDOR
+            if (status === 'pending') {
+                errorBox.style.color = "#0056b3";
+                errorBox.style.backgroundColor = "#e8f4fd";
+                errorBox.innerText = "Su cuenta se encuentra en periodo de evaluacion. La solicitud de acceso fue enviada al administrador.";
+                errorBox.style.display = 'block';
+            } else if (error) {
+                errorBox.style.color = "#dc3545";
+                errorBox.style.backgroundColor = "#fff5f5";
+                errorBox.innerText = decodeURIComponent(error);
+                errorBox.style.display = 'block';
+            }
+
+            try {
+                const res = await fetch('/api/config');
+                if (res.ok) {
+                    const cfg = await res.json();
+                    if (cfg.google_oauth_enabled) document.getElementById('btn-google-oauth').style.display = 'flex';
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault(); const errorBox = document.getElementById('error-box'); errorBox.style.display = 'none';
+            const payload = { username: document.getElementById('username').value, password: document.getElementById('password').value };
+            try {
+                const res = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCookie('csrf_token') }, body: JSON.stringify(payload) });
+                if (res.ok) { window.location.href = (await res.json()).redirect; } 
+                else { errorBox.innerText = (await res.json()).detail || "Error."; errorBox.style.backgroundColor = "#fff5f5"; errorBox.style.display = 'block'; }
+            } catch (err) { errorBox.innerText = "Error de conexion."; errorBox.style.display = 'block'; }
+        }
+
+        async function redireccionarAGoogle() {
+            try {
+                const res = await fetch('/api/auth/google/url');
+                if (res.ok) { window.location.href = (await res.json()).url; }
+            } catch(e) { alert("Error al conectar con el servicio de autenticacion."); }
+        }
+
+        window.onload = evaluarConfiguracionOAuth;
+    </script>
+</body>
+</html>

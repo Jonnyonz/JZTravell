@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Portal Cliente - BazarChef</title>
+    <style>
+        :root { --primary: #f06a25; --bg: #f4f6f9; --text: #333; --info: #17a2b8;}
+        body { margin: 0; font-family: system-ui, -apple-system, sans-serif; display: flex; flex-direction: column; height: 100vh; background: var(--bg); color: var(--text); }
+        
+        .navbar { background: #ffffff; padding: 1rem 2rem; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; z-index: 10; border-bottom: 1px solid #eaeaea;}
+        .navbar-brand { display: flex; align-items: center; gap: 10px; font-size: 1.4rem; font-weight: 800; color: var(--primary); }
+        .navbar-menu { display: flex; gap: 12px; align-items: center; }
+        
+        .btn { padding: 10px 20px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; font-size: 0.95rem; white-space: nowrap;}
+        .btn:hover { background: #d65518; }
+        .btn-outline { background: transparent; border: 2px solid #ddd; color: #555; }
+        .btn-outline:hover { background: #f4f4f4; color: #111; border-color: #ccc;}
+        
+        .content { flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 2rem; box-sizing: border-box; }
+        .header-section { margin-bottom: 1.5rem; }
+        
+        .kanban-board { display: flex; flex-direction: row; gap: 1.5rem; height: 100%; align-items: flex-start; box-sizing: border-box; }
+        .kanban-column { background: #ebecf0; border-radius: 12px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; flex-direction: column; flex: 1; min-width: 280px; max-width: 450px; max-height: 100%; box-sizing: border-box; }
+        .kanban-column h3 { margin: 0 0 15px 0; font-size: 1.1rem; color: #172b4d; border-bottom: 2px solid #ddd; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center;}
+        .kanban-cards-container { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; flex: 1; padding-right: 5px;}
+        
+        .kanban-card { background: white; border-radius: 10px; padding: 16px; box-shadow: 0 3px 6px rgba(0,0,0,0.04); border-left: 5px solid var(--info); transition: 0.2s;}
+        .kanban-card:hover { transform: translateY(-2px); box-shadow: 0 5px 12px rgba(0,0,0,0.08);}
+        .card-header { font-weight: bold; margin-bottom: 10px; font-size: 0.95rem; color: #333; display: flex; justify-content: space-between;}
+        .badge { padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; color: white; background: #6c757d; }
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(3px); padding: 15px; box-sizing: border-box;}
+        .modal.active { display: flex; }
+        .modal-content { background: white; padding: 2.5rem; border-radius: 16px; width: 100%; max-width: 500px; position: relative; box-shadow: 0 15px 35px rgba(0,0,0,0.2); box-sizing: border-box;}
+        .close-btn { position: absolute; top: 15px; right: 20px; cursor: pointer; font-size: 1.5rem; border: none; background: none; color: #888;}
+        
+        .form-group { margin-bottom: 1.2rem; }
+        .form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.9rem; color: #444; }
+        .form-group input, .form-group select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 0.95rem; background: #f9f9f9;}
+
+        .system-footer { background: #ffffff; padding: 12px 20px; text-align: center; font-size: 0.8rem; color: #666; border-top: 1px solid #eaeaea; line-height: 1.4; }
+        .system-footer a { color: var(--primary); text-decoration: none; font-weight: bold; }
+
+        @media (max-width: 768px) {
+            .navbar { padding: 1rem; }
+            .navbar-brand { font-size: 1.1rem; }
+            .content { padding: 1rem; overflow-y: auto; } 
+            .kanban-board { flex-direction: column; height: auto; overflow-x: hidden; }
+            .kanban-column { width: 100% !important; min-width: 100% !important; max-width: 100% !important; max-height: none; margin-bottom: 1.5rem; }
+            .modal-content { padding: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <script>
+        function getCookie(name) { let match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)')); return match ? match[2] : null; }
+        if (getCookie('user_rol') !== 'cliente' && getCookie('user_rol') !== 'admin') { window.location.href = "/index.html"; }
+        function cerrarSesion() {
+            document.cookie = "user_id=; path=/; max-age=0";
+            document.cookie = "user_rol=; path=/; max-age=0";
+            document.cookie = "session_id=; path=/; max-age=0";
+            window.location.href = "/index.html";
+        }
+    </script>
+
+    <div class="navbar">
+        <div class="navbar-brand">BazarChef <span style="font-weight:400; font-size:1rem; color:#888;">| Portal Comercial</span></div>
+        <div class="navbar-menu">
+            <button class="btn" onclick="openModal('panel-flete')">Solicitar Unidad</button>
+            <button class="btn btn-outline" style="border:none; color:var(--primary); padding:5px;" onclick="cerrarSesion()">Salir</button>
+        </div>
+    </div>
+    
+    <div class="content">
+        <div class="header-section">
+            <h2 style="margin:0; font-size:1.6rem;">Estado de Envíos</h2>
+        </div>
+        <div class="kanban-board" id="kanban-board"></div>
+    </div>
+
+    <div id="panel-flete" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="closeModal('panel-flete')">Cerrar</button>
+            <h3>Solicitar Unidad</h3>
+            <div class="form-group"><label>Prioridad</label><select id="flete-prioridad"><option value="normal">Normal</option><option value="alta">Urgente</option></select></div>
+            <div class="form-group"><label>Documento</label><select id="flete-tipo"><option value="odt">ODT</option><option value="remito">Remito</option></select></div>
+            <div class="form-group"><label>Referencia</label><input type="text" id="flete-ref" placeholder="Ej: 0001-000456"></div>
+            <div class="form-group"><label>Instrucciones</label><input type="text" id="flete-alias" placeholder="Instrucciones para la entrega"></div>
+            <button class="btn" style="width:100%; margin-top:15px; padding:14px;" onclick="enviarSolicitud()">Enviar Solicitud</button>
+        </div>
+    </div>
+
+    <div class="system-footer">
+        Versión 1.7<br>
+        Powered by <a href="https://jz-tech.mywire.org" target="_blank">JZ Tech Solutions</a>
+    </div>
+
+    <script>
+        var DB = { fletes: [] };
+        function openModal(id) { document.getElementById(id).classList.add('active'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+        async function loadData() {
+            try {
+                DB.fletes = await (await fetch('/api/fletes')).json();
+                renderKanban();
+            } catch (error) { console.error("Error"); }
+        }
+
+        function renderKanban() {
+            const container = document.getElementById('kanban-board'); container.innerHTML = '';
+            const columnas = [{ id: 'pendiente', titulo: 'Procesando Solicitud', color: '#ffc107' }, { id: 'camino', titulo: 'En Tránsito', color: '#007bff' }, { id: 'completado', titulo: 'Entregado', color: '#28a745' }];
+            columnas.forEach(col => {
+                const colHTML = document.createElement('div'); colHTML.className = 'kanban-column';
+                const fletesFiltrados = DB.fletes.filter(f => f.estado === col.id).slice(0, 15);
+                const cardsHTML = fletesFiltrados.map(f => `<div class="kanban-card" style="border-left-color: ${col.color};"><div class="card-header">Tracking #${f.id} <span class="badge" style="background:${f.prioridad === 'alta' ? 'var(--danger)' : '#6c757d'};">${f.prioridad.toUpperCase()}</span></div><div style="font-size: 0.9rem; color: #555;"><strong>Origen:</strong> ${f.origen}<br><strong>Unidad:</strong> ${f.marca_modelo || 'Asignando...'}</div></div>`).join('');
+                colHTML.innerHTML = `<h3><span>${col.titulo}</span><span style="background:#ccc; padding:2px 8px; border-radius:12px; font-size:0.8rem;">${fletesFiltrados.length}</span></h3><div class="kanban-cards-container">${cardsHTML}</div>`;
+                container.appendChild(colHTML);
+            });
+        }
+        function enviarSolicitud() { alert("Solicitud recibida."); closeModal('panel-flete'); }
+        window.onload = loadData;
+    </script>
+</body>
+</html>

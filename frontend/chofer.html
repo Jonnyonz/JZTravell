@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Portal de Transporte - BazarChef</title>
+    <style>
+        :root { --primary: #007bff; --bg: #121212; --text: #ffffff; --card-bg: #1e1e1e; --success: #28a745; --danger: #dc3545;}
+        body { margin: 0; font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); padding-bottom: 1rem; display: flex; flex-direction: column; min-height: 100vh;}
+        
+        .header { background: #000; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; position: sticky; top: 0; z-index: 100;}
+        .header h1 { margin: 0; font-size: 1.2rem; color: #f06a25; }
+        .gps-status { display: flex; align-items: center; gap: 5px; font-size: 0.8rem; color: #aaa;}
+        .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--danger); }
+        .dot.active { background: var(--success); box-shadow: 0 0 8px var(--success); }
+
+        .container { padding: 15px; flex: 1;}
+        .section-title { font-size: 1rem; text-transform: uppercase; color: #888; border-bottom: 1px solid #333; padding-bottom: 5px; margin-top: 20px; margin-bottom: 15px;}
+        
+        .card { background: var(--card-bg); border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); border-left: 5px solid var(--primary); position: relative;}
+        .card.active-trip { border-left-color: var(--success); border: 2px solid var(--success); }
+        .card-header { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 10px; font-size: 1.1rem; padding-right: 30px;}
+        .card-body { font-size: 0.95rem; color: #ddd; margin-bottom: 15px;}
+        
+        .checkbox-container { position: absolute; top: 15px; right: 15px; scale: 1.4; }
+
+        .btn { width: 100%; padding: 15px; border-radius: 8px; font-weight: bold; font-size: 1.1rem; border: none; cursor: pointer; margin-top: 10px; color: white;}
+        .btn-start { background: var(--primary); }
+        .btn-consolidate { background: #f06a25; margin-bottom: 15px;}
+        .btn-maps { background: #4285F4; display: flex; align-items: center; justify-content: center; gap: 8px;}
+        .btn-print { background: #6c757d; }
+        .btn-finish { background: var(--success); }
+        
+        .parada-item { background: #2a2a2a; padding: 10px; border-radius: 6px; margin-bottom: 8px; font-size: 0.85rem;}
+        .system-footer { font-size: 0.75rem; color: #666; text-align: center; line-height: 1.4; padding: 15px; border-top: 1px solid #222; margin-top: auto; }
+        .system-footer a { color: #f06a25; text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <script>
+        function getCookie(name) { let match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)')); return match ? match[2] : null; }
+        if (getCookie('user_rol') !== 'chofer') { window.location.href = "/index.html"; }
+    </script>
+
+    <div class="header">
+        <h1>BazarChef Transporte</h1>
+        <div class="gps-status"><div class="dot" id="gps-dot"></div> <span id="gps-text">Ubicación Inactiva</span></div>
+    </div>
+
+    <div class="container">
+        <div id="viaje-actual-container"></div>
+        
+        <div class="section-title">Viajes Disponibles</div>
+        <button class="btn btn-consolidate" id="btn-consolidar-rutas" onclick="ejecutarConsolidacion()" style="display:none;">Consolidar y Optimizar Selección</button>
+        <div id="viajes-pendientes-container"></div>
+    </div>
+
+    <div class="system-footer">
+        Versión 1.8<br>
+        Powered by <a href="https://jz-tech.mywire.org" target="_blank">JZ Tech Solutions</a>
+    </div>
+
+    <script>
+        var DB = { fletes: [] }; var myUserId = getCookie('user_id');
+        async function initApp() { await loadData(); iniciarMotorGPS(); }
+        async function loadData() { try { DB.fletes = await (await fetch('/api/fletes')).json(); renderUI(); } catch (e) { console.error(e); } }
+
+        // 🔥 MODIFICACIÓN: Integración visual de identificadores fijos de 6 dígitos en la app móvil
+        function renderUI() {
+            const containerActual = document.getElementById('viaje-actual-container');
+            const containerPendientes = document.getElementById('viajes-pendientes-container');
+            containerActual.innerHTML = ''; containerPendientes.innerHTML = '';
+
+            const fletesActivos = DB.fletes.filter(f => f.estado === 'camino' && f.chofer_id === myUserId);
+            const fletesPendientes = DB.fletes.filter(f => f.estado === 'pendiente');
+
+            if (fletesActivos.length > 0) {
+                const fleteIds = fletesActivos.map(f => f.id).join(',');
+                let todasParadas = [];
+                fletesActivos.forEach(f => todasParadas = todasParadas.concat(f.paradas));
+                todasParadas.sort((a,b) => a.orden_ruta - b.orden_ruta);
+
+                containerActual.innerHTML = `
+                    <div class="section-title" style="color:var(--success);">Ruta Optimizada Activa</div>
+                    <div class="card active-trip">
+                        <div class="card-header"><span>Control: N° ${String(fletesActivos[0].id).padStart(6, '0')}</span><span style="font-size:0.9rem;">${fletesActivos.length} Consolidados</span></div>
+                        <div class="card-body">
+                            <p><strong>Manifiesto de Carga y Documentos:</strong></p>
+                            ${todasParadas.map((p, i) => `<div class="parada-item"><strong>${i+1}</strong>. ${p.destino_alias} (${p.bultos} Bultos)<br><small>[${p.tipo_documento.toUpperCase()}] ${p.destino_calle} ${p.destino_altura}</small></div>`).join('')}
+                        </div>
+                        <button class="btn btn-maps" onclick="abrirGoogleMapsMulti()">Navegar Ruta Completa</button>
+                        <button class="btn btn-print" onclick="descargarHojaRuta('${fleteIds}')">Imprimir Hoja de Ruta</button>
+                        <button class="btn btn-finish" onclick="finalizarRutaCompleta('${fleteIds}')">Finalizar Ruta de Entrega</button>
+                    </div>
+                `;
+                document.getElementById('btn-consolidar-rutas').style.display = 'none';
+            } else {
+                document.getElementById('btn-consolidar-rutas').style.display = fletesPendientes.length > 0 ? 'block' : 'none';
+            }
+
+            if (fletesPendientes.length === 0 && fletesActivos.length === 0) {
+                containerPendientes.innerHTML = '<p style="color:#666; text-align:center;">No hay rutas asignadas in este momento.</p>';
+            } else {
+                containerPendientes.innerHTML = fletesPendientes.map(f => `
+                    <div class="card">
+                        <div class="checkbox-container"><input type="checkbox" class="flete-select" value="${f.id}" onchange="evaluarCheckboxes()"></div>
+                        <div class="card-header"><span>Control: N° ${String(f.id).padStart(6, '0')}</span><span style="color:var(--primary); font-size:0.9rem;">${f.paradas.length} Destinos</span></div>
+                        <div class="card-body"><strong>Origen:</strong> ${f.origen}</div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function evaluarCheckboxes() {
+            const seleccionados = document.querySelectorAll('.flete-select:checked').length;
+            document.getElementById('btn-consolidar-rutas').innerText = seleccionados > 0 ? `Consolidar y Optimizar (${seleccionados}) Envíos` : 'Consolidar y Optimizar Selección';
+        }
+
+        async function ejecutarConsolidacion() {
+            const checks = document.querySelectorAll('.flete-select:checked');
+            if(checks.length === 0) return;
+            const ids = Array.from(checks).map(c => parseInt(c.value));
+            const res = await fetch('/api/fletes/consolidar', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCookie('csrf_token') }, body: JSON.stringify({ flete_ids: ids }) });
+            if (res.ok) loadData();
+        }
+
+        function descargarHojaRuta(ids) { window.open(`/api/fletes/imprimir?ids=${ids}`, '_blank'); }
+
+        async function finalizarRutaCompleta(idsStr) {
+            const ids = idsStr.split(',');
+            for(let id of ids) { await fetch(`/api/fletes/${id}/estado`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCookie('csrf_token') }, body: JSON.stringify({ estado: 'completado' }) }); }
+            loadData();
+        }
+
+        async function iniciarMotorGPS() {
+            const conf = await (await fetch('/api/config')).json(); const pollingSec = conf.gps_polling_sec || 10;
+            if ("geolocation" in navigator) { enviarPulsoGPS(); setInterval(enviarPulsoGPS, pollingSec * 1000); }
+        }
+
+        function enviarPulsoGPS() {
+            navigator.geolocation.getCurrentPosition(async (pos) => {
+                try {
+                    await fetch('/api/gps', { method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': getCookie('csrf_token')}, body: JSON.stringify({ lat: pos.coords.latitude, lon: pos.coords.longitude }) });
+                    document.getElementById('gps-dot').classList.add('active'); document.getElementById('gps-text').innerText = "Transmitiendo Coordenadas";
+                    setTimeout(() => document.getElementById('gps-dot').classList.remove('active'), 1000);
+                } catch (e) { document.getElementById('gps-text').innerText = "Fallo de Transmisión"; }
+            }, (err) => { document.getElementById('gps-text').innerText = "Se requiere Permiso GPS"; }, { enableHighAccuracy: true });
+        }
+
+        function abrirGoogleMapsMulti() { 
+            const fletesActivos = DB.fletes.filter(f => f.estado === 'camino' && f.chofer_id === myUserId); 
+            if(fletesActivos.length === 0) return;
+            let listaOrigenes = [];
+            fletesActivos.forEach(f => {
+                let origenDireccion = `${f.origen_calle || ''} ${f.origen_altura || ''}, ${f.origen_ciudad || ''}`;
+                if (origenDireccion.replace(/,/g, '').trim() !== '' && !listaOrigenes.includes(origenDireccion)) { listaOrigenes.push(origenDireccion); }
+            });
+            let paradasUnificadas = [];
+            fletesActivos.forEach(f => paradasUnificadas = paradasUnificadas.concat(f.paradas));
+            paradasUnificadas.sort((a,b) => a.orden_ruta - b.orden_ruta);
+            let listaDestinos = [];
+            paradasUnificadas.forEach(p => {
+                let destinoDireccion = `${p.destino_calle || ''} ${p.destino_altura || ''}, ${p.destino_ciudad || ''}`;
+                if (destinoDireccion.replace(/,/g, '').trim() !== '' && !listaDestinos.includes(destinoDireccion)) { listaDestinos.push(destinoDireccion); }
+            });
+            if (listaOrigenes.length === 0 || listaDestinos.length === 0) { return alert("Error: Faltan especificaciones de direcciones físicas."); }
+            const puntoPartidaInicial = listaOrigenes.shift(); const puntoDestinoFinal = listaDestinos.pop();
+            let puntosIntermedios = [...listaOrigenes, ...listaDestinos]; let cadenaWaypoints = puntosIntermedios.join('|');
+            let mapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(puntoPartidaInicial)}&destination=${encodeURIComponent(puntoDestinoFinal)}`;
+            if (cadenaWaypoints) { mapsUrl += `&waypoints=${encodeURIComponent(cadenaWaypoints)}`; }
+            window.open(mapsUrl, '_blank');
+        }
+        window.onload = initApp;
+    </script>
+</body>
+</html>
