@@ -1,257 +1,418 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>JZ Tech Solutions - Administración Logística</title>
+    <title>JZTravell - Sistema de Gestión Logística</title>
     <style>
         :root { 
-            --primary: #007bff; --bg: #f4f6f9; --text: #333; --sidebar: #1e2229; 
-            --success: #28a745; --danger: #dc3545; --warning: #ffc107; --info: #17a2b8;
-            --card-bg: #ffffff;
+            /* JZTech Suite Official Palette */
+            --bg-page: #f4f6f9; 
+            --bg-surface: #ffffff; 
+            --accent: #2962ff; 
+            --accent-hover: #1f4fd1;
+            --success: #00c853; 
+            --danger: #d50000; 
+            --warning: #ffc107; 
+            --info: #00b0ff;
+            --text-primary: #212529; 
+            --text-secondary: #666666; 
+            --text-muted: #999999; 
+            --border: #e0e0e0;
+            
+            /* Typography */
+            --font-base: system-ui, -apple-system, sans-serif;
+            --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+            
+            /* UI Metrics */
+            --rail-width: 68px;
+            --top-bar-height: 4px;
+            --icon-stroke: 1.5px;
         }
-        body { margin: 0; font-family: system-ui, -apple-system, sans-serif; display: flex; height: 100vh; background: var(--bg); color: var(--text); }
+
+        [data-theme="dark"] {
+            --bg-page: #121212;
+            --bg-surface: #1e1e1e;
+            --accent: #4477ff;
+            --accent-hover: #5588ff;
+            --text-primary: #e0e0e0;
+            --text-secondary: #aaaaaa;
+            --border: #333333;
+        }
+
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: var(--font-base); display: flex; height: 100vh; background: var(--bg-page); color: var(--text-primary); overflow: hidden; transition: background-color 0.3s, color 0.3s; }
         
-        .sidebar { width: 250px; background: var(--sidebar); color: white; padding: 1rem; display: flex; flex-direction: column; overflow-y:auto; justify-content: space-between; box-sizing: border-box; }
-        .sidebar h2 { margin: 0; font-size: 1.5rem; text-align: center; }
-        .nav-item { padding: 12px 16px; cursor: pointer; border-radius: 6px; margin-bottom: 5px; transition: 0.2s; display: flex; align-items: center; gap: 10px; font-weight: 500;}
-        .nav-item:hover, .nav-item.active { background: #2c313c; }
-        .btn-solicitar { background: var(--success); text-align: center; font-weight: bold; margin-top: 10px; justify-content: center;}
+        .font-mono { font-family: var(--font-mono); letter-spacing: 0.5px; font-size: 0.9em;}
+
+        /* Iconos SVG Globales */
+        svg.icon { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: var(--icon-stroke); stroke-linecap: round; stroke-linejoin: round; }
+
+        /* Barra Superior Acento */
+        .top-accent-bar { position: fixed; top: 0; left: 0; right: 0; height: var(--top-bar-height); background-color: var(--accent); z-index: 1000; }
+
+        /* Rail de Navegación Lateral */
+        .nav-rail { width: var(--rail-width); background-color: var(--bg-surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; padding: 20px 0; margin-top: var(--top-bar-height); z-index: 999; transition: background-color 0.3s, border-color 0.3s; }
+        .nav-rail .brand-logo { width: 36px; height: auto; margin-bottom: 24px; }
         
-        .content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-        .topbar { background: #fff; padding: 1rem 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; z-index: 10; }
+        .nav-item { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 8px; margin-bottom: 12px; color: var(--text-secondary); cursor: pointer; position: relative; transition: all 0.2s; border: none; background: transparent; }
+        .nav-item:hover { background-color: rgba(0, 0, 0, 0.05); color: var(--text-primary); }
+        [data-theme="dark"] .nav-item:hover { background-color: rgba(255, 255, 255, 0.08); }
         
-        .tab-content { display: none; flex: 1; padding: 2rem; overflow-y: auto; }
-        .tab-content.active { display: block; }
+        .nav-item.active { background-color: #e6f1fb; color: #185fa5; }
+        [data-theme="dark"] .nav-item.active { background-color: rgba(68, 119, 255, 0.15); color: var(--accent); }
         
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(3px);}
-        .modal.active { display: flex; }
-        .modal-content { background: white; padding: 2.5rem; border-radius: 12px; width: 500px; position: relative; max-height: 90vh; overflow-y: auto; box-shadow: 0 15px 35px rgba(0,0,0,0.2); box-sizing: border-box;}
-        .modal-large { width: 850px; } 
-        .close-btn { position: absolute; top: 15px; right: 20px; cursor: pointer; font-size: 1.5rem; border: none; background: none; color: #888;}
+        .nav-item[title]:hover::after { content: attr(title); position: absolute; left: 60px; background-color: var(--text-primary); color: var(--bg-surface); padding: 6px 10px; border-radius: 4px; font-size: 12px; font-weight: 500; white-space: nowrap; z-index: 1000; pointer-events: none; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .spacer { flex: 1; }
+
+        /* Contenedor Principal */
+        .content { flex: 1; display: flex; flex-direction: column; margin-top: var(--top-bar-height); overflow: hidden; position: relative; }
         
+        /* Secciones y Headers */
+        .tab-content { display: none; flex: 1; overflow-y: auto; flex-direction: column; }
+        .tab-content.active { display: flex; }
+        
+        .content-header { background-color: var(--bg-surface); padding: 16px 32px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; min-height: 72px;}
+        .content-header h1 { margin: 0; font-size: 1.25rem; font-weight: 600; color: var(--text-primary); }
+        .header-actions { display: flex; gap: 12px; align-items: center;}
+        
+        .content-body { padding: 32px; flex: 1; overflow-y: auto; }
+
+        /* Botones */
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 16px; border-radius: 8px; font-size: 0.9rem; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; font-family: var(--font-base); }
+        .btn-primary { background-color: var(--accent); color: #ffffff; }
+        .btn-primary:hover { background-color: var(--accent-hover); }
+        .btn-secondary { background-color: transparent; color: var(--text-primary); border: 1px solid var(--border); }
+        .btn-secondary:hover { background-color: rgba(0,0,0,0.03); }
+        [data-theme="dark"] .btn-secondary:hover { background-color: rgba(255,255,255,0.05); }
+
+        /* Badges de Estado */
+        .badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; }
+        .badge-pending { background-color: #fff3cd; color: #856404; }
+        .badge-success { background-color: #d4edda; color: #155724; }
+        .badge-warning { background-color: #ffeeba; color: #856404; }
+        .badge-danger { background-color: #f8d7da; color: #721c24; }
+        .badge-primary { background-color: #cce5ff; color: #004085; }
+        [data-theme="dark"] .badge-pending, [data-theme="dark"] .badge-warning { background-color: rgba(255, 193, 7, 0.15); color: var(--warning); }
+        [data-theme="dark"] .badge-success { background-color: rgba(0, 200, 83, 0.15); color: var(--success); }
+        [data-theme="dark"] .badge-danger { background-color: rgba(213, 0, 0, 0.15); color: var(--danger); }
+        [data-theme="dark"] .badge-primary { background-color: rgba(41, 98, 255, 0.15); color: #82aaff; }
+
+        /* Formularios e Inputs */
         .form-group { margin-bottom: 1.2rem; position: relative; }
-        .form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.85rem; color: #555; }
-        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 0.9rem; transition: background-color 0.2s, border-color 0.2s; }
-        .btn { padding: 10px 20px; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.9rem; transition: 0.2s;}
-        .btn:hover { opacity: 0.9; }
+        .form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); }
+        .form-control, .form-group input, .form-group select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; box-sizing: border-box; font-size: 0.9rem; background-color: var(--bg-surface); color: var(--text-primary); transition: border-color 0.2s; font-family: var(--font-base); outline: none;}
+        .form-control:focus, .form-group input:focus, .form-group select:focus { border-color: var(--accent); }
+        .is-invalid { border-color: var(--danger) !important; background-color: rgba(213, 0, 0, 0.05) !important; box-shadow: 0 0 0 2px rgba(213, 0, 0, 0.1) !important; }
+
+        /* Filtros de grilla */
+        .grid-filters { display: flex; gap: 15px; margin-bottom: 20px; align-items: center; background: var(--bg-surface); padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.02);}
+        .grid-filters input[type="text"] { max-width: 300px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; background: var(--bg-page); color: var(--text-primary);}
+        .grid-filters label { font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; cursor: pointer; margin:0;}
+
+        /* Tablas */
+        .table-container { background: var(--bg-surface); border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid var(--border); margin-bottom: 30px;}
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 14px 18px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+        th { background: var(--bg-page); font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; }
+        th.sortable { cursor: pointer; user-select: none; position: relative; transition: background 0.2s;}
+        th.sortable:hover { background: rgba(0,0,0,0.03); color: var(--text-primary); }
+        [data-theme="dark"] th.sortable:hover { background: rgba(255,255,255,0.05); }
+
+        /* Autocomplete */
+        .autocomplete-results { position: absolute; top: 100%; left: 0; width: 100%; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 8px; max-height: 150px; overflow-y: auto; z-index: 999; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: none; margin-top: 4px; }
+        .autocomplete-item { padding: 10px 12px; cursor: pointer; font-size: 0.9rem; border-bottom: 1px solid var(--border); color: var(--text-primary); }
+        .autocomplete-item:hover { background: var(--bg-page); font-weight: 600; }
+
+        /* Kanban Board */
+        .kanban-board { display: flex; flex-direction: row; gap: 1.5rem; height: 100%; padding-bottom: 1rem; align-items: flex-start; box-sizing: border-box; overflow-x: auto;}
+        .kanban-column { background: var(--bg-page); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; flex: 1; min-width: 300px; max-width: 400px; max-height: 100%; box-sizing: border-box; border: 1px solid var(--border);}
+        .kanban-column h3 { margin: 0 0 16px 0; font-size: 1rem; color: var(--text-primary); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 10px;}
+        .kanban-column-count { background: var(--border); border-radius: 12px; padding: 2px 8px; font-size: 0.75rem; font-weight: bold; color: var(--text-secondary);}
+        .kanban-cards-container { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; flex: 1; padding-right:4px;}
         
-        .is-invalid { border-color: var(--danger) !important; background-color: #fff5f5 !important; box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.15) !important; }
+        .kanban-card { background: var(--bg-surface); border-radius: 10px; padding: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); border: 1px solid var(--border); transition: transform 0.2s; }
+        .kanban-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .card-header { display: flex; justify-content: space-between; margin-bottom: 12px; align-items: center;}
+        .card-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border);}
         
-        .grid-filters { display: flex; gap: 15px; margin-bottom: 15px; align-items: center; background: white; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; }
-        .grid-filters input { max-width: 300px; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem; }
-        .grid-filters label { font-size: 0.85rem; font-weight: 600; color: #475569; display: flex; align-items: center; gap: 6px; cursor: pointer; }
-        th.sortable { cursor: pointer; user-select: none; position: relative; }
-        th.sortable:hover { background: #f1f5f9; color: #000; }
-        
-        .autocomplete-results {
-            position: absolute; top: 100%; left: 0; width: 100%; background: white;
-            border: 1px solid #ccc; border-radius: 6px; max-height: 150px; overflow-y: auto;
-            z-index: 999; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: none; margin-top: 2px;
-        }
-        .autocomplete-item { padding: 10px; cursor: pointer; font-size: 0.9rem; border-bottom: 1px solid #eee; color: #333; }
-        .autocomplete-item:hover { background: #f0f4f8; font-weight: bold; }
-        
-        .kanban-board { display: flex; flex-direction: row; gap: 1.5rem; height: 100%; padding-bottom: 1rem; align-items: flex-start; box-sizing: border-box;}
-        .kanban-column { background: #ebecf0; border-radius: 12px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; flex-direction: column; flex: 1; min-width: 280px; max-width: 450px; max-height: 100%; box-sizing: border-box;}
-        .kanban-column h3 { margin: 0 0 12px 0; font-size: 1.1rem; color: #172b4d; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ddd; padding-bottom: 8px;}
-        .kanban-column-count { background: #dfe1e6; border-radius: 12px; padding: 2px 8px; font-size: 0.8rem; font-weight: bold; }
-        .kanban-cards-container { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; flex: 1; padding-right:5px;}
-        
-        .kanban-card { background: var(--card-bg); border-radius: 8px; padding: 14px; box-shadow: 0 2px 5px rgba(0,0,0,0.08); border-left: 5px solid #ccc; transition: 0.2s; }
-        .card-priority-alta { border-left-color: var(--danger); }
-        .card-priority-normal { border-left-color: var(--primary); }
-        .card-header { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.8rem; font-weight: bold;}
-        .card-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;}
-        .btn-card { padding: 6px 10px; font-size: 0.8rem; border-radius: 4px; font-weight: bold; border: none; cursor: pointer; transition: 0.2s;}
-        
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        th, td { padding: 14px 18px; text-align: left; border-bottom: 1px solid #eee; }
-        th { background: #f8f9fa; font-weight: 700; color: #555; }
-        .badge { padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; color: white; background: #6c757d; }
-        
-        .system-footer { font-size: 0.75rem; color: #888; text-align: center; line-height: 1.4; padding-top: 15px; border-top: 1px solid #333; margin-top: 15px; }
-        .system-footer a { color: #f06a25; text-decoration: none; font-weight: bold; }
-        
+        /* Modales */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(2px);}
+        .modal.active { display: flex; }
+        .modal-content { background: var(--bg-surface); padding: 32px; border-radius: 12px; width: 500px; position: relative; max-height: 90vh; overflow-y: auto; box-shadow: 0 15px 35px rgba(0,0,0,0.2); box-sizing: border-box; border: 1px solid var(--border);}
+        .modal-large { width: 850px; } 
+        .close-btn { position: absolute; top: 20px; right: 24px; cursor: pointer; font-size: 1.5rem; border: none; background: none; color: var(--text-muted); transition: color 0.2s;}
+        .close-btn:hover { color: var(--text-primary); }
+        .modal-content h3 { margin-top: 0; margin-bottom: 24px; color: var(--text-primary); font-size: 1.25rem;}
+
+        /* Footer Global */
+        .site-footer { padding: 16px; text-align: center; font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--bg-surface); border-top: 1px solid var(--border); width: 100%;}
+        .site-footer a { color: var(--text-muted); text-decoration: none; font-weight: 600; transition: color 0.2s; }
+        .site-footer a:hover { color: var(--accent); }
+        .watermark-logo { height: 16px; opacity: 0.5; }
+
         @media (max-width: 768px) {
             body { flex-direction: column; }
-            .sidebar { width: 100%; height: auto; padding: 10px; flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 5px;}
-            .sidebar h2 { display: none; }
-            .nav-item { padding: 8px; font-size: 0.85rem; margin: 0;}
-            .content { padding: 1rem; overflow-y: auto; }
+            .nav-rail { width: 100%; height: auto; padding: 10px; flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 5px; border-right: none; border-bottom: 1px solid var(--border);}
+            .nav-rail .brand-logo { margin-bottom: 0; margin-right: 16px; }
+            .nav-item { margin-bottom: 0; }
+            .nav-item[title]:hover::after { display: none; }
+            .content-header { flex-direction: column; align-items: flex-start; gap: 12px; padding: 16px; }
+            .content-body { padding: 16px; }
             .kanban-board { flex-direction: column; height: auto; }
             .kanban-column { width: 100% !important; min-width: 100% !important; max-width: 100% !important; margin-bottom: 1.5rem; max-height: none;}
-            .modal-content { padding: 1.5rem; width: 95%;}
+            .modal-content { padding: 24px; width: 95%;}
         }
     </style>
 </head>
 <body>
-    <div class="sidebar">
-        <div style="width: 100%;">
-            <h2>BazarChef</h2><hr style="border-color: #333;">
-            <div class="nav-item active" onclick="switchTab('kanban', this)">Tablero de Control</div>
-            <div class="nav-item btn-solicitar" onclick="openFletePanel()">Despachar Flete</div>
-            <hr style="border-color: #333;">
-            <div class="nav-item" onclick="switchTab('usuarios', this)">Usuarios</div>
-            <div class="nav-item" onclick="switchTab('vehiculos', this)">Flota</div>
-            <div class="nav-item" onclick="switchTab('sucursales', this)">Sucursales</div>
-            <div class="nav-item" onclick="switchTab('clientes', this)">Destinatarios</div>
-        </div>
-        <div style="width: 100%; padding-top: 1rem;">
-            <div class="nav-item" onclick="switchTab('config', this)">Configuración</div>
-            <div class="nav-item" style="color:var(--danger); margin-top:10px;" onclick="cerrarSesion()">Salir</div>
-            
-            <div class="system-footer">
-                Versión 1.9<br>
-                Powered by <a href="https://jz-tech.mywire.org" target="_blank">JZ Tech Solutions</a>
-            </div>
-        </div>
-    </div>
+    <div class="top-accent-bar"></div>
+
+    <nav class="nav-rail">
+        <svg class="brand-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 203 281">
+            <path d="M 73.0,261.5 L 62.0,261.5 L 49.0,256.5 L 45.5,253.0 L 43.5,247.0 L 45.5,237.0 L 51.0,232.5 L 61.0,231.5 L 68.5,236.0 L 78.0,252.5 L 86.0,252.5 L 92.5,240.0 L 94.5,219.0 L 47.0,218.5 L 44.5,216.0 L 44.5,212.0 L 89.0,146.5 L 89.5,188.0 L 74.5,210.0 L 94.5,210.0 L 94.5,83.0 L 74.0,86.5 L 63.0,92.5 L 54.5,103.0 L 50.5,114.0 L 46.0,114.5 L 44.5,113.0 L 44.5,80.0 L 52.0,73.5 L 94.5,73.0 L 93.5,33.0 L 91.5,29.0 L 87.0,26.5 L 70.0,24.5 L 70.0,19.5 L 140.0,19.5 L 141.0,24.5 L 127.0,27.5 L 123.5,34.0 L 123.5,73.0 L 158.0,73.5 L 161.5,76.0 L 161.5,80.0 L 129.0,128.5 L 128.5,88.0 L 132.5,81.0 L 123.5,81.0 L 122.5,208.0 L 137.0,206.5 L 148.0,200.5 L 158.5,183.0 L 160.5,175.0 L 166.0,173.5 L 166.5,214.0 L 163.0,218.5 L 121.0,218.5 L 113.5,238.0 L 101.0,251.5 L 88.0,258.5 L 73.0,261.5 Z" fill="#ffffff" stroke="#000000" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+        </svg>
+
+        <button class="nav-item active" title="Tablero Kanban" onclick="switchTab('kanban', this)">
+            <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+        </button>
+        <button class="nav-item" title="Usuarios" onclick="switchTab('usuarios', this)">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        </button>
+        <button class="nav-item" title="Flota" onclick="switchTab('vehiculos', this)">
+            <svg class="icon" viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+        </button>
+        <button class="nav-item" title="Sucursales" onclick="switchTab('sucursales', this)">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+        </button>
+        <button class="nav-item" title="Destinatarios" onclick="switchTab('clientes', this)">
+            <svg class="icon" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+        </button>
+        
+        <div class="spacer"></div>
+
+        <button class="nav-item" title="Alternar Tema" onclick="toggleTheme()">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        </button>
+        <button class="nav-item" title="Configuración" onclick="switchTab('config', this)">
+            <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        </button>
+        <button class="nav-item" title="Cerrar Sesión" style="color:var(--danger);" onclick="cerrarSesion()">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+        </button>
+    </nav>
     
     <div class="content">
-        <div class="topbar">
-            <strong>Sistema de Gestión Logística</strong>
-            <span id="userStatus" class="badge" style="background:var(--success);">Administrador</span>
-        </div>
-        
-        <div id="tab-kanban" class="tab-content active" style="height:100%;">
-            <div class="header-section" style="margin-bottom: 1.5rem;">
-                <h2 style="margin:0;">Flujo de Trabajo Central</h2>
-                <button class="btn" style="background:var(--sidebar); margin-top:10px;" onclick="loadData()">Actualizar Tablero</button>
+        <!-- VISTA KANBAN -->
+        <div id="tab-kanban" class="tab-content active">
+            <header class="content-header">
+                <h1>JZTravell - Tablero de Control</h1>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="loadData()">
+                        <svg class="icon" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                        Actualizar
+                    </button>
+                    <button class="btn btn-primary" onclick="openFletePanel()">
+                        <svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        Despachar Flete
+                    </button>
+                </div>
+            </header>
+            <div class="content-body">
+                <div class="kanban-board" id="kanban-board"></div>
             </div>
-            <div class="kanban-board" id="kanban-board"></div>
         </div>
         
+        <!-- VISTA USUARIOS -->
         <div id="tab-usuarios" class="tab-content">
-            <div class="header-section"><h2>Usuarios del Sistema</h2><button class="btn" onclick="openModal('modal-usuario')">Registrar Usuario</button></div>
-            <div class="grid-filters">
-                <input type="text" placeholder="Filtrar por nombre o usuario..." oninput="updateGridFilter('usuarios', this.value)">
-                <label><input type="checkbox" onchange="toggleGridInactive('usuarios', this.checked)"> Mostrar usuarios bloqueados</label>
+            <header class="content-header">
+                <h1>Usuarios del Sistema</h1>
+                <div class="header-actions">
+                    <button class="btn btn-primary" onclick="openModal('modal-usuario')">Registrar Usuario</button>
+                </div>
+            </header>
+            <div class="content-body">
+                <div class="grid-filters">
+                    <input type="text" placeholder="Filtrar por nombre o usuario..." oninput="updateGridFilter('usuarios', this.value)">
+                    <label><input type="checkbox" onchange="toggleGridInactive('usuarios', this.checked)"> Mostrar usuarios bloqueados</label>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="sortable" onclick="setGridSort('usuarios', 'username')">Usuario<span id="s-usuarios-username"></span></th>
+                                <th class="sortable" onclick="setGridSort('usuarios', 'nombre_completo')">Nombre Completo<span id="s-usuarios-nombre_completo"></span></th>
+                                <th class="sortable" onclick="setGridSort('usuarios', 'rol')">Rol de Acceso<span id="s-usuarios-rol"></span></th>
+                                <th class="sortable" onclick="setGridSort('usuarios', 'activo')">Estado<span id="s-usuarios-activo"></span></th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-usuarios"></tbody>
+                    </table>
+                </div>
+                
+                <h3 style="margin-top: 10px; margin-bottom: 15px; font-size: 1.1rem;">Solicitudes de Registro Pendientes (Google Auth)</h3>
+                <div class="table-container">
+                    <table>
+                        <thead><tr><th>Correo Electrónico</th><th>Nombre Completo</th><th>Asignar Rol Obligatorio</th><th>Acción</th></tr></thead>
+                        <tbody id="tabla-solicitudes"></tbody>
+                    </table>
+                </div>
             </div>
-            <div style="overflow-x:auto; margin-bottom: 30px;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th class="sortable" onclick="setGridSort('usuarios', 'username')">Usuario<span id="s-usuarios-username"></span></th>
-                            <th class="sortable" onclick="setGridSort('usuarios', 'nombre_completo')">Nombre Completo<span id="s-usuarios-nombre_completo"></span></th>
-                            <th class="sortable" onclick="setGridSort('usuarios', 'rol')">Rol de Acceso<span id="s-usuarios-rol"></span></th>
-                            <th class="sortable" onclick="setGridSort('usuarios', 'activo')">Estado<span id="s-usuarios-activo"></span></th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabla-usuarios"></tbody>
-                </table>
-            </div>
-            <h3>Solicitudes de Registro Pendientes (Google Auth)</h3>
-            <div style="overflow-x:auto;"><table><thead><tr><th>Correo Electrónico</th><th>Nombre Completo</th><th>Asignar Rol Obligatorio</th><th>Acción</th></tr></thead><tbody id="tabla-solicitudes"></tbody></table></div>
         </div>
         
+        <!-- VISTA FLOTA -->
         <div id="tab-vehiculos" class="tab-content">
-            <div class="header-section"><h2>Flota Activa</h2><button class="btn" onclick="openModal('modal-vehiculo')">Añadir Vehículo</button></div>
-            <div class="grid-filters">
-                <input type="text" placeholder="Filtrar flota por patente o modelo..." oninput="updateGridFilter('vehiculos', this.value)">
-                <label><input type="checkbox" onchange="toggleGridInactive('vehiculos', this.checked)"> Mostrar unidades en taller o de baja</label>
-            </div>
-            <div style="overflow-x:auto;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th class="sortable" onclick="setGridSort('vehiculos', 'patente_identificador')">Patente<span id="s-vehiculos-patente_identificador"></span></th>
-                            <th class="sortable" onclick="setGridSort('vehiculos', 'marca_modelo')">Marca / Modelo<span id="s-vehiculos-marca_modelo"></span></th>
-                            <th class="sortable" onclick="setGridSort('vehiculos', 'tipo')">Motor<span id="s-vehiculos-tipo"></span></th>
-                            <th class="sortable" onclick="setGridSort('vehiculos', 'autonomia_maxima_km')">Autonomía<span id="s-vehiculos-autonomia_maxima_km"></span></th>
-                            <th class="sortable" onclick="setGridSort('vehiculos', 'capacidad_volumen_m3')">Capacidad (m³)<span id="s-vehiculos-capacidad_volumen_m3"></span></th>
-                            <th class="sortable" onclick="setGridSort('vehiculos', 'estado')">Estado<span id="s-vehiculos-estado"></span></th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabla-vehiculos"></tbody>
-                </table>
+            <header class="content-header">
+                <h1>Flota Activa</h1>
+                <div class="header-actions">
+                    <button class="btn btn-primary" onclick="openModal('modal-vehiculo')">Añadir Vehículo</button>
+                </div>
+            </header>
+            <div class="content-body">
+                <div class="grid-filters">
+                    <input type="text" placeholder="Filtrar flota por patente o modelo..." oninput="updateGridFilter('vehiculos', this.value)">
+                    <label><input type="checkbox" onchange="toggleGridInactive('vehiculos', this.checked)"> Mostrar unidades en taller o de baja</label>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="sortable" onclick="setGridSort('vehiculos', 'patente_identificador')">Patente<span id="s-vehiculos-patente_identificador"></span></th>
+                                <th class="sortable" onclick="setGridSort('vehiculos', 'marca_modelo')">Marca / Modelo<span id="s-vehiculos-marca_modelo"></span></th>
+                                <th class="sortable" onclick="setGridSort('vehiculos', 'tipo')">Motor<span id="s-vehiculos-tipo"></span></th>
+                                <th class="sortable" onclick="setGridSort('vehiculos', 'autonomia_maxima_km')">Autonomía<span id="s-vehiculos-autonomia_maxima_km"></span></th>
+                                <th class="sortable" onclick="setGridSort('vehiculos', 'capacidad_volumen_m3')">Capacidad (m³)<span id="s-vehiculos-capacidad_volumen_m3"></span></th>
+                                <th class="sortable" onclick="setGridSort('vehiculos', 'estado')">Estado<span id="s-vehiculos-estado"></span></th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-vehiculos"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
         
+        <!-- VISTA SUCURSALES -->
         <div id="tab-sucursales" class="tab-content">
-            <div class="header-section"><h2>Bases y Sucursales</h2><button class="btn" onclick="openModal('modal-sucursal')">Crear Sucursal</button></div>
-            <div class="grid-filters">
-                <input type="text" placeholder="Filtrar bases por nombre o dirección..." oninput="updateGridFilter('sucursales', this.value)">
-                <label><input type="checkbox" onchange="toggleGridInactive('sucursales', this.checked)"> Mostrar bases inactivas</label>
-            </div>
-            <div style="overflow-x:auto;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th class="sortable" onclick="setGridSort('sucursales', 'nombre')">Nombre<span id="s-sucursales-nombre"></span></th>
-                            <th class="sortable" onclick="setGridSort('sucursales', 'calle')">Dirección<span id="s-sucursales-calle"></span></th>
-                            <th class="sortable" onclick="setGridSort('sucursales', 'ciudad')">Ciudad<span id="s-sucursales-ciudad"></span></th>
-                            <th class="sortable" onclick="setGridSort('sucursales', 'codigo_postal')">CP<span id="s-sucursales-codigo_postal"></span></th>
-                            <th class="sortable" onclick="setGridSort('sucursales', 'activa')">Estado<span id="s-sucursales-activa"></span></th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabla-sucursales"></tbody>
-                </table>
+            <header class="content-header">
+                <h1>Bases y Sucursales</h1>
+                <div class="header-actions">
+                    <button class="btn btn-primary" onclick="openModal('modal-sucursal')">Crear Sucursal</button>
+                </div>
+            </header>
+            <div class="content-body">
+                <div class="grid-filters">
+                    <input type="text" placeholder="Filtrar bases por nombre o dirección..." oninput="updateGridFilter('sucursales', this.value)">
+                    <label><input type="checkbox" onchange="toggleGridInactive('sucursales', this.checked)"> Mostrar bases inactivas</label>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="sortable" onclick="setGridSort('sucursales', 'nombre')">Nombre<span id="s-sucursales-nombre"></span></th>
+                                <th class="sortable" onclick="setGridSort('sucursales', 'calle')">Dirección<span id="s-sucursales-calle"></span></th>
+                                <th class="sortable" onclick="setGridSort('sucursales', 'ciudad')">Ciudad<span id="s-sucursales-ciudad"></span></th>
+                                <th class="sortable" onclick="setGridSort('sucursales', 'codigo_postal')">CP<span id="s-sucursales-codigo_postal"></span></th>
+                                <th class="sortable" onclick="setGridSort('sucursales', 'activa')">Estado<span id="s-sucursales-activa"></span></th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-sucursales"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
         
+        <!-- VISTA CLIENTES -->
         <div id="tab-clientes" class="tab-content">
-            <div class="header-section"><h2>Catálogo de Destinatarios</h2><button class="btn" onclick="openModal('modal-cliente')">Crear Destinatario</button></div>
-            <div class="grid-filters">
-                <input type="text" placeholder="Filtrar por razón social o CUIT..." oninput="updateGridFilter('clientes', this.value)">
-                <label><input type="checkbox" onchange="toggleGridInactive('clientes', this.checked)"> Mostrar cuentas inactivas</label>
-            </div>
-            <div style="overflow-x:auto;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th class="sortable" onclick="setGridSort('clientes', 'razon_social')">Razón Social<span id="s-clientes-razon_social"></span></th>
-                            <th class="sortable" onclick="setGridSort('clientes', 'cuit_rut')">Identificación Comercial (CUIT)<span id="s-clientes-cuit_rut"></span></th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabla-clientes"></tbody>
-                </table>
+            <header class="content-header">
+                <h1>Catálogo de Destinatarios</h1>
+                <div class="header-actions">
+                    <button class="btn btn-primary" onclick="openModal('modal-cliente')">Crear Destinatario</button>
+                </div>
+            </header>
+            <div class="content-body">
+                <div class="grid-filters">
+                    <input type="text" placeholder="Filtrar por razón social o CUIT..." oninput="updateGridFilter('clientes', this.value)">
+                    <label><input type="checkbox" onchange="toggleGridInactive('clientes', this.checked)"> Mostrar cuentas inactivas</label>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="sortable" onclick="setGridSort('clientes', 'razon_social')">Razón Social<span id="s-clientes-razon_social"></span></th>
+                                <th class="sortable" onclick="setGridSort('clientes', 'cuit_rut')">Identificación Comercial (CUIT)<span id="s-clientes-cuit_rut"></span></th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-clientes"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
+        <!-- VISTA CONFIGURACION -->
         <div id="tab-config" class="tab-content">
-            <div class="header-section"><h2>Configuración Global</h2></div>
-            <div style="background:white; padding:2rem; border-radius:10px; max-width:600px; box-shadow:0 2px 10px rgba(0,0,0,0.05);">
-                <form id="form-config" onsubmit="guardarConfig(event)">
-                    <div class="form-group"><label>Nombre Comercial <span style="color:var(--danger);">*</span></label><input type="text" id="conf-nombre" required></div>
-                    <div class="form-group"><label>Frecuencia de Actualización Ubicación (Segundos) <span style="color:var(--danger);">*</span></label><input type="number" id="conf-gps" min="5" max="60" required></div>
-                    
-                    <h3 style="border-top:1px solid #eee; padding-top:15px; margin-top:15px;">Localización por Defecto PyME</h3>
-                    <div style="display:flex; gap:10px;">
-                        <div class="form-group" style="flex:1;"><label>Ciudad</label><input type="text" id="conf-ciudad"></div>
-                        <div class="form-group" style="flex:1;"><label>Provincia</label><input type="text" id="conf-provincia"></div>
-                    </div>
-                    <div class="form-group"><label>País</label><input type="text" id="conf-pais"></div>
+            <header class="content-header">
+                <h1>Configuración Global</h1>
+            </header>
+            <div class="content-body">
+                <div style="background:var(--bg-surface); padding:32px; border-radius:10px; max-width:600px; border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+                    <form id="form-config" onsubmit="guardarConfig(event)">
+                        <div class="form-group"><label>Nombre Comercial <span style="color:var(--danger);">*</span></label><input type="text" id="conf-nombre" class="form-control" required></div>
+                        <div class="form-group"><label>Frecuencia de Actualización Ubicación (Segundos) <span style="color:var(--danger);">*</span></label><input type="number" id="conf-gps" class="form-control" min="5" max="60" required></div>
+                        
+                        <h3 style="border-top:1px solid var(--border); padding-top:20px; margin-top:20px; font-size:1.1rem;">Localización por Defecto PyME</h3>
+                        <div style="display:flex; gap:16px;">
+                            <div class="form-group" style="flex:1;"><label>Ciudad</label><input type="text" id="conf-ciudad" class="form-control"></div>
+                            <div class="form-group" style="flex:1;"><label>Provincia</label><input type="text" id="conf-provincia" class="form-control"></div>
+                        </div>
+                        <div class="form-group"><label>País</label><input type="text" id="conf-pais" class="form-control"></div>
 
-                    <h3 style="border-top:1px solid #eee; padding-top:15px; margin-top:15px;">Restricciones y Controles</h3>
-                    <div class="form-group"><label>Habilitar Control Volumétrico Colectivo (m³)</label><select id="conf-volumenes"><option value="true">Activado</option><option value="false">Desactivado</option></select></div>
+                        <h3 style="border-top:1px solid var(--border); padding-top:20px; margin-top:20px; font-size:1.1rem;">Restricciones y Controles</h3>
+                        <div class="form-group"><label>Habilitar Control Volumétrico Colectivo (m³)</label><select id="conf-volumenes" class="form-control"><option value="true">Activado</option><option value="false">Desactivado</option></select></div>
 
-                    <h3 style="border-top:1px solid #eee; padding-top:15px; margin-top:15px;">Integrador de Autenticación Google</h3>
-                    <div class="form-group"><label>Habilitar Acceso con Cuentas Google</label><select id="conf-oauth-enabled"><option value="true">Activado</option><option value="false">Desactivado</option></select></div>
-                    <div class="form-group"><label>Google Client ID</label><input type="text" id="conf-client-id"></div>
-                    <div class="form-group"><label>Google Client Secret</label><input type="password" id="conf-client-secret"></div>
-                    <div class="form-group"><label>Google Redirect URI (Callback)</label><input type="text" id="conf-redirect-url" readonly style="background:#eee; color:#555; cursor:not-allowed;"></div>
-                    
-                    <button type="submit" class="btn" style="width:100%; background:var(--warning); color:black; font-weight:bold; margin-top:10px;">Guardar Parámetros</button>
-                </form>
+                        <h3 style="border-top:1px solid var(--border); padding-top:20px; margin-top:20px; font-size:1.1rem;">Integrador de Autenticación Google</h3>
+                        <div class="form-group"><label>Habilitar Acceso con Cuentas Google</label><select id="conf-oauth-enabled" class="form-control"><option value="true">Activado</option><option value="false">Desactivado</option></select></div>
+                        <div class="form-group"><label>Google Client ID</label><input type="text" id="conf-client-id" class="form-control"></div>
+                        <div class="form-group"><label>Google Client Secret</label><input type="password" id="conf-client-secret" class="form-control"></div>
+                        <div class="form-group"><label>Google Redirect URI (Callback)</label><input type="text" id="conf-redirect-url" class="form-control" readonly style="background:var(--bg-page); color:var(--text-muted); cursor:not-allowed;"></div>
+                        
+                        <button type="submit" class="btn btn-primary" style="width:100%; margin-top:16px;">Guardar Parámetros</button>
+                    </form>
+                </div>
             </div>
         </div>
+
+        <footer class="site-footer">
+            <svg class="watermark-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 203 281">
+                <path d="M 73.0,261.5 L 62.0,261.5 L 49.0,256.5 L 45.5,253.0 L 43.5,247.0 L 45.5,237.0 L 51.0,232.5 L 61.0,231.5 L 68.5,236.0 L 78.0,252.5 L 86.0,252.5 L 92.5,240.0 L 94.5,219.0 L 47.0,218.5 L 44.5,216.0 L 44.5,212.0 L 89.0,146.5 L 89.5,188.0 L 74.5,210.0 L 94.5,210.0 L 94.5,83.0 L 74.0,86.5 L 63.0,92.5 L 54.5,103.0 L 50.5,114.0 L 46.0,114.5 L 44.5,113.0 L 44.5,80.0 L 52.0,73.5 L 94.5,73.0 L 93.5,33.0 L 91.5,29.0 L 87.0,26.5 L 70.0,24.5 L 70.0,19.5 L 140.0,19.5 L 141.0,24.5 L 127.0,27.5 L 123.5,34.0 L 123.5,73.0 L 158.0,73.5 L 161.5,76.0 L 161.5,80.0 L 129.0,128.5 L 128.5,88.0 L 132.5,81.0 L 123.5,81.0 L 122.5,208.0 L 137.0,206.5 L 148.0,200.5 L 158.5,183.0 L 160.5,175.0 L 166.0,173.5 L 166.5,214.0 L 163.0,218.5 L 121.0,218.5 L 113.5,238.0 L 101.0,251.5 L 88.0,258.5 L 73.0,261.5 Z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+            </svg>
+            Powered by <a href="https://jz-tech.mywire.org" target="_blank">JZ Tech Solutions</a>
+        </footer>
     </div>
 
-    <div id="modal-usuario" class="modal"><div class="modal-content"><button class="close-btn" onclick="closeModal('modal-usuario')">Cerrar</button><h3>Registrar Usuario</h3><form onsubmit="validarYEnviarForm(event, '/api/usuarios', 'modal-usuario', loadData)"><div class="form-group"><label>Nombre de Usuario <span style="color:var(--danger);">*</span></label><input type="text" name="username"></div><div class="form-group"><label>Contraseña (Min 8 caracteres, 1 Mayuscula, 1 Numero) <span style="color:var(--danger);">*</span></label><input type="password" name="password"></div><div class="form-group"><label>Nombre Completo <span style="color:var(--danger);">*</span></label><input type="text" name="nombre_completo"></div><div class="form-group"><label>Rol de Acceso <span style="color:var(--danger);">*</span></label><select name="role_select" onchange="this.form.rol.value=this.value;"><option value="chofer">Transportista</option><option value="cliente">Cliente Comercial</option><option value="admin">Administrador</option></select><input type="hidden" name="rol" value="chofer"></div><button type="submit" class="btn" style="width:100%">Dar de Alta</button></form></div></div>
-    <div id="modal-editar-usuario" class="modal"><div class="modal-content"><button class="close-btn" onclick="closeModal('modal-editar-usuario')">Cerrar</button><h3>Modificar Usuario</h3><form id="form-editar-usuario" onsubmit="ejecutarEdicionUsuario(event)"><input type="hidden" id="edit-user-username" readonly style="background:#eee; color:#555;"></div><div class="form-group"><label>Nombre Completo <span style="color:var(--danger);">*</span></label><input type="text" id="edit-user-nombre" required></div><div class="form-group"><label>Rol de Acceso <span style="color:var(--danger);">*</span></label><select id="edit-user-rol"><option value="chofer">Transportista</option><option value="cliente">Cliente Comercial</option><option value="admin">Administrador</option></select></div><div class="form-group"><label>Estado de Cuenta <span style="color:var(--danger);">*</span></label><select id="edit-user-activo"><option value="true">Activo / Autorizado</option><option value="false">Bloqueado / Suspendido</option></select></div><div class="form-group"><label>Blanquear Contraseña</label><input type="password" id="edit-user-password" placeholder="Nueva contraseña normativa"></div><button type="submit" class="btn" style="width:100%; background:var(--warning); color:black;">Guardar Cambios</button></form></div></div>
-    <div id="modal-vehiculo" class="modal"><div class="modal-content"><button class="close-btn" onclick="closeModal('modal-vehiculo')">Cerrar</button><h3>Añadir Vehículo</h3><form onsubmit="validarYEnviarForm(event, '/api/vehiculos', 'modal-vehiculo', loadData)"><div class="form-group"><label>Patente <span style="color:var(--danger);">*</span></label><input type="text" name="patente_identificador"></div><div class="form-group"><label>Marca y Modelo <span style="color:var(--danger);">*</span></label><input type="text" name="marca_modelo"></div><div class="form-group"><label>Motor <span style="color:var(--danger);">*</span></label><select name="tipo"><option value="electrico">Eléctrico</option><option value="combustion">Combustión</option></select></div><div class="form-group"><label>Autonomía (KM) <span style="color:var(--danger);">*</span></label><input type="number" step="0.1" name="autonomia_maxima_km"></div><div class="form-group f-vol-input"><label>Capacidad Carga (m³) <span style="color:var(--danger);">*</span></label><input type="number" step="0.01" name="capacidad_volumen_m3" value="0.00"></div><button type="submit" class="btn" style="width:100%">Guardar Unidad</button></form></div></div>
-    <div id="modal-editar-vehiculo" class="modal"><div class="modal-content"><button class="close-btn" onclick="closeModal('modal-editar-vehiculo')">Cerrar</button><h3>Modificar Vehículo</h3><form id="form-editar-vehiculo" onsubmit="ejecutarEdicionVehiculo(event)"><input type="hidden" id="edit-veh-id"><div class="form-group"><label>Patente <span style="color:var(--danger);">*</span></label><input type="text" id="edit-veh-patente" required></div><div class="form-group"><label>Marca y Modelo <span style="color:var(--danger);">*</span></label><input type="text" id="edit-veh-marca" required></div><div class="form-group"><label>Motor <span style="color:var(--danger);">*</span></label><select id="edit-veh-tipo"><option value="electrico">Eléctrico</option><option value="combustion">Combustión</option></select></div><div class="form-group"><label>Autonomía (KM) <span style="color:var(--danger);">*</span></label><input type="number" step="0.1" id="edit-veh-autonomia" required></div><div class="form-group f-vol-input"><label>Capacidad Caja (m³) <span style="color:var(--danger);">*</span></label><input type="number" step="0.01" id="edit-veh-volumen" required></div><div class="form-group"><label>Estado Operativo <span style="color:var(--danger);">*</span></label><select id="edit-veh-estado"><option value="activo">Activo / Disponible</option><option value="mantenimiento">En Taller (Mantenimiento)</option><option value="baja">Baja Operativa (Soft Delete)</option></select></div><button type="submit" class="btn" style="width:100%; background:var(--warning); color:black;">Guardar Parámetros</button></form></div></div>
-    <div id="modal-sucursal" class="modal"><div class="modal-content"><button class="close-btn" onclick="closeModal('modal-sucursal')">Cerrar</button><h3>Crear Sucursal</h3><form onsubmit="validarYEnviarForm(event, '/api/sucursales', 'modal-sucursal', loadData)"><div class="form-group"><label>Nombre <span style="color:var(--danger);">*</span></label><input type="text" name="nombre"></div><div class="form-group"><label>Calle <span style="color:var(--danger);">*</span></label><input type="text" name="calle"></div><div class="form-group"><label>Altura <span style="color:var(--danger);">*</span></label><input type="text" name="altura"></div><div class="form-group"><label>CP <span style="color:var(--danger);">*</span></label><input type="text" name="codigo_postal"></div><button type="submit" class="btn" style="width:100%">Guardar Base</button></form></div></div>
-    <div id="modal-cliente" class="modal"><div class="modal-content" style="max-width:550px;"><button class="close-btn" onclick="closeModal('modal-cliente')">Cerrar</button><h3>Crear Destinatario Base</h3><form onsubmit="validarYEnviarForm(event, '/api/clientes', 'modal-cliente', loadData)"><div class="form-group"><label>Razón Social <span style="color:var(--danger);">*</span></label><input type="text" name="razon_social"></div><div class="form-group"><label>Identificación Comercial (CUIT) <span style="color:var(--danger);">*</span></label><input type="text" name="cuit_rut"></div><h4 style="border-top:1px solid #eee; padding-top:10px; margin-top:15px; color:#444;">Dirección Principal de Entrega</h4><div class="form-group"><label>Alias de Sucursal <span style="color:var(--danger);">*</span></label><input type="text" name="alias" value="Sede Principal"></div><div style="display:flex; gap:10px;"><div class="form-group" style="flex:2;"><label>Calle <span style="color:var(--danger);">*</span></label><input type="text" name="calle"></div><div class="form-group" style="flex:1;"><label>Altura <span style="color:var(--danger);">*</span></label><input type="text" name="altura"></div></div><div class="form-group"><label>CP <span style="color:var(--danger);">*</span></label><input type="text" name="codigo_postal"></div><button type="submit" class="btn" style="width:100%">Guardar Registro</button></form></div></div>
-    <div id="modal-editar-sucursal" class="modal"><div class="modal-content"><button class="close-btn" onclick="closeModal('modal-editar-sucursal')">Cerrar</button><h3>Modificar Sucursal</h3><form id="form-editar-sucursal" onsubmit="ejecutarEdicionSucursal(event)"><input type="hidden" id="edit-suc-id"><div class="form-group"><label>Nombre Comercial <span style="color:var(--danger);">*</span></label><input type="text" id="edit-suc-nombre" required></div><div class="form-group"><label>Calle <span style="color:var(--danger);">*</span></label><input type="text" id="edit-suc-calle" required></div><div class="form-group"><label>Altura <span style="color:var(--danger);">*</span></label><input type="text" id="edit-suc-altura" required></div><div class="form-group"><label>Ciudad</label><input type="text" id="edit-suc-ciudad"></div><div class="form-group"><label>Código Postal <span style="color:var(--danger);">*</span></label><input type="text" id="edit-suc-cp" required></div><div class="form-group"><label>Provincia <span style="color:var(--danger);">*</span></label><input type="text" id="edit-suc-provincia"></div><div class="form-group"><label>Estado Operativo <span style="color:var(--danger);">*</span></label><select id="edit-suc-activa"><option value="true">Activa / Disponible</option><option value="false">Inactiva / Mantenimiento</option></select></div><button type="submit" class="btn" style="width:100%; background:var(--warning); color:black;">Guardar Cambios</button></form></div></div>
-    <div id="modal-lista-estado" class="modal"><div class="modal-content modal-large"><button class="close-btn" onclick="closeModal('modal-lista-estado')">Cerrar</button><h3 id="titulo-modal-estado">Vista Extendida</h3><div style="max-height:60vh; overflow:auto; overflow-x: auto;"><table><thead><tr><th>Número de Control</th><th>Prioridad</th><th>Origen</th><th>Vehículo</th><th>Acciones</th></tr></thead><tbody id="tabla-estado-mas"></tbody></table></div></div></div>
-    <div id="modal-direcciones-cliente" class="modal"><div class="modal-content modal-large"><button class="close-btn" onclick="closeModal('modal-direcciones-cliente')">Cerrar</button><h3>Direcciones de Entrega: <span id="nombre-cliente-modal"></span></h3><div style="display: flex; gap: 20px; margin-top:15px; flex-wrap: wrap;"><div style="flex: 1.5; min-width: 300px; max-height: 50vh; overflow-y: auto;"><table><thead><tr><th>Alias Sucursal</th><th>Dirección</th><th>Ciudad</th></tr></thead><tbody id="tabla-direcciones-cliente"></tbody></table></div><div style="flex: 1; min-width: 250px; background: #fafafa; padding: 15px; border-radius: 8px; border: 1px solid #eee;"><h4>Nueva Dirección</h4><form id="form-nueva-direccion" onsubmit="validarYEnviarForm(event, '', 'modal-direcciones-cliente', null, true)"><input type="hidden" id="dir-cliente-id"><div class="form-group"><label>Alias <span style="color:var(--danger);">*</span></label><input type="text" id="dir-alias"></div><div class="form-group"><label>Calle <span style="color:var(--danger);">*</span></label><input type="text" id="dir-calle"></div><div class="form-group"><label>Altura <span style="color:var(--danger);">*</span></label><input type="text" name="altura"></div><div class="form-group"><label>Ciudad</label><input type="text" id="dir-ciudad"></div><div class="form-group"><label>CP <span style="color:var(--danger);">*</span></label><input type="text" id="dir-cp"></div><div class="form-group"><label>Provincia</label><input type="text" id="dir-provincia"></div><button type="submit" class="btn" style="width:100%;">Agregar</button></form></div></div></div></div>
-    <div id="panel-flete" class="modal"><div class="modal-content" style="max-width: 550px;"><button class="close-btn" onclick="closeModal('panel-flete')">Cerrar</button><h3>Armar Solicitud de Flete</h3><div class="form-group"><label>Vehículo <span style="color:var(--danger);">*</span></label><select id="flete-vehiculo"><option value="">Seleccione...</option></select></div><div class="form-group"><label>Origen <span style="color:var(--danger);">*</span></label><select id="flete-origen"><option value="">Seleccione...</option></select></div><div class="form-group"><label>Prioridad <span style="color:var(--danger);">*</span></label><select id="flete-prioridad"><option value="normal">Normal</option><option value="alta">Alta</option></select></div><hr><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;"><strong>Paradas de Ruta</strong><button class="btn" style="background:var(--sidebar); padding:6px 12px; font-size:0.8rem;" onclick="addParada()">Añadir Parada</button></div><div id="paradas-container" style="max-height:40vh; overflow-y:auto; padding-right:5px;"></div><button class="btn" style="width:100%; background:var(--success); margin-top:15px;" onclick="confirmarFlete()">Lanzar Flete</button></div></div>
+    <!-- MODALES (Adaptados a UI corporativa con .form-control) -->
+    <div id="modal-usuario" class="modal"><div class="modal-content"><button class="close-btn" onclick="closeModal('modal-usuario')">✕</button><h3>Registrar Usuario</h3><form onsubmit="validarYEnviarForm(event, '/api/usuarios', 'modal-usuario', loadData)"><div class="form-group"><label>Nombre de Usuario <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" name="username"></div><div class="form-group"><label>Contraseña (Min 8 caracteres, 1 Mayúscula, 1 Número) <span style="color:var(--danger);">*</span></label><input type="password" class="form-control" name="password"></div><div class="form-group"><label>Nombre Completo <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" name="nombre_completo"></div><div class="form-group"><label>Rol de Acceso <span style="color:var(--danger);">*</span></label><select class="form-control" name="role_select" onchange="this.form.rol.value=this.value;"><option value="chofer">Transportista</option><option value="cliente">Cliente Comercial</option><option value="admin">Administrador</option></select><input type="hidden" name="rol" value="chofer"></div><button type="submit" class="btn btn-primary" style="width:100%">Dar de Alta</button></form></div></div>
+    
+    <div id="modal-editar-usuario" class="modal"><div class="modal-content"><button class="close-btn" onclick="closeModal('modal-editar-usuario')">✕</button><h3>Modificar Usuario</h3><form id="form-editar-usuario" onsubmit="ejecutarEdicionUsuario(event)"><input type="hidden" id="edit-user-username" readonly><div class="form-group"><label>Nombre Completo <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" id="edit-user-nombre" required></div><div class="form-group"><label>Rol de Acceso <span style="color:var(--danger);">*</span></label><select class="form-control" id="edit-user-rol"><option value="chofer">Transportista</option><option value="cliente">Cliente Comercial</option><option value="admin">Administrador</option></select></div><div class="form-group"><label>Estado de Cuenta <span style="color:var(--danger);">*</span></label><select class="form-control" id="edit-user-activo"><option value="true">Activo / Autorizado</option><option value="false">Bloqueado / Suspendido</option></select></div><div class="form-group"><label>Blanquear Contraseña</label><input type="password" class="form-control" id="edit-user-password" placeholder="Nueva contraseña normativa"></div><button type="submit" class="btn btn-primary" style="width:100%;">Guardar Cambios</button></form></div></div>
+    
+    <div id="modal-vehiculo" class="modal"><div class="modal-content"><button class="close-btn" onclick="closeModal('modal-vehiculo')">✕</button><h3>Añadir Vehículo</h3><form onsubmit="validarYEnviarForm(event, '/api/vehiculos', 'modal-vehiculo', loadData)"><div class="form-group"><label>Patente <span style="color:var(--danger);">*</span></label><input type="text" class="form-control font-mono" name="patente_identificador"></div><div class="form-group"><label>Marca y Modelo <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" name="marca_modelo"></div><div class="form-group"><label>Motor <span style="color:var(--danger);">*</span></label><select class="form-control" name="tipo"><option value="electrico">Eléctrico</option><option value="combustion">Combustión</option></select></div><div class="form-group"><label>Autonomía (KM) <span style="color:var(--danger);">*</span></label><input type="number" class="form-control" step="0.1" name="autonomia_maxima_km"></div><div class="form-group f-vol-input"><label>Capacidad Carga (m³) <span style="color:var(--danger);">*</span></label><input type="number" class="form-control" step="0.01" name="capacidad_volumen_m3" value="0.00"></div><button type="submit" class="btn btn-primary" style="width:100%">Guardar Unidad</button></form></div></div>
+    
+    <div id="modal-editar-vehiculo" class="modal"><div class="modal-content"><button class="close-btn" onclick="closeModal('modal-editar-vehiculo')">✕</button><h3>Modificar Vehículo</h3><form id="form-editar-vehiculo" onsubmit="ejecutarEdicionVehiculo(event)"><input type="hidden" id="edit-veh-id"><div class="form-group"><label>Patente <span style="color:var(--danger);">*</span></label><input type="text" class="form-control font-mono" id="edit-veh-patente" required></div><div class="form-group"><label>Marca y Modelo <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" id="edit-veh-marca" required></div><div class="form-group"><label>Motor <span style="color:var(--danger);">*</span></label><select class="form-control" id="edit-veh-tipo"><option value="electrico">Eléctrico</option><option value="combustion">Combustión</option></select></div><div class="form-group"><label>Autonomía (KM) <span style="color:var(--danger);">*</span></label><input type="number" class="form-control" step="0.1" id="edit-veh-autonomia" required></div><div class="form-group f-vol-input"><label>Capacidad Caja (m³) <span style="color:var(--danger);">*</span></label><input type="number" class="form-control" step="0.01" id="edit-veh-volumen" required></div><div class="form-group"><label>Estado Operativo <span style="color:var(--danger);">*</span></label><select class="form-control" id="edit-veh-estado"><option value="activo">Activo / Disponible</option><option value="mantenimiento">En Taller (Mantenimiento)</option><option value="baja">Baja Operativa (Soft Delete)</option></select></div><button type="submit" class="btn btn-primary" style="width:100%;">Guardar Parámetros</button></form></div></div>
+    
+    <div id="modal-sucursal" class="modal"><div class="modal-content"><button class="close-btn" onclick="closeModal('modal-sucursal')">✕</button><h3>Crear Sucursal</h3><form onsubmit="validarYEnviarForm(event, '/api/sucursales', 'modal-sucursal', loadData)"><div class="form-group"><label>Nombre <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" name="nombre"></div><div class="form-group"><label>Calle <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" name="calle"></div><div class="form-group"><label>Altura <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" name="altura"></div><div class="form-group"><label>CP <span style="color:var(--danger);">*</span></label><input type="text" class="form-control font-mono" name="codigo_postal"></div><button type="submit" class="btn btn-primary" style="width:100%">Guardar Base</button></form></div></div>
+    
+    <div id="modal-cliente" class="modal"><div class="modal-content" style="max-width:550px;"><button class="close-btn" onclick="closeModal('modal-cliente')">✕</button><h3>Crear Destinatario Base</h3><form onsubmit="validarYEnviarForm(event, '/api/clientes', 'modal-cliente', loadData)"><div class="form-group"><label>Razón Social <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" name="razon_social"></div><div class="form-group"><label>Identificación Comercial (CUIT) <span style="color:var(--danger);">*</span></label><input type="text" class="form-control font-mono" name="cuit_rut"></div><h4 style="border-top:1px solid var(--border); padding-top:16px; margin-top:24px; color:var(--text-primary); font-size:1.05rem;">Dirección Principal de Entrega</h4><div class="form-group"><label>Alias de Sucursal <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" name="alias" value="Sede Principal"></div><div style="display:flex; gap:16px;"><div class="form-group" style="flex:2;"><label>Calle <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" name="calle"></div><div class="form-group" style="flex:1;"><label>Altura <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" name="altura"></div></div><div class="form-group"><label>CP <span style="color:var(--danger);">*</span></label><input type="text" class="form-control font-mono" name="codigo_postal"></div><button type="submit" class="btn btn-primary" style="width:100%">Guardar Registro</button></form></div></div>
+    
+    <div id="modal-editar-sucursal" class="modal"><div class="modal-content"><button class="close-btn" onclick="closeModal('modal-editar-sucursal')">✕</button><h3>Modificar Sucursal</h3><form id="form-editar-sucursal" onsubmit="ejecutarEdicionSucursal(event)"><input type="hidden" id="edit-suc-id"><div class="form-group"><label>Nombre Comercial <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" id="edit-suc-nombre" required></div><div class="form-group"><label>Calle <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" id="edit-suc-calle" required></div><div class="form-group"><label>Altura <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" id="edit-suc-altura" required></div><div class="form-group"><label>Ciudad</label><input type="text" class="form-control" id="edit-suc-ciudad"></div><div class="form-group"><label>Código Postal <span style="color:var(--danger);">*</span></label><input type="text" class="form-control font-mono" id="edit-suc-cp" required></div><div class="form-group"><label>Provincia <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" id="edit-suc-provincia"></div><div class="form-group"><label>Estado Operativo <span style="color:var(--danger);">*</span></label><select class="form-control" id="edit-suc-activa"><option value="true">Activa / Disponible</option><option value="false">Inactiva / Mantenimiento</option></select></div><button type="submit" class="btn btn-primary" style="width:100%;">Guardar Cambios</button></form></div></div>
+    
+    <div id="modal-lista-estado" class="modal"><div class="modal-content modal-large"><button class="close-btn" onclick="closeModal('modal-lista-estado')">✕</button><h3 id="titulo-modal-estado">Vista Extendida</h3><div class="table-container" style="max-height:60vh; overflow-y:auto;"><table style="margin-bottom:0;"><thead><tr><th>Número de Control</th><th>Prioridad</th><th>Origen</th><th>Vehículo</th><th>Acciones</th></tr></thead><tbody id="tabla-estado-mas"></tbody></table></div></div></div>
+    
+    <div id="modal-direcciones-cliente" class="modal"><div class="modal-content modal-large"><button class="close-btn" onclick="closeModal('modal-direcciones-cliente')">✕</button><h3 style="margin-bottom:8px;">Libreta de Direcciones</h3><div style="color:var(--text-secondary); font-size:0.95rem; margin-bottom:24px;" id="nombre-cliente-modal"></div><div style="display: flex; gap: 24px; flex-wrap: wrap;"><div class="table-container" style="flex: 1.5; min-width: 300px; max-height: 50vh; overflow-y: auto; margin-bottom:0;"><table style="margin-bottom:0;"><thead><tr><th>Alias Sucursal</th><th>Dirección</th><th>Ciudad</th></tr></thead><tbody id="tabla-direcciones-cliente"></tbody></table></div><div style="flex: 1; min-width: 250px; background: var(--bg-page); padding: 24px; border-radius: 10px; border: 1px solid var(--border);"><h4 style="margin-top:0; margin-bottom:16px; color:var(--text-primary);">Nueva Dirección</h4><form id="form-nueva-direccion" onsubmit="validarYEnviarForm(event, '', 'modal-direcciones-cliente', null, true)"><input type="hidden" id="dir-cliente-id"><div class="form-group"><label>Alias <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" id="dir-alias"></div><div class="form-group"><label>Calle <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" id="dir-calle"></div><div class="form-group"><label>Altura <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" name="altura"></div><div class="form-group"><label>Ciudad</label><input type="text" class="form-control" id="dir-ciudad"></div><div class="form-group"><label>CP <span style="color:var(--danger);">*</span></label><input type="text" class="form-control font-mono" id="dir-cp"></div><div class="form-group"><label>Provincia</label><input type="text" class="form-control" id="dir-provincia"></div><button type="submit" class="btn btn-primary" style="width:100%;">Agregar</button></form></div></div></div></div>
+    
+    <div id="panel-flete" class="modal"><div class="modal-content" style="max-width: 600px;"><button class="close-btn" onclick="closeModal('panel-flete')">✕</button><h3>Armar Solicitud de Flete</h3><div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;"><div class="form-group"><label>Vehículo <span style="color:var(--danger);">*</span></label><select class="form-control" id="flete-vehiculo"><option value="">Seleccione...</option></select></div><div class="form-group"><label>Origen <span style="color:var(--danger);">*</span></label><select class="form-control" id="flete-origen"><option value="">Seleccione...</option></select></div></div><div class="form-group"><label>Prioridad <span style="color:var(--danger);">*</span></label><select class="form-control" id="flete-prioridad"><option value="normal">Normal</option><option value="alta">Alta</option></select></div><div style="display:flex; justify-content:space-between; align-items:center; margin:24px 0 16px 0; border-top:1px solid var(--border); padding-top:24px;"><strong style="font-size:1.05rem; color:var(--text-primary);">Paradas de Ruta</strong><button class="btn btn-secondary" style="padding:6px 12px; font-size:0.85rem;" onclick="addParada()"><svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Añadir Parada</button></div><div id="paradas-container" style="max-height:45vh; overflow-y:auto; padding-right:8px;"></div><button class="btn btn-primary" style="width:100%; margin-top:24px; padding:12px;" onclick="confirmarFlete()">Lanzar Flete</button></div></div>
 
     <script>
         var DB = { vehiculos: [], sucursales: [], clientes: [], tipos_docs: [], fletes: [], usuarios: [], solicitudes: [] };
@@ -264,7 +425,7 @@
             clientes: { query: '', showInactive: false, col: 'razon_social', dir: 'asc' }
         };
 
-        // Utilidad vital restituida para las cabeceras de Fetch
+        // Utilidades Core
         function getCookie(name) { let match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)')); return match ? match[2] : null; }
         function cerrarSesion() { fetch('/api/logout', {method:'POST', headers:{'X-CSRF-Token':getCookie('csrf_token')}}).then(()=>{ window.location.href = "/index.html"; }); }
 
@@ -275,6 +436,22 @@
             if(element) element.classList.add('active');
             loadData();
         }
+
+        // Modo Oscuro
+        function toggleTheme() {
+            try {
+                const current = document.documentElement.getAttribute('data-theme');
+                const next = current === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', next);
+                localStorage.setItem('jz_theme', next);
+            } catch (e) { console.error("Fallo al alternar tema"); }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('jz_theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        });
+
         function openModal(id) { document.getElementById(id).classList.add('active'); }
         function closeModal(id) { 
             document.getElementById(id).classList.remove('active'); 
@@ -287,7 +464,7 @@
         async function validarYEnviarForm(e, url, modalId, reloadCb, esDireccionCliente = false) {
             e.preventDefault(); const form = e.target; let errores = 0;
             form.querySelectorAll('input, select').forEach(el => {
-                if (el.type !== 'hidden' && el.id !== 'user-role-select' && el.style.display !== 'none' && !el.value && !el.closest('.f-vol-input')) { el.classList.add('is-invalid'); errores++; }
+                if (el.type !== 'hidden' && el.name !== 'role_select' && el.style.display !== 'none' && !el.value && !el.closest('.f-vol-input')) { el.classList.add('is-invalid'); errores++; }
             });
             if (errores > 0) { alert("Operación rechazada: Complete todos los casilleros obligatorios marcados en rojo."); return; }
             if (esDireccionCliente) { await guardarDireccionCliente(); return; }
@@ -309,14 +486,10 @@
             try {
                 let res = await fetch(url);
                 if (res.status === 401) { forzarReautenticacion(); return isArray ? [] : {}; }
-                if (!res.ok) { 
-                    alert(`JZ Tech Alerta: El servidor devolvió un error (${res.status}) al consultar la ruta [ ${url} ].`);
-                    return isArray ? [] : {}; 
-                }
+                if (!res.ok) { return isArray ? [] : {}; }
                 let data = await res.json();
                 return isArray ? (Array.isArray(data) ? data : []) : (data && typeof data === 'object' ? data : {});
             } catch (e) {
-                alert(`JZ Tech Alerta: Error crítico de red o de comunicación al conectar con la ruta [ ${url} ]. Verifique el contenedor Docker.`);
                 return isArray ? [] : {};
             }
         }
@@ -410,8 +583,8 @@
             if (!st.showInactive) res = res.filter(u => esActivo(u.activo));
             if (st.query) res = res.filter(u => (u.username || '').toLowerCase().includes(st.query) || (u.nombre_completo || '').toLowerCase().includes(st.query));
             sortEngine(res, st.col, st.dir); updateArrows('usuarios');
-            if (res.length === 0) { document.getElementById('tabla-usuarios').innerHTML = `<tr><td colspan="5" style="text-align:center; color:#666; font-style:italic; padding:20px;">No hay usuarios registrados que coincidan con la búsqueda.</td></tr>`; return; }
-            document.getElementById('tabla-usuarios').innerHTML = res.map(u=>`<tr><td><strong>${u.username}</strong></td><td>${u.nombre_completo || ''}</td><td><span class="badge">${(u.rol || '').toUpperCase()}</span></td><td>${esActivo(u.activo) ? 'Activo':'Bloqueado'}</td><td><button class="btn" style="padding:5px 10px; font-size:0.8rem; background:var(--warning); color:black;" onclick="abrirEditarUsuario('${u.username}')">Editar</button></td></tr>`).join('');
+            if (res.length === 0) { document.getElementById('tabla-usuarios').innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted); font-style:italic; padding:20px;">No hay usuarios registrados.</td></tr>`; return; }
+            document.getElementById('tabla-usuarios').innerHTML = res.map(u=>`<tr><td><strong class="font-mono">${u.username}</strong></td><td>${u.nombre_completo || ''}</td><td><span class="badge badge-primary">${(u.rol || '').charAt(0).toUpperCase() + (u.rol || '').slice(1)}</span></td><td><span class="badge ${esActivo(u.activo) ? 'badge-success':'badge-danger'}">${esActivo(u.activo) ? 'Activo':'Bloqueado'}</span></td><td><button class="btn btn-secondary" style="padding:6px 12px; font-size:0.8rem;" onclick="abrirEditarUsuario('${u.username}')">Editar</button></td></tr>`).join('');
         }
 
         function renderVehiculos() {
@@ -419,8 +592,8 @@
             if (!st.showInactive) res = res.filter(v => v.estado === 'activo');
             if (st.query) res = res.filter(v => (v.patente_identificador || '').toLowerCase().includes(st.query) || (v.marca_modelo || '').toLowerCase().includes(st.query));
             sortEngine(res, st.col, st.dir); updateArrows('vehiculos');
-            if (res.length === 0) { document.getElementById('tabla-vehiculos').innerHTML = `<tr><td colspan="7" style="text-align:center; color:#666; font-style:italic; padding:20px;">No hay vehículos disponibles en la flota activa.</td></tr>`; return; }
-            document.getElementById('tabla-vehiculos').innerHTML = res.map(v=>`<tr><td><strong>${v.patente_identificador || ''}</strong></td><td>${v.marca_modelo || ''}</td><td>${(v.tipo || '').toUpperCase()}</td><td>${v.autonomia_maxima_km || 0} KM</td><td>${v.capacidad_volumen_m3 || 0} m³</td><td><span class="badge" style="background:${v.estado==='activo'?'var(--success)':v.estado==='mantenimiento'?'var(--warning)':'var(--danger)'}">${(v.estado || '').toUpperCase()}</span></td><td><button class="btn" style="padding:5px 10px; font-size:0.8rem; background:var(--warning); color:black;" onclick="abrirEditarVehiculo(${v.id})">Editar</button></td></tr>`).join('');
+            if (res.length === 0) { document.getElementById('tabla-vehiculos').innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted); font-style:italic; padding:20px;">No hay vehículos disponibles en la flota activa.</td></tr>`; return; }
+            document.getElementById('tabla-vehiculos').innerHTML = res.map(v=>`<tr><td><strong class="font-mono">${v.patente_identificador || ''}</strong></td><td>${v.marca_modelo || ''}</td><td>${(v.tipo || '').charAt(0).toUpperCase() + (v.tipo || '').slice(1)}</td><td>${v.autonomia_maxima_km || 0} KM</td><td>${v.capacidad_volumen_m3 || 0} m³</td><td><span class="badge badge-${v.estado==='activo'?'success':v.estado==='mantenimiento'?'warning':'danger'}">${(v.estado || '').charAt(0).toUpperCase() + (v.estado || '').slice(1)}</span></td><td><button class="btn btn-secondary" style="padding:6px 12px; font-size:0.8rem;" onclick="abrirEditarVehiculo(${v.id})">Editar</button></td></tr>`).join('');
         }
 
         function renderSucursales() {
@@ -428,8 +601,8 @@
             if (!st.showInactive) res = res.filter(s => esActivo(s.activa));
             if (st.query) res = res.filter(s => (s.nombre || '').toLowerCase().includes(st.query) || (s.calle || '').toLowerCase().includes(st.query));
             sortEngine(res, st.col, st.dir); updateArrows('sucursales');
-            if (res.length === 0) { document.getElementById('tabla-sucursales').innerHTML = `<tr><td colspan="6" style="text-align:center; color:#666; font-style:italic; padding:20px;">No hay sucursales o bases de salida operativas registradas.</td></tr>`; return; }
-            document.getElementById('tabla-sucursales').innerHTML = res.map(s=>`<tr><td><strong>${s.nombre || ''}</strong></td><td>${s.calle || ''} ${s.altura || ''}</td><td>${s.ciudad || ''}</td><td>${s.codigo_postal || ''}</td><td><span class="badge" style="background:${esActivo(s.activa)?'var(--success)':'var(--danger)'}">${esActivo(s.activa) ? 'Activa':'Inactiva'}</span></td><td><button class="btn" style="padding:5px 10px; font-size:0.8rem; background:var(--warning); color:black;" onclick="abrirEditarSucursal(${s.id})">Editar</button></td></tr>`).join('');
+            if (res.length === 0) { document.getElementById('tabla-sucursales').innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted); font-style:italic; padding:20px;">No hay bases operativas registradas.</td></tr>`; return; }
+            document.getElementById('tabla-sucursales').innerHTML = res.map(s=>`<tr><td><strong>${s.nombre || ''}</strong></td><td>${s.calle || ''} ${s.altura || ''}</td><td>${s.ciudad || ''}</td><td><span class="font-mono">${s.codigo_postal || ''}</span></td><td><span class="badge badge-${esActivo(s.activa)?'success':'danger'}">${esActivo(s.activa) ? 'Activa':'Inactiva'}</span></td><td><button class="btn btn-secondary" style="padding:6px 12px; font-size:0.8rem;" onclick="abrirEditarSucursal(${s.id})">Editar</button></td></tr>`).join('');
         }
 
         function renderClientes() {
@@ -437,8 +610,8 @@
             if (!st.showInactive) res = res.filter(c => esActivo(c.activo));
             if (st.query) res = res.filter(c => (c.razon_social || '').toLowerCase().includes(st.query) || (c.cuit_rut || '').includes(st.query));
             sortEngine(res, st.col, st.dir); updateArrows('clientes');
-            if (res.length === 0) { document.getElementById('tabla-clientes').innerHTML = `<tr><td colspan="3" style="text-align:center; color:#666; font-style:italic; padding:20px;">No hay destinatarios comerciales cargados en el sistema.</td></tr>`; return; }
-            document.getElementById('tabla-clientes').innerHTML = res.map(c=>`<tr><td><strong>${c.razon_social || ''}</strong></td><td>${c.cuit_rut || ''}</td><td><button class="btn" style="padding:6px 10px; font-size:0.8rem; background:var(--info); margin-right:5px;" onclick="abrirModalDirecciones(${c.id}, '${(c.razon_social || '').replace(/'/g, "\\'")}')">Direcciones</button></td></tr>`).join('');
+            if (res.length === 0) { document.getElementById('tabla-clientes').innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--text-muted); font-style:italic; padding:20px;">No hay destinatarios cargados en el sistema.</td></tr>`; return; }
+            document.getElementById('tabla-clientes').innerHTML = res.map(c=>`<tr><td><strong>${c.razon_social || ''}</strong></td><td><span class="font-mono">${c.cuit_rut || ''}</span></td><td><button class="btn btn-secondary" style="padding:6px 12px; font-size:0.8rem;" onclick="abrirModalDirecciones(${c.id}, '${(c.razon_social || '').replace(/'/g, "\\'")}')">Direcciones</button></td></tr>`).join('');
         }
 
         function abrirEditarVehiculo(id) {
@@ -479,30 +652,30 @@
         function renderKanban() {
             const container = document.getElementById('kanban-board'); container.innerHTML = '';
             const columnas = [{ id: 'pendiente', titulo: 'Pendiente Salida' }, { id: 'camino', titulo: 'En Tránsito' }, { id: 'completado', titulo: 'Completado' }, { id: 'problema', titulo: 'Incidencia' }];
-            const maxTarjetas = 5;
+            const maxTarjetas = 10;
             columnas.forEach(col => {
                 const colHTML = document.createElement('div'); colHTML.className = 'kanban-column';
                 const fletesFiltrados = DB.fletes.filter(f => f.estado === col.id);
-                const cardsHTML = fletesFiltrados.slice(0, maxTarjetas).map(f => `<div class="kanban-card ${f.prioridad === 'alta' ? 'card-priority-alta' : 'card-priority-normal'}"><div class="card-header"><span class="card-id" style="color:#111; font-weight:bold; letter-spacing:0.5px;">N° ${String(f.id).padStart(6, '0')}</span><span class="card-priority" style="background:${f.prioridad==='alta'?'var(--danger)':'var(--primary)'}">${f.prioridad}</span></div><div style="font-size: 0.85rem; color: #172b4d; margin-bottom: 12px;"><strong>Origen:</strong> ${f.origen || 'S/D'}<br><strong>Unidad:</strong> ${f.patente_identificador || 'Sin asignar'}</div><div class="card-actions">${getBotonesAccion(f)}</div></div>`).join('');
+                const cardsHTML = fletesFiltrados.slice(0, maxTarjetas).map(f => `<div class="kanban-card"><div class="card-header"><span class="font-mono" style="font-weight:600; font-size:1.05rem;">#FLT-${String(f.id).padStart(6, '0')}</span><span class="badge badge-${f.prioridad==='alta'?'danger':'primary'}">${(f.prioridad || '').charAt(0).toUpperCase() + (f.prioridad || '').slice(1)}</span></div><div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px; line-height:1.5;"><strong>Origen:</strong> ${f.origen || 'S/D'}<br><strong>Unidad:</strong> <span class="font-mono">${f.patente_identificador || 'Sin asignar'}</span></div><div class="card-actions">${getBotonesAccion(f)}</div></div>`).join('');
                 
                 colHTML.innerHTML = `<h3><span>${col.titulo}</span><span class="kanban-column-count">${fletesFiltrados.length}</span></h3><div class="kanban-cards-container">${cardsHTML}</div>`;
-                if (fletesFiltrados.length > maxTarjetas) colHTML.innerHTML += `<button class="btn" style="width:100%; background:#d0d4dc; color:#333; margin-top:10px; font-size:0.85rem;" onclick="abrirModalLista('${col.id}', '${col.titulo}')">Ver listado completo</button>`;
+                if (fletesFiltrados.length > maxTarjetas) colHTML.innerHTML += `<button class="btn btn-secondary" style="width:100%; margin-top:12px; font-size:0.85rem;" onclick="abrirModalLista('${col.id}', '${col.titulo}')">Ver listado completo</button>`;
                 container.appendChild(colHTML);
             });
         }
 
         function getBotonesAccion(f) {
             let acts = '';
-            if (f.estado === 'pendiente') acts += `<button class="btn-card" style="background:var(--success); color:white;" onclick="cambiarEstadoFlete(${f.id}, 'camino')">Despachar</button>`;
-            else if (f.estado === 'camino') acts += `<button class="btn-card" style="background:var(--primary); color:white;" onclick="cambiarEstadoFlete(${f.id}, 'completado')">Finalizar</button><button class="btn-card" style="background:var(--danger); color:white;" onclick="cambiarEstadoFlete(${f.id}, 'problema')">Incidencia</button>`;
-            else if (f.estado === 'problema') acts += `<button class="btn-card" style="background:var(--warning); color:black;" onclick="cambiarEstadoFlete(${f.id}, 'pendiente')">Re-procesar</button>`;
+            if (f.estado === 'pendiente') acts += `<button class="btn btn-primary" style="padding:6px 12px; font-size:0.8rem; flex:1;" onclick="cambiarEstadoFlete(${f.id}, 'camino')">Despachar</button>`;
+            else if (f.estado === 'camino') acts += `<button class="btn btn-primary" style="padding:6px 12px; font-size:0.8rem; flex:1; background-color:var(--success);" onclick="cambiarEstadoFlete(${f.id}, 'completado')"><svg class="icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>Finalizar</button><button class="btn btn-secondary" style="padding:6px 12px; font-size:0.8rem; flex:1; color:var(--danger); border-color:var(--danger);" onclick="cambiarEstadoFlete(${f.id}, 'problema')"><svg class="icon" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>Incidencia</button>`;
+            else if (f.estado === 'problema') acts += `<button class="btn btn-secondary" style="padding:6px 12px; font-size:0.8rem; flex:1;" onclick="cambiarEstadoFlete(${f.id}, 'pendiente')">Re-procesar</button>`;
             return acts;
         }
 
         function abrirModalLista(estadoId, titulo) {
             const fletes = DB.fletes.filter(f => f.estado === estadoId);
             document.getElementById('titulo-modal-estado').innerText = `${titulo}`;
-            document.getElementById('tabla-estado-mas').innerHTML = fletes.map(f => `<tr><td><strong>${String(f.id).padStart(6, '0')}</strong></td><td><span class="badge" style="background:${f.prioridad==='alta'?'var(--danger)':'var(--primary)'}">${f.prioridad}</span></td><td>${f.origen || ''}</td><td>${f.patente_identificador || ''}</td><td><div style="display:flex; gap:5px;">${getBotonesAccion(f)}</div></td></tr>`).join('');
+            document.getElementById('tabla-estado-mas').innerHTML = fletes.map(f => `<tr><td><strong class="font-mono">#FLT-${String(f.id).padStart(6, '0')}</strong></td><td><span class="badge badge-${f.prioridad==='alta'?'danger':'primary'}">${(f.prioridad || '').charAt(0).toUpperCase() + (f.prioridad || '').slice(1)}</span></td><td>${f.origen || ''}</td><td><span class="font-mono">${f.patente_identificador || ''}</span></td><td><div style="display:flex; gap:8px;">${getBotonesAccion(f)}</div></td></tr>`).join('');
             openModal('modal-lista-estado');
         }
 
@@ -525,31 +698,31 @@
             try {
                 const clienteId = document.getElementById('dir-cliente-id').value; const payload = { alias: document.getElementById('dir-alias').value, calle: document.getElementById('dir-calle').value, altura: document.getElementById('dir-altura').value, ciudad: document.getElementById('dir-ciudad').value, codigo_postal: document.getElementById('dir-cp').value, provincia: document.getElementById('dir-provincia').value, latitud: -34.6037, longitud: -58.3816 }; 
                 const res = await fetch(`/api/clientes/${clienteId}/direcciones`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCookie('csrf_token') }, body: JSON.stringify(payload) }); 
-                if (res.ok) { alert("¡Dirección incorporada a la libreta logisica con éxito!"); document.getElementById('form-nueva-direccion').reset(); cargarDireccionesEnModal(clienteId); delete direccionesCache[clienteId]; }
+                if (res.ok) { alert("¡Dirección incorporada a la libreta logística con éxito!"); document.getElementById('form-nueva-direccion').reset(); cargarDireccionesEnModal(clienteId); delete direccionesCache[clienteId]; }
             } catch(x) { alert("Error de comunicación."); }
         }
         
         function openFletePanel() { openModal('panel-flete'); if (paradaCount === 0) addParada(); }
         
         function addParada() {
-            paradaCount++; const div = document.createElement('div'); div.className = 'parada-box'; div.id = 'parada-' + paradaCount; div.style = 'border:1px solid #ddd; padding:15px; margin-bottom:12px; border-radius:8px; background:#fafafa;';
+            paradaCount++; const div = document.createElement('div'); div.className = 'parada-box'; div.id = 'parada-' + paradaCount; div.style = 'border:1px solid var(--border); padding:20px; margin-bottom:16px; border-radius:10px; background:var(--bg-page);';
             let docOptions = '<option value="">Seleccione Tipo...</option>' + DB.tipos_docs.map(t=>`<option value="${t.codigo}">${t.nombre}</option>`).join('');
-            let volFieldHTML = globalConfig.manejar_volumenes ? `<div class="form-group"><label>Volumen Requerido (m³) <span style="color:var(--danger);">*</span></label><input type="number" step="0.01" class="p-volumen" value="0.00" min="0.00"></div>` : `<input type="hidden" class="p-volumen" value="0.00">`;
+            let volFieldHTML = globalConfig.manejar_volumenes ? `<div class="form-group"><label>Volumen Requerido (m³) <span style="color:var(--danger);">*</span></label><input type="number" step="0.01" class="form-control p-volumen" value="0.00" min="0.00"></div>` : `<input type="hidden" class="p-volumen" value="0.00">`;
 
             div.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;"><h4 style="margin:0;">Destino ${paradaCount}</h4><button class="btn" style="background:var(--danger); padding:4px 8px; font-size:0.75rem;" onclick="document.getElementById('${div.id}').remove()">Quitar</button></div>
-                <div class="form-group"><label>Documento <span style="color:var(--danger);">*</span></label><select class="p-tipo" onchange="validarCampos(this)">${docOptions}</select></div>
-                <div style="display:flex; gap:10px;">
-                    <div class="form-group c-id" style="flex:1"><label>ID <span style="color:var(--danger);">*</span></label><input type="text" name="p-id" class="p-id"></div>
-                    <div class="form-group c-pv" style="flex:1"><label>Pto. Venta <span style="color:var(--danger);">*</span></label><input type="text" name="p-pv" class="p-pv"></div>
-                    <div class="form-group c-num" style="flex:1.5"><label>Número <span style="color:var(--danger);">*</span></label><input type="text" name="p-num" class="p-num"></div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom: 1px solid var(--border); padding-bottom:12px;"><h4 style="margin:0; font-size:1rem; color:var(--text-primary);">Destino ${paradaCount}</h4><button class="btn btn-secondary" style="padding:4px 8px; font-size:0.75rem; color:var(--danger); border-color:var(--danger);" onclick="document.getElementById('${div.id}').remove()">Quitar</button></div>
+                <div class="form-group"><label>Documento <span style="color:var(--danger);">*</span></label><select class="form-control p-tipo" onchange="validarCampos(this)">${docOptions}</select></div>
+                <div style="display:flex; gap:12px;">
+                    <div class="form-group c-id" style="flex:1"><label>ID <span style="color:var(--danger);">*</span></label><input type="text" class="form-control font-mono p-id"></div>
+                    <div class="form-group c-pv" style="flex:1"><label>Pto. Venta <span style="color:var(--danger);">*</span></label><input type="text" class="form-control font-mono p-pv"></div>
+                    <div class="form-group c-num" style="flex:1.5"><label>Número <span style="color:var(--danger);">*</span></label><input type="text" class="form-control font-mono p-num"></div>
                 </div>
-                <div class="form-group"><label>Cantidad de Bultos <span style="color:var(--danger);">*</span></label><input type="number" class="p-bultos" value="1" min="1"></div>
+                <div class="form-group"><label>Cantidad de Bultos <span style="color:var(--danger);">*</span></label><input type="number" class="form-control p-bultos" value="1" min="1"></div>
                 ${volFieldHTML}
-                <div class="form-group"><label>Tipo de Destino <span style="color:var(--danger);">*</span></label><select class="p-tipo-destino" onchange="conmutarTipoDestino(this)"><option value="">Seleccione tipo...</option><option value="sucursal">Sucursal Interna</option><option value="destinatario">Destinatario Registrado</option><option value="esporadico">Destinatario Manual (Esporádico)</option></select></div>
-                <div class="panel-sucursal" style="display:none;"><div class="form-group"><label>Seleccionar Sucursal <span style="color:var(--danger);">*</span></label><select class="p-sucursal-select"></select></div></div>
-                <div class="panel-destinatario" style="display:none; position:relative;"><div class="form-group"><label>Buscar Destinatario Maestro <span style="color:var(--danger);">*</span></label><input type="text" class="p-dest-search" placeholder="Escriba Razón Social..." oninput="filtrarDestinatariosPredictivo(this)"><input type="hidden" class="p-dest-id"><div class="autocomplete-results"></div></div><div class="panel-punto-entrega" style="display:none; background:#e8f4fd; padding:12px; border-radius:6px; margin-bottom:10px;"><div class="form-group"><label style="color:#0056b3;">Punto de Entrega Asociado <span style="color:var(--danger);">*</span></label><select class="p-punto-select"></select></div></div></div>
-                <div class="panel-esporadico" style="display:none; background:#ebecf0; padding:12px; border-radius:6px; margin-bottom:10px;"><div class="form-group"><label>Nombre Destinatario <span style="color:var(--danger);">*</span></label><input type="text" class="p-alias"></div><div style="display:flex; gap:10px;"><div class="form-group" style="flex:2;"><label>Calle <span style="color:var(--danger);">*</span></label><input type="text" class="p-calle"></div><div class="form-group" style="flex:1;"><label>Altura <span style="color:var(--danger);">*</span></label><input type="text" class="p-alt"></div></div><div style="display:flex; gap:10px;"><div class="form-group" style="flex:1;"><label>Ciudad <span style="color:var(--danger);">*</span></label><input type="text" class="p-ciudad" value="${globalConfig.ciudad_defecto || 'CABA'}"></div><div class="form-group" style="flex:1;"><label>Provincia <span style="color:var(--danger);">*</span></label><input type="text" class="p-prov" value="${globalConfig.provincia_defecto || 'Buenos Aires'}"></div></div></div>
+                <div class="form-group"><label>Tipo de Destino <span style="color:var(--danger);">*</span></label><select class="form-control p-tipo-destino" onchange="conmutarTipoDestino(this)"><option value="">Seleccione tipo...</option><option value="sucursal">Sucursal Interna</option><option value="destinatario">Destinatario Registrado</option><option value="esporadico">Destinatario Manual (Esporádico)</option></select></div>
+                <div class="panel-sucursal" style="display:none;"><div class="form-group"><label>Seleccionar Sucursal <span style="color:var(--danger);">*</span></label><select class="form-control p-sucursal-select"></select></div></div>
+                <div class="panel-destinatario" style="display:none; position:relative;"><div class="form-group"><label>Buscar Destinatario Maestro <span style="color:var(--danger);">*</span></label><input type="text" class="form-control p-dest-search" placeholder="Escriba Razón Social..." oninput="filtrarDestinatariosPredictivo(this)"><input type="hidden" class="p-dest-id"><div class="autocomplete-results"></div></div><div class="panel-punto-entrega" style="display:none; background:rgba(41, 98, 255, 0.05); padding:16px; border-radius:8px; margin-bottom:12px; border:1px solid rgba(41, 98, 255, 0.2);"><div class="form-group" style="margin-bottom:0;"><label style="color:var(--accent);">Punto de Entrega Asociado <span style="color:var(--danger);">*</span></label><select class="form-control p-punto-select"></select></div></div></div>
+                <div class="panel-esporadico" style="display:none; background:rgba(0,0,0,0.02); padding:16px; border-radius:8px; margin-bottom:12px; border:1px solid var(--border);"><div class="form-group"><label>Nombre Destinatario <span style="color:var(--danger);">*</span></label><input type="text" class="form-control p-alias"></div><div style="display:flex; gap:12px;"><div class="form-group" style="flex:2;"><label>Calle <span style="color:var(--danger);">*</span></label><input type="text" class="form-control p-calle"></div><div class="form-group" style="flex:1;"><label>Altura <span style="color:var(--danger);">*</span></label><input type="text" class="form-control p-alt"></div></div><div style="display:flex; gap:12px;"><div class="form-group" style="flex:1;"><label>Ciudad <span style="color:var(--danger);">*</span></label><input type="text" class="form-control p-ciudad" value="${globalConfig.ciudad_defecto || ''}"></div><div class="form-group" style="flex:1;"><label>Provincia <span style="color:var(--danger);">*</span></label><input type="text" class="form-control p-prov" value="${globalConfig.provincia_defecto || ''}"></div></div></div>
             `;
             document.getElementById('paradas-container').appendChild(div); validarCampos(div.querySelector('.p-tipo'));
         }
@@ -563,7 +736,7 @@
                 caja.querySelector('.p-sucursal-select').innerHTML = DB.sucursales.filter(s=>esActivo(s.activa)).map(s=>`<option value="${s.id}">${s.nombre}</option>`).join(''); 
             } 
         }
-        function filtrarDestinatariosPredictivo(input) { const caja = input.closest('.parada-box'); const query = input.value.toLowerCase().trim(); const resultsDiv = caja.querySelector('.autocomplete-results'); if (!query) { resultsDiv.style.display = 'none'; return; } const filtrados = DB.clientes.filter(c => c.razon_social.toLowerCase().includes(query) || c.cuit_rut.includes(query)); if (filtrados.length === 0) { resultsDiv.innerHTML = '<div class="autocomplete-item">Sin coincidencias</div>'; } else { resultsDiv.innerHTML = filtrados.map(c => `<div class="autocomplete-item" onclick="seleccionarDestinatarioOpcion(this, ${c.id}, '${c.razon_social.replace(/'/g, "\\'")}')"><strong>${c.razon_social}</strong></div>`).join(''); } resultsDiv.style.display = 'block'; }
+        function filtrarDestinatariosPredictivo(input) { const caja = input.closest('.parada-box'); const query = input.value.toLowerCase().trim(); const resultsDiv = caja.querySelector('.autocomplete-results'); if (!query) { resultsDiv.style.display = 'none'; return; } const filtrados = DB.clientes.filter(c => c.razon_social.toLowerCase().includes(query) || c.cuit_rut.includes(query)); if (filtrados.length === 0) { resultsDiv.innerHTML = '<div class="autocomplete-item" style="color:var(--text-muted); cursor:default;">Sin coincidencias</div>'; } else { resultsDiv.innerHTML = filtrados.map(c => `<div class="autocomplete-item" onclick="seleccionarDestinatarioOpcion(this, ${c.id}, '${c.razon_social.replace(/'/g, "\\'")}')"><strong>${c.razon_social}</strong></div>`).join(''); } resultsDiv.style.display = 'block'; }
         function seleccionarDestinatarioOpcion(item, id, nombre) { const caja = item.closest('.parada-box'); caja.querySelector('.p-dest-search').value = nombre; caja.querySelector('.p-dest-id').value = id; caja.querySelector('.autocomplete-results').style.display = 'none'; cargarPuntosEntregaParaFlete(id, caja.querySelector('.p-punto-select'), caja.querySelector('.panel-punto-entrega')); }
         async function cargarPuntosEntregaParaFlete(clienteId, sel, panel) { sel.innerHTML = '<option value="">Cargando...</option>'; panel.style.display = 'block'; if (!direccionesCache[clienteId]) { const res = await fetch(`/api/clientes/${clienteId}/direcciones`); direccionesCache[clienteId] = res.ok ? await res.json() : []; } const dirs = direccionesCache[clienteId]; sel.innerHTML = dirs.length === 0 ? '<option value="">Sin direcciones</option>' : dirs.map(d => `<option value="${d.id}" data-calle="${d.calle}" data-altura="${d.altura}" data-ciudad="${d.ciudad}" data-provincia="${d.provincia}" data-alias="${d.alias}">${d.alias}</option>`).join(''); }
         function validarCampos(sel) { const caja = sel.closest('.parada-box'); const r = DB.tipos_docs.find(t => t.codigo === sel.value); caja.querySelector('.c-id').style.display = (r && r.requiere_id) ? 'block' : 'none'; caja.querySelector('.c-pv').style.display = (r && r.requiere_pto_venta) ? 'block' : 'none'; caja.querySelector('.c-num').style.display = (r && r.requiere_numero) ? 'block' : 'none'; }

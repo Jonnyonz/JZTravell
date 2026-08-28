@@ -1,63 +1,228 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Portal de Transporte - BazarChef</title>
+    <title>JZTravell - Portal de Transporte</title>
     <style>
-        :root { --primary: #007bff; --bg: #121212; --text: #ffffff; --card-bg: #1e1e1e; --success: #28a745; --danger: #dc3545;}
-        body { margin: 0; font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); padding-bottom: 1rem; display: flex; flex-direction: column; min-height: 100vh;}
-        
-        .header { background: #000; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; position: sticky; top: 0; z-index: 100;}
-        .header h1 { margin: 0; font-size: 1.2rem; color: #f06a25; }
-        .gps-status { display: flex; align-items: center; gap: 5px; font-size: 0.8rem; color: #aaa;}
-        .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--danger); }
-        .dot.active { background: var(--success); box-shadow: 0 0 8px var(--success); }
+        :root { 
+            /* Paleta JZTech Suite */
+            --bg-page: #f4f6f9; 
+            --bg-surface: #ffffff; 
+            --accent: #2962ff; 
+            --accent-hover: #1f4fd1;
+            --success: #00c853; 
+            --danger: #d50000; 
+            --warning: #ffc107; 
+            --info: #00b0ff;
+            --text-primary: #212529; 
+            --text-secondary: #666666; 
+            --text-muted: #999999; 
+            --border: #e0e0e0;
+            
+            --font-base: system-ui, -apple-system, sans-serif;
+            --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+            --icon-stroke: 1.5px;
+        }
 
-        .container { padding: 15px; flex: 1;}
-        .section-title { font-size: 1rem; text-transform: uppercase; color: #888; border-bottom: 1px solid #333; padding-bottom: 5px; margin-top: 20px; margin-bottom: 15px;}
-        
-        .card { background: var(--card-bg); border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); border-left: 5px solid var(--primary); position: relative;}
-        .card.active-trip { border-left-color: var(--success); border: 2px solid var(--success); }
-        .card-header { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 10px; font-size: 1.1rem; padding-right: 30px;}
-        .card-body { font-size: 0.95rem; color: #ddd; margin-bottom: 15px;}
-        
-        .checkbox-container { position: absolute; top: 15px; right: 15px; scale: 1.4; }
+        [data-theme="dark"] {
+            --bg-page: #121212;
+            --bg-surface: #1e1e1e;
+            --accent: #4477ff;
+            --accent-hover: #5588ff;
+            --text-primary: #e0e0e0;
+            --text-secondary: #aaaaaa;
+            --border: #333333;
+        }
 
-        .btn { width: 100%; padding: 15px; border-radius: 8px; font-weight: bold; font-size: 1.1rem; border: none; cursor: pointer; margin-top: 10px; color: white;}
-        .btn-start { background: var(--primary); }
-        .btn-consolidate { background: #f06a25; margin-bottom: 15px;}
-        .btn-maps { background: #4285F4; display: flex; align-items: center; justify-content: center; gap: 8px;}
-        .btn-print { background: #6c757d; }
-        .btn-finish { background: var(--success); }
+        body { 
+            margin: 0; 
+            font-family: var(--font-base); 
+            background: var(--bg-page); 
+            color: var(--text-primary); 
+            display: flex; 
+            flex-direction: column; 
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .font-mono { font-family: var(--font-mono); letter-spacing: 0.5px; font-size: 0.95em;}
+        svg.icon { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: var(--icon-stroke); stroke-linecap: round; stroke-linejoin: round; }
         
-        .parada-item { background: #2a2a2a; padding: 10px; border-radius: 6px; margin-bottom: 8px; font-size: 0.85rem;}
-        .system-footer { font-size: 0.75rem; color: #666; text-align: center; line-height: 1.4; padding: 15px; border-top: 1px solid #222; margin-top: auto; }
-        .system-footer a { color: #f06a25; text-decoration: none; font-weight: bold; }
+        .top-accent-bar { position: fixed; top: 0; left: 0; right: 0; height: 4px; background-color: var(--accent); z-index: 1000; }
+
+        .header { 
+            background: var(--bg-surface); 
+            padding: 16px 20px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            border-bottom: 1px solid var(--border); 
+            position: sticky; 
+            top: 4px; 
+            z-index: 100;
+        }
+
+        .brand-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header h1 { 
+            margin: 0; 
+            font-size: 1.1rem; 
+            color: var(--text-primary); 
+            font-weight: 600;
+        }
+
+        .gps-status { 
+            display: flex; 
+            align-items: center; 
+            gap: 6px; 
+            font-size: 0.75rem; 
+            color: var(--text-secondary);
+            font-weight: 500;
+            background: var(--bg-page);
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--danger); transition: all 0.3s;}
+        .dot.active { background: var(--success); box-shadow: 0 0 8px rgba(0, 200, 83, 0.6); }
+
+        .container { padding: 20px; flex: 1; max-width: 600px; margin: 0 auto; width: 100%; box-sizing: border-box;}
+        
+        .section-title { 
+            font-size: 0.9rem; 
+            text-transform: uppercase; 
+            font-weight: 600;
+            color: var(--text-secondary); 
+            border-bottom: 1px solid var(--border); 
+            padding-bottom: 8px; 
+            margin-top: 24px; 
+            margin-bottom: 16px;
+        }
+
+        .card { 
+            background: var(--bg-surface); 
+            border-radius: 12px; 
+            padding: 20px; 
+            margin-bottom: 16px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04); 
+            border: 1px solid var(--border); 
+            position: relative;
+        }
+
+        .card.active-trip { border: 1px solid rgba(0, 200, 83, 0.5); background: rgba(0, 200, 83, 0.02); }
+        [data-theme="light"] .card.active-trip { background: #f0fdf4; border-color: #bbf7d0;}
+
+        .card-header { 
+            display: flex; 
+            justify-content: space-between; 
+            font-weight: 600; 
+            margin-bottom: 12px; 
+            font-size: 1.05rem; 
+            padding-right: 32px;
+            color: var(--text-primary);
+        }
+
+        .card-body { font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 20px; line-height: 1.5;}
+        
+        .checkbox-container { position: absolute; top: 20px; right: 20px; transform: scale(1.4); margin:0;}
+
+        .btn { 
+            width: 100%; 
+            padding: 14px; 
+            border-radius: 8px; 
+            font-weight: 600; 
+            font-size: 0.95rem; 
+            border: none; 
+            cursor: pointer; 
+            margin-top: 12px; 
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: opacity 0.2s;
+            font-family: var(--font-base);
+        }
+
+        .btn:active { opacity: 0.8; }
+        .btn-consolidate { background: var(--accent); color: white; margin-bottom: 16px;}
+        .btn-maps { background: #4285F4; color: white;}
+        .btn-print { background: var(--bg-page); color: var(--text-primary); border: 1px solid var(--border); }
+        .btn-finish { background: var(--success); color: white;}
+        
+        .parada-item { 
+            background: var(--bg-page); 
+            padding: 12px; 
+            border-radius: 8px; 
+            margin-bottom: 10px; 
+            font-size: 0.9rem;
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+
+        .system-footer { 
+            font-size: 0.75rem; 
+            color: var(--text-muted); 
+            text-align: center; 
+            padding: 20px; 
+            border-top: 1px solid var(--border); 
+            margin-top: auto; 
+            background: var(--bg-surface);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .system-footer a { color: var(--text-muted); text-decoration: none; font-weight: 600; }
+        .watermark-logo { height: 16px; opacity: 0.5; }
     </style>
 </head>
 <body>
     <script>
         function getCookie(name) { let match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)')); return match ? match[2] : null; }
         if (getCookie('user_rol') !== 'chofer') { window.location.href = "/index.html"; }
+        
+        // Auto-detectar preferencia del sistema pero forzar a oscuro por defecto en móvil para choferes
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('jz_theme');
+            if (savedTheme) {
+                document.documentElement.setAttribute('data-theme', savedTheme);
+            }
+        });
     </script>
 
+    <div class="top-accent-bar"></div>
+
     <div class="header">
-        <h1>BazarChef Transporte</h1>
-        <div class="gps-status"><div class="dot" id="gps-dot"></div> <span id="gps-text">Ubicación Inactiva</span></div>
+        <div class="brand-container">
+            <svg class="icon" viewBox="0 0 24 24" style="color:var(--accent);"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+            <h1>JZTravell</h1>
+        </div>
+        <div class="gps-status"><div class="dot" id="gps-dot"></div> <span id="gps-text" class="font-mono">Inactivo</span></div>
     </div>
 
     <div class="container">
         <div id="viaje-actual-container"></div>
         
-        <div class="section-title">Viajes Disponibles</div>
-        <button class="btn btn-consolidate" id="btn-consolidar-rutas" onclick="ejecutarConsolidacion()" style="display:none;">Consolidar y Optimizar Selección</button>
+        <div class="section-title">Envíos Pendientes</div>
+        <button class="btn btn-consolidate" id="btn-consolidar-rutas" onclick="ejecutarConsolidacion()" style="display:none;">
+            <svg class="icon" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+            Consolidar Selección
+        </button>
         <div id="viajes-pendientes-container"></div>
     </div>
 
     <div class="system-footer">
-        Versión 1.8<br>
-        Powered by <a href="https://jz-tech.mywire.org" target="_blank">JZ Tech Solutions</a>
+        <svg class="watermark-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 203 281">
+            <path d="M 73.0,261.5 L 62.0,261.5 L 49.0,256.5 L 45.5,253.0 L 43.5,247.0 L 45.5,237.0 L 51.0,232.5 L 61.0,231.5 L 68.5,236.0 L 78.0,252.5 L 86.0,252.5 L 92.5,240.0 L 94.5,219.0 L 47.0,218.5 L 44.5,216.0 L 44.5,212.0 L 89.0,146.5 L 89.5,188.0 L 74.5,210.0 L 94.5,210.0 L 94.5,83.0 L 74.0,86.5 L 63.0,92.5 L 54.5,103.0 L 50.5,114.0 L 46.0,114.5 L 44.5,113.0 L 44.5,80.0 L 52.0,73.5 L 94.5,73.0 L 93.5,33.0 L 91.5,29.0 L 87.0,26.5 L 70.0,24.5 L 70.0,19.5 L 140.0,19.5 L 141.0,24.5 L 127.0,27.5 L 123.5,34.0 L 123.5,73.0 L 158.0,73.5 L 161.5,76.0 L 161.5,80.0 L 129.0,128.5 L 128.5,88.0 L 132.5,81.0 L 123.5,81.0 L 122.5,208.0 L 137.0,206.5 L 148.0,200.5 L 158.5,183.0 L 160.5,175.0 L 166.0,173.5 L 166.5,214.0 L 163.0,218.5 L 121.0,218.5 L 113.5,238.0 L 101.0,251.5 L 88.0,258.5 L 73.0,261.5 Z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+        </svg>
+        Powered by JZ Tech Solutions
     </div>
 
     <script>
@@ -65,7 +230,6 @@
         async function initApp() { await loadData(); iniciarMotorGPS(); }
         async function loadData() { try { DB.fletes = await (await fetch('/api/fletes')).json(); renderUI(); } catch (e) { console.error(e); } }
 
-        // 🔥 MODIFICACIÓN: Integración visual de identificadores fijos de 6 dígitos en la app móvil
         function renderUI() {
             const containerActual = document.getElementById('viaje-actual-container');
             const containerPendientes = document.getElementById('viajes-pendientes-container');
@@ -83,29 +247,54 @@
                 containerActual.innerHTML = `
                     <div class="section-title" style="color:var(--success);">Ruta Optimizada Activa</div>
                     <div class="card active-trip">
-                        <div class="card-header"><span>Control: N° ${String(fletesActivos[0].id).padStart(6, '0')}</span><span style="font-size:0.9rem;">${fletesActivos.length} Consolidados</span></div>
+                        <div class="card-header"><span class="font-mono">#FLT-${String(fletesActivos[0].id).padStart(6, '0')}</span><span style="font-size:0.85rem; color:var(--success);">${fletesActivos.length} Entregas</span></div>
                         <div class="card-body">
-                            <p><strong>Manifiesto de Carga y Documentos:</strong></p>
-                            ${todasParadas.map((p, i) => `<div class="parada-item"><strong>${i+1}</strong>. ${p.destino_alias} (${p.bultos} Bultos)<br><small>[${p.tipo_documento.toUpperCase()}] ${p.destino_calle} ${p.destino_altura}</small></div>`).join('')}
+                            <p style="margin-top:0; color:var(--text-primary); font-weight:500;">Manifiesto de Carga:</p>
+                            ${todasParadas.map((p, i) => `
+                                <div class="parada-item">
+                                    <div style="font-weight:600; margin-bottom:4px; display:flex; justify-content:space-between;">
+                                        <span>${i+1}. ${p.destino_alias}</span>
+                                        <span style="color:var(--accent);">${p.bultos} Bultos</span>
+                                    </div>
+                                    <div style="color:var(--text-secondary); font-size:0.85rem; display:flex; gap:6px; align-items:flex-start;">
+                                        <svg class="icon" style="width:14px; height:14px; flex-shrink:0; margin-top:2px;" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                                        <span>${p.destino_calle} ${p.destino_altura}</span>
+                                    </div>
+                                </div>
+                            `).join('')}
                         </div>
-                        <button class="btn btn-maps" onclick="abrirGoogleMapsMulti()">Navegar Ruta Completa</button>
-                        <button class="btn btn-print" onclick="descargarHojaRuta('${fleteIds}')">Imprimir Hoja de Ruta</button>
-                        <button class="btn btn-finish" onclick="finalizarRutaCompleta('${fleteIds}')">Finalizar Ruta de Entrega</button>
+                        <button class="btn btn-maps" onclick="abrirGoogleMapsMulti()">
+                            <svg class="icon" viewBox="0 0 24 24"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+                            Navegar Ruta Completa
+                        </button>
+                        <button class="btn btn-print" onclick="descargarHojaRuta('${fleteIds}')">
+                            <svg class="icon" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                            Imprimir Hoja de Ruta
+                        </button>
+                        <button class="btn btn-finish" onclick="finalizarRutaCompleta('${fleteIds}')">
+                            <svg class="icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            Cerrar Ruta de Entrega
+                        </button>
                     </div>
                 `;
                 document.getElementById('btn-consolidar-rutas').style.display = 'none';
             } else {
-                document.getElementById('btn-consolidar-rutas').style.display = fletesPendientes.length > 0 ? 'block' : 'none';
+                document.getElementById('btn-consolidar-rutas').style.display = fletesPendientes.length > 0 ? 'flex' : 'none';
             }
 
             if (fletesPendientes.length === 0 && fletesActivos.length === 0) {
-                containerPendientes.innerHTML = '<p style="color:#666; text-align:center;">No hay rutas asignadas in este momento.</p>';
+                containerPendientes.innerHTML = '<div style="text-align:center; padding:40px 20px; color:var(--text-muted); border:1px dashed var(--border); border-radius:10px;"><svg class="icon" style="width:48px;height:48px;margin-bottom:12px;opacity:0.5;" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg><br>No hay despachos disponibles.</div>';
             } else {
                 containerPendientes.innerHTML = fletesPendientes.map(f => `
                     <div class="card">
-                        <div class="checkbox-container"><input type="checkbox" class="flete-select" value="${f.id}" onchange="evaluarCheckboxes()"></div>
-                        <div class="card-header"><span>Control: N° ${String(f.id).padStart(6, '0')}</span><span style="color:var(--primary); font-size:0.9rem;">${f.paradas.length} Destinos</span></div>
-                        <div class="card-body"><strong>Origen:</strong> ${f.origen}</div>
+                        <div class="checkbox-container"><input type="checkbox" class="flete-select" value="${f.id}" onchange="evaluarCheckboxes()" style="width:18px;height:18px;accent-color:var(--accent);"></div>
+                        <div class="card-header"><span class="font-mono">#FLT-${String(f.id).padStart(6, '0')}</span><span style="color:var(--accent); font-size:0.85rem;">${f.paradas.length} Paradas</span></div>
+                        <div class="card-body">
+                            <div style="display:flex; gap:8px; align-items:flex-start;">
+                                <svg class="icon" style="width:16px; height:16px; margin-top:2px; flex-shrink:0;" viewBox="0 0 24 24"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+                                <span><strong>Base:</strong> ${f.origen}</span>
+                            </div>
+                        </div>
                     </div>
                 `).join('');
             }
@@ -113,7 +302,12 @@
 
         function evaluarCheckboxes() {
             const seleccionados = document.querySelectorAll('.flete-select:checked').length;
-            document.getElementById('btn-consolidar-rutas').innerText = seleccionados > 0 ? `Consolidar y Optimizar (${seleccionados}) Envíos` : 'Consolidar y Optimizar Selección';
+            const btn = document.getElementById('btn-consolidar-rutas');
+            if(seleccionados > 0) {
+                btn.innerHTML = `<svg class="icon" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg> Consolidar (${seleccionados}) Seleccionados`;
+            } else {
+                btn.innerHTML = `<svg class="icon" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg> Consolidar Selección`;
+            }
         }
 
         async function ejecutarConsolidacion() {
@@ -133,18 +327,32 @@
         }
 
         async function iniciarMotorGPS() {
-            const conf = await (await fetch('/api/config')).json(); const pollingSec = conf.gps_polling_sec || 10;
-            if ("geolocation" in navigator) { enviarPulsoGPS(); setInterval(enviarPulsoGPS, pollingSec * 1000); }
+            try {
+                const conf = await (await fetch('/api/config')).json(); 
+                const pollingSec = conf.gps_polling_sec || 10;
+                if ("geolocation" in navigator) { 
+                    enviarPulsoGPS(); 
+                    setInterval(enviarPulsoGPS, pollingSec * 1000); 
+                }
+            } catch(e){}
         }
 
         function enviarPulsoGPS() {
             navigator.geolocation.getCurrentPosition(async (pos) => {
                 try {
                     await fetch('/api/gps', { method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': getCookie('csrf_token')}, body: JSON.stringify({ lat: pos.coords.latitude, lon: pos.coords.longitude }) });
-                    document.getElementById('gps-dot').classList.add('active'); document.getElementById('gps-text').innerText = "Transmitiendo Coordenadas";
+                    document.getElementById('gps-dot').classList.add('active'); 
+                    document.getElementById('gps-text').innerText = "Coordenadas OK";
+                    document.getElementById('gps-text').style.color = "var(--success)";
                     setTimeout(() => document.getElementById('gps-dot').classList.remove('active'), 1000);
-                } catch (e) { document.getElementById('gps-text').innerText = "Fallo de Transmisión"; }
-            }, (err) => { document.getElementById('gps-text').innerText = "Se requiere Permiso GPS"; }, { enableHighAccuracy: true });
+                } catch (e) { 
+                    document.getElementById('gps-text').innerText = "Fallo Conexión"; 
+                    document.getElementById('gps-text').style.color = "var(--danger)";
+                }
+            }, (err) => { 
+                document.getElementById('gps-text').innerText = "GPS Bloqueado"; 
+                document.getElementById('gps-text').style.color = "var(--warning)";
+            }, { enableHighAccuracy: true });
         }
 
         function abrirGoogleMapsMulti() { 

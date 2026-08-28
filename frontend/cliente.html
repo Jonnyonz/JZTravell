@@ -1,59 +1,144 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Portal Cliente - BazarChef</title>
+    <title>JZTravell - Portal Comercial</title>
     <style>
-        :root { --primary: #f06a25; --bg: #f4f6f9; --text: #333; --info: #17a2b8;}
-        body { margin: 0; font-family: system-ui, -apple-system, sans-serif; display: flex; flex-direction: column; height: 100vh; background: var(--bg); color: var(--text); }
-        
-        .navbar { background: #ffffff; padding: 1rem 2rem; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; z-index: 10; border-bottom: 1px solid #eaeaea;}
-        .navbar-brand { display: flex; align-items: center; gap: 10px; font-size: 1.4rem; font-weight: 800; color: var(--primary); }
-        .navbar-menu { display: flex; gap: 12px; align-items: center; }
-        
-        .btn { padding: 10px 20px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; font-size: 0.95rem; white-space: nowrap;}
-        .btn:hover { background: #d65518; }
-        .btn-outline { background: transparent; border: 2px solid #ddd; color: #555; }
-        .btn-outline:hover { background: #f4f4f4; color: #111; border-color: #ccc;}
-        
-        .content { flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 2rem; box-sizing: border-box; }
-        .header-section { margin-bottom: 1.5rem; }
-        
-        .kanban-board { display: flex; flex-direction: row; gap: 1.5rem; height: 100%; align-items: flex-start; box-sizing: border-box; }
-        .kanban-column { background: #ebecf0; border-radius: 12px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; flex-direction: column; flex: 1; min-width: 280px; max-width: 450px; max-height: 100%; box-sizing: border-box; }
-        .kanban-column h3 { margin: 0 0 15px 0; font-size: 1.1rem; color: #172b4d; border-bottom: 2px solid #ddd; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center;}
-        .kanban-cards-container { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; flex: 1; padding-right: 5px;}
-        
-        .kanban-card { background: white; border-radius: 10px; padding: 16px; box-shadow: 0 3px 6px rgba(0,0,0,0.04); border-left: 5px solid var(--info); transition: 0.2s;}
-        .kanban-card:hover { transform: translateY(-2px); box-shadow: 0 5px 12px rgba(0,0,0,0.08);}
-        .card-header { font-weight: bold; margin-bottom: 10px; font-size: 0.95rem; color: #333; display: flex; justify-content: space-between;}
-        .badge { padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; color: white; background: #6c757d; }
-        
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(3px); padding: 15px; box-sizing: border-box;}
-        .modal.active { display: flex; }
-        .modal-content { background: white; padding: 2.5rem; border-radius: 16px; width: 100%; max-width: 500px; position: relative; box-shadow: 0 15px 35px rgba(0,0,0,0.2); box-sizing: border-box;}
-        .close-btn { position: absolute; top: 15px; right: 20px; cursor: pointer; font-size: 1.5rem; border: none; background: none; color: #888;}
-        
-        .form-group { margin-bottom: 1.2rem; }
-        .form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.9rem; color: #444; }
-        .form-group input, .form-group select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 0.95rem; background: #f9f9f9;}
+        :root { 
+            /* Paleta de colores oficial JZTech Suite */
+            --bg-page: #f4f6f9; 
+            --bg-surface: #ffffff; 
+            --accent: #2962ff; 
+            --accent-hover: #1f4fd1;
+            --success: #00c853; 
+            --danger: #d50000; 
+            --warning: #ffc107; 
+            --info: #00b0ff;
+            --text-primary: #212529; 
+            --text-secondary: #666666; 
+            --text-muted: #999999; 
+            --border: #e0e0e0;
+            
+            /* Tipografía */
+            --font-base: system-ui, -apple-system, sans-serif;
+            --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+            
+            /* Métricas UI */
+            --rail-width: 68px;
+            --top-bar-height: 4px;
+            --icon-stroke: 1.5px;
+        }
 
-        .system-footer { background: #ffffff; padding: 12px 20px; text-align: center; font-size: 0.8rem; color: #666; border-top: 1px solid #eaeaea; line-height: 1.4; }
-        .system-footer a { color: var(--primary); text-decoration: none; font-weight: bold; }
+        [data-theme="dark"] {
+            --bg-page: #121212;
+            --bg-surface: #1e1e1e;
+            --accent: #4477ff;
+            --accent-hover: #5588ff;
+            --text-primary: #e0e0e0;
+            --text-secondary: #aaaaaa;
+            --border: #333333;
+        }
+
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: var(--font-base); display: flex; height: 100vh; background: var(--bg-page); color: var(--text-primary); overflow: hidden; transition: background-color 0.3s, color 0.3s; }
+        
+        .font-mono { font-family: var(--font-mono); letter-spacing: 0.5px; font-size: 0.95em;}
+
+        /* Iconos SVG Globales */
+        svg.icon { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: var(--icon-stroke); stroke-linecap: round; stroke-linejoin: round; }
+
+        /* Barra Superior Acento */
+        .top-accent-bar { position: fixed; top: 0; left: 0; right: 0; height: var(--top-bar-height); background-color: var(--accent); z-index: 1000; }
+
+        /* Rail de Navegación Lateral */
+        .nav-rail { width: var(--rail-width); background-color: var(--bg-surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; padding: 20px 0; margin-top: var(--top-bar-height); z-index: 999; transition: background-color 0.3s, border-color 0.3s; }
+        .nav-rail .brand-logo { width: 36px; height: auto; margin-bottom: 24px; }
+        
+        .nav-item { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 8px; margin-bottom: 12px; color: var(--text-secondary); cursor: pointer; position: relative; transition: all 0.2s; border: none; background: transparent; }
+        .nav-item:hover { background-color: rgba(0, 0, 0, 0.05); color: var(--text-primary); }
+        [data-theme="dark"] .nav-item:hover { background-color: rgba(255, 255, 255, 0.08); }
+        
+        .nav-item.active { background-color: #e6f1fb; color: #185fa5; }
+        [data-theme="dark"] .nav-item.active { background-color: rgba(68, 119, 255, 0.15); color: var(--accent); }
+        
+        .nav-item[title]:hover::after { content: attr(title); position: absolute; left: 60px; background-color: var(--text-primary); color: var(--bg-surface); padding: 6px 10px; border-radius: 4px; font-size: 12px; font-weight: 500; white-space: nowrap; z-index: 1000; pointer-events: none; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .spacer { flex: 1; }
+
+        /* Contenedor Principal */
+        .content { flex: 1; display: flex; flex-direction: column; margin-top: var(--top-bar-height); overflow: hidden; position: relative; }
+        
+        .content-header { background-color: var(--bg-surface); padding: 16px 32px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; min-height: 72px;}
+        .content-header h1 { margin: 0; font-size: 1.25rem; font-weight: 600; color: var(--text-primary); }
+        .header-actions { display: flex; gap: 12px; align-items: center;}
+        
+        .content-body { padding: 32px; flex: 1; overflow-y: auto; display: flex; flex-direction: column;}
+
+        /* Botones */
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 16px; border-radius: 8px; font-size: 0.9rem; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; font-family: var(--font-base); }
+        .btn-primary { background-color: var(--accent); color: #ffffff; }
+        .btn-primary:hover { background-color: var(--accent-hover); }
+
+        /* Badges de Estado */
+        .badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; }
+        .badge-pending { background-color: #fff3cd; color: #856404; }
+        .badge-success { background-color: #d4edda; color: #155724; }
+        .badge-warning { background-color: #ffeeba; color: #856404; }
+        .badge-danger { background-color: #f8d7da; color: #721c24; }
+        .badge-primary { background-color: #cce5ff; color: #004085; }
+        [data-theme="dark"] .badge-pending, [data-theme="dark"] .badge-warning { background-color: rgba(255, 193, 7, 0.15); color: var(--warning); }
+        [data-theme="dark"] .badge-success { background-color: rgba(0, 200, 83, 0.15); color: var(--success); }
+        [data-theme="dark"] .badge-danger { background-color: rgba(213, 0, 0, 0.15); color: var(--danger); }
+        [data-theme="dark"] .badge-primary { background-color: rgba(41, 98, 255, 0.15); color: #82aaff; }
+
+        /* Formularios */
+        .form-group { margin-bottom: 1.2rem; position: relative; }
+        .form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); }
+        .form-control { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; box-sizing: border-box; font-size: 0.9rem; background-color: var(--bg-page); color: var(--text-primary); transition: border-color 0.2s; font-family: var(--font-base); outline: none;}
+        .form-control:focus { border-color: var(--accent); }
+
+        /* Kanban Board */
+        .kanban-board { display: flex; flex-direction: row; gap: 1.5rem; height: 100%; padding-bottom: 1rem; align-items: flex-start; box-sizing: border-box; overflow-x: auto;}
+        .kanban-column { background: var(--bg-page); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; flex: 1; min-width: 300px; max-width: 400px; max-height: 100%; box-sizing: border-box; border: 1px solid var(--border);}
+        .kanban-column h3 { margin: 0 0 16px 0; font-size: 1rem; color: var(--text-primary); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 10px;}
+        .kanban-column-count { background: var(--border); border-radius: 12px; padding: 2px 8px; font-size: 0.75rem; font-weight: bold; color: var(--text-secondary);}
+        .kanban-cards-container { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; flex: 1; padding-right:4px;}
+        
+        .kanban-card { background: var(--bg-surface); border-radius: 10px; padding: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); border: 1px solid var(--border); transition: transform 0.2s; }
+        .kanban-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .card-header { display: flex; justify-content: space-between; margin-bottom: 12px; align-items: center;}
+        
+        /* Modales */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(2px);}
+        .modal.active { display: flex; }
+        .modal-content { background: var(--bg-surface); padding: 32px; border-radius: 12px; width: 500px; position: relative; max-height: 90vh; overflow-y: auto; box-shadow: 0 15px 35px rgba(0,0,0,0.2); box-sizing: border-box; border: 1px solid var(--border);}
+        .close-btn { position: absolute; top: 20px; right: 24px; cursor: pointer; font-size: 1.5rem; border: none; background: none; color: var(--text-muted); transition: color 0.2s;}
+        .close-btn:hover { color: var(--text-primary); }
+        .modal-content h3 { margin-top: 0; margin-bottom: 24px; color: var(--text-primary); font-size: 1.25rem;}
+
+        /* Footer Global */
+        .site-footer { padding: 16px; text-align: center; font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--bg-surface); border-top: 1px solid var(--border); width: 100%; margin-top: auto;}
+        .site-footer a { color: var(--text-muted); text-decoration: none; font-weight: 600; transition: color 0.2s; }
+        .site-footer a:hover { color: var(--accent); }
+        .watermark-logo { height: 16px; opacity: 0.5; }
 
         @media (max-width: 768px) {
-            .navbar { padding: 1rem; }
-            .navbar-brand { font-size: 1.1rem; }
-            .content { padding: 1rem; overflow-y: auto; } 
-            .kanban-board { flex-direction: column; height: auto; overflow-x: hidden; }
-            .kanban-column { width: 100% !important; min-width: 100% !important; max-width: 100% !important; max-height: none; margin-bottom: 1.5rem; }
-            .modal-content { padding: 1.5rem; }
+            body { flex-direction: column; }
+            .nav-rail { width: 100%; height: auto; padding: 10px; flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 5px; border-right: none; border-bottom: 1px solid var(--border);}
+            .nav-rail .brand-logo { margin-bottom: 0; margin-right: 16px; }
+            .nav-item { margin-bottom: 0; }
+            .nav-item[title]:hover::after { display: none; }
+            .content-header { flex-direction: column; align-items: flex-start; gap: 12px; padding: 16px; }
+            .content-body { padding: 16px; }
+            .kanban-board { flex-direction: column; height: auto; }
+            .kanban-column { width: 100% !important; min-width: 100% !important; max-width: 100% !important; margin-bottom: 1.5rem; max-height: none;}
+            .modal-content { padding: 24px; width: 95%;}
         }
     </style>
 </head>
 <body>
     <script>
+        // Lógica de seguridad original intacta
         function getCookie(name) { let match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)')); return match ? match[2] : null; }
         if (getCookie('user_rol') !== 'cliente' && getCookie('user_rol') !== 'admin') { window.location.href = "/index.html"; }
         function cerrarSesion() {
@@ -62,38 +147,97 @@
             document.cookie = "session_id=; path=/; max-age=0";
             window.location.href = "/index.html";
         }
+        
+        // Manejo de Tema (Dark/Light)
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('jz_theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        });
+        function toggleTheme() {
+            try {
+                const current = document.documentElement.getAttribute('data-theme');
+                const next = current === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', next);
+                localStorage.setItem('jz_theme', next);
+            } catch (e) {}
+        }
     </script>
 
-    <div class="navbar">
-        <div class="navbar-brand">BazarChef <span style="font-weight:400; font-size:1rem; color:#888;">| Portal Comercial</span></div>
-        <div class="navbar-menu">
-            <button class="btn" onclick="openModal('panel-flete')">Solicitar Unidad</button>
-            <button class="btn btn-outline" style="border:none; color:var(--primary); padding:5px;" onclick="cerrarSesion()">Salir</button>
-        </div>
-    </div>
+    <div class="top-accent-bar"></div>
+
+    <nav class="nav-rail">
+        <svg class="brand-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 203 281">
+            <path d="M 73.0,261.5 L 62.0,261.5 L 49.0,256.5 L 45.5,253.0 L 43.5,247.0 L 45.5,237.0 L 51.0,232.5 L 61.0,231.5 L 68.5,236.0 L 78.0,252.5 L 86.0,252.5 L 92.5,240.0 L 94.5,219.0 L 47.0,218.5 L 44.5,216.0 L 44.5,212.0 L 89.0,146.5 L 89.5,188.0 L 74.5,210.0 L 94.5,210.0 L 94.5,83.0 L 74.0,86.5 L 63.0,92.5 L 54.5,103.0 L 50.5,114.0 L 46.0,114.5 L 44.5,113.0 L 44.5,80.0 L 52.0,73.5 L 94.5,73.0 L 93.5,33.0 L 91.5,29.0 L 87.0,26.5 L 70.0,24.5 L 70.0,19.5 L 140.0,19.5 L 141.0,24.5 L 127.0,27.5 L 123.5,34.0 L 123.5,73.0 L 158.0,73.5 L 161.5,76.0 L 161.5,80.0 L 129.0,128.5 L 128.5,88.0 L 132.5,81.0 L 123.5,81.0 L 122.5,208.0 L 137.0,206.5 L 148.0,200.5 L 158.5,183.0 L 160.5,175.0 L 166.0,173.5 L 166.5,214.0 L 163.0,218.5 L 121.0,218.5 L 113.5,238.0 L 101.0,251.5 L 88.0,258.5 L 73.0,261.5 Z" fill="#ffffff" stroke="#000000" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+        </svg>
+
+        <button class="nav-item active" title="Estado de Envíos">
+            <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+        </button>
+        
+        <div class="spacer"></div>
+
+        <button class="nav-item" title="Alternar Tema" onclick="toggleTheme()">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        </button>
+        <button class="nav-item" title="Cerrar Sesión" style="color:var(--danger);" onclick="cerrarSesion()">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+        </button>
+    </nav>
     
     <div class="content">
-        <div class="header-section">
-            <h2 style="margin:0; font-size:1.6rem;">Estado de Envíos</h2>
+        <header class="content-header">
+            <div>
+                <h1>JZTravell</h1>
+                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 4px;">Portal Comercial</div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-primary" onclick="openModal('panel-flete')">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                    Solicitar Unidad
+                </button>
+            </div>
+        </header>
+        
+        <div class="content-body">
+            <div class="kanban-board" id="kanban-board"></div>
         </div>
-        <div class="kanban-board" id="kanban-board"></div>
+
+        <footer class="site-footer">
+            <svg class="watermark-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 203 281">
+                <path d="M 73.0,261.5 L 62.0,261.5 L 49.0,256.5 L 45.5,253.0 L 43.5,247.0 L 45.5,237.0 L 51.0,232.5 L 61.0,231.5 L 68.5,236.0 L 78.0,252.5 L 86.0,252.5 L 92.5,240.0 L 94.5,219.0 L 47.0,218.5 L 44.5,216.0 L 44.5,212.0 L 89.0,146.5 L 89.5,188.0 L 74.5,210.0 L 94.5,210.0 L 94.5,83.0 L 74.0,86.5 L 63.0,92.5 L 54.5,103.0 L 50.5,114.0 L 46.0,114.5 L 44.5,113.0 L 44.5,80.0 L 52.0,73.5 L 94.5,73.0 L 93.5,33.0 L 91.5,29.0 L 87.0,26.5 L 70.0,24.5 L 70.0,19.5 L 140.0,19.5 L 141.0,24.5 L 127.0,27.5 L 123.5,34.0 L 123.5,73.0 L 158.0,73.5 L 161.5,76.0 L 161.5,80.0 L 129.0,128.5 L 128.5,88.0 L 132.5,81.0 L 123.5,81.0 L 122.5,208.0 L 137.0,206.5 L 148.0,200.5 L 158.5,183.0 L 160.5,175.0 L 166.0,173.5 L 166.5,214.0 L 163.0,218.5 L 121.0,218.5 L 113.5,238.0 L 101.0,251.5 L 88.0,258.5 L 73.0,261.5 Z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+            </svg>
+            Powered by <a href="https://jz-tech.mywire.org" target="_blank">JZ Tech Solutions</a>
+        </footer>
     </div>
 
     <div id="panel-flete" class="modal">
         <div class="modal-content">
-            <button class="close-btn" onclick="closeModal('panel-flete')">Cerrar</button>
+            <button class="close-btn" onclick="closeModal('panel-flete')">✕</button>
             <h3>Solicitar Unidad</h3>
-            <div class="form-group"><label>Prioridad</label><select id="flete-prioridad"><option value="normal">Normal</option><option value="alta">Urgente</option></select></div>
-            <div class="form-group"><label>Documento</label><select id="flete-tipo"><option value="odt">ODT</option><option value="remito">Remito</option></select></div>
-            <div class="form-group"><label>Referencia</label><input type="text" id="flete-ref" placeholder="Ej: 0001-000456"></div>
-            <div class="form-group"><label>Instrucciones</label><input type="text" id="flete-alias" placeholder="Instrucciones para la entrega"></div>
-            <button class="btn" style="width:100%; margin-top:15px; padding:14px;" onclick="enviarSolicitud()">Enviar Solicitud</button>
+            <div class="form-group">
+                <label>Prioridad</label>
+                <select id="flete-prioridad" class="form-control">
+                    <option value="normal">Normal</option>
+                    <option value="alta">Urgente</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Documento</label>
+                <select id="flete-tipo" class="form-control">
+                    <option value="odt">ODT</option>
+                    <option value="remito">Remito</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Referencia (ID)</label>
+                <input type="text" id="flete-ref" class="form-control font-mono" placeholder="Ej: 0001-000456">
+            </div>
+            <div class="form-group">
+                <label>Instrucciones</label>
+                <input type="text" id="flete-alias" class="form-control" placeholder="Instrucciones para la entrega">
+            </div>
+            <button class="btn btn-primary" style="width:100%; margin-top:16px;" onclick="enviarSolicitud()">Enviar Solicitud</button>
         </div>
-    </div>
-
-    <div class="system-footer">
-        Versión 1.7<br>
-        Powered by <a href="https://jz-tech.mywire.org" target="_blank">JZ Tech Solutions</a>
     </div>
 
     <script>
@@ -105,21 +249,44 @@
             try {
                 DB.fletes = await (await fetch('/api/fletes')).json();
                 renderKanban();
-            } catch (error) { console.error("Error"); }
+            } catch (error) { console.error("Error al cargar fletes"); }
         }
 
         function renderKanban() {
             const container = document.getElementById('kanban-board'); container.innerHTML = '';
-            const columnas = [{ id: 'pendiente', titulo: 'Procesando Solicitud', color: '#ffc107' }, { id: 'camino', titulo: 'En Tránsito', color: '#007bff' }, { id: 'completado', titulo: 'Entregado', color: '#28a745' }];
+            const columnas = [
+                { id: 'pendiente', titulo: 'Procesando Solicitud' }, 
+                { id: 'camino', titulo: 'En Tránsito' }, 
+                { id: 'completado', titulo: 'Entregado' }
+            ];
+            
             columnas.forEach(col => {
-                const colHTML = document.createElement('div'); colHTML.className = 'kanban-column';
+                const colHTML = document.createElement('div'); 
+                colHTML.className = 'kanban-column';
                 const fletesFiltrados = DB.fletes.filter(f => f.estado === col.id).slice(0, 15);
-                const cardsHTML = fletesFiltrados.map(f => `<div class="kanban-card" style="border-left-color: ${col.color};"><div class="card-header">Tracking #${f.id} <span class="badge" style="background:${f.prioridad === 'alta' ? 'var(--danger)' : '#6c757d'};">${f.prioridad.toUpperCase()}</span></div><div style="font-size: 0.9rem; color: #555;"><strong>Origen:</strong> ${f.origen}<br><strong>Unidad:</strong> ${f.marca_modelo || 'Asignando...'}</div></div>`).join('');
-                colHTML.innerHTML = `<h3><span>${col.titulo}</span><span style="background:#ccc; padding:2px 8px; border-radius:12px; font-size:0.8rem;">${fletesFiltrados.length}</span></h3><div class="kanban-cards-container">${cardsHTML}</div>`;
+                
+                const cardsHTML = fletesFiltrados.map(f => `
+                    <div class="kanban-card">
+                        <div class="card-header">
+                            <span class="font-mono" style="font-weight:600; font-size:1.05rem;">#FLT-${String(f.id).padStart(6, '0')}</span>
+                            <span class="badge badge-${f.prioridad === 'alta' ? 'danger' : 'primary'}">${(f.prioridad || 'Normal').charAt(0).toUpperCase() + (f.prioridad || 'normal').slice(1)}</span>
+                        </div>
+                        <div style="font-size: 0.85rem; color: var(--text-secondary); line-height:1.5;">
+                            <strong>Origen:</strong> ${f.origen || 'S/D'}<br>
+                            <strong>Unidad:</strong> <span class="font-mono">${f.marca_modelo || 'Asignando...'}</span>
+                        </div>
+                    </div>`).join('');
+                
+                colHTML.innerHTML = `<h3><span>${col.titulo}</span><span class="kanban-column-count">${fletesFiltrados.length}</span></h3><div class="kanban-cards-container">${cardsHTML}</div>`;
                 container.appendChild(colHTML);
             });
         }
-        function enviarSolicitud() { alert("Solicitud recibida."); closeModal('panel-flete'); }
+        
+        function enviarSolicitud() { 
+            alert("Solicitud recibida."); 
+            closeModal('panel-flete'); 
+        }
+        
         window.onload = loadData;
     </script>
 </body>

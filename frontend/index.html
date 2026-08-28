@@ -1,44 +1,248 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BazarChef - Iniciar Sesión</title>
+    <title>JZTravell - Iniciar Sesión</title>
     <style>
         :root {
-            --primary: #f06a25; 
-            --primary-hover: #d65518;
-            --bg: #1e2229;
-            --card-bg: #ffffff;
-            --text: #333333;
+            /* Paleta de colores JZTech Suite */
+            --bg-page: #f4f6f9;
+            --bg-surface: #ffffff;
+            --accent: #2962ff;
+            --accent-hover: #1f4fd1;
+            --text-primary: #212529;
+            --text-secondary: #666666;
+            --text-muted: #999999;
+            --border: #e0e0e0;
+            --danger: #d50000;
+            --font-base: system-ui, -apple-system, sans-serif;
+            --icon-stroke: 1.5px;
         }
-        body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: var(--bg); display: flex; justify-content: center; align-items: center; height: 100vh; color: var(--text); }
-        .login-card { background: var(--card-bg); padding: 2.5rem; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); width: 100%; max-width: 400px; box-sizing: border-box; }
-        .login-card h2 { margin: 0 0 0.5rem 0; font-size: 1.8rem; color: #111; text-align: center; }
-        .login-card p { margin: 0 0 2rem 0; color: #666; text-align: center; font-size: 0.9rem; }
+
+        [data-theme="dark"] {
+            --bg-page: #121212;
+            --bg-surface: #1e1e1e;
+            --accent: #4477ff;
+            --accent-hover: #5588ff;
+            --text-primary: #e0e0e0;
+            --text-secondary: #aaaaaa;
+            --border: #333333;
+        }
+
+        body { 
+            margin: 0; 
+            font-family: var(--font-base); 
+            background: var(--bg-page); 
+            color: var(--text-primary);
+            display: flex; 
+            flex-direction: column;
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .login-wrapper {
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .login-card { 
+            background: var(--bg-surface); 
+            padding: 40px 32px; 
+            border-radius: 10px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04); 
+            border: 1px solid var(--border);
+            width: 100%; 
+            box-sizing: border-box; 
+        }
+
+        .brand-logo {
+            width: 48px;
+            height: auto;
+            margin: 0 auto 24px auto;
+            display: block;
+        }
+
+        .login-card h2 { 
+            margin: 0 0 4px 0; 
+            font-size: 1.5rem; 
+            font-weight: 600;
+            color: var(--text-primary); 
+            text-align: center; 
+        }
+
+        .login-card p { 
+            margin: 0 0 24px 0; 
+            color: var(--text-secondary); 
+            text-align: center; 
+            font-size: 0.9rem; 
+        }
+
         .form-group { margin-bottom: 1.5rem; }
-        .form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.85rem; color: #444; }
-        .form-group input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
-        .form-group input:focus { border-color: var(--primary); outline: none; }
-        .btn-login { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .btn-login:hover { background: var(--primary-hover); }
-        .btn-google { width: 100%; padding: 12px; background: #ffffff; color: #444; border: 1px solid #ccd1d9; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 15px; display: none; align-items: center; justify-content: center; gap: 10px; }
-        .error-msg { color: #dc3545; font-size: 0.85rem; margin-top: 15px; text-align: center; display: none; padding: 10px; border-radius: 6px; }
+        .form-group label { 
+            display: block; 
+            margin-bottom: 8px; 
+            font-weight: 600; 
+            font-size: 0.85rem; 
+            color: var(--text-secondary); 
+        }
+
+        .form-control { 
+            width: 100%; 
+            padding: 10px 12px; 
+            border: 1px solid var(--border); 
+            border-radius: 8px; 
+            box-sizing: border-box; 
+            font-size: 0.95rem; 
+            background-color: var(--bg-page);
+            color: var(--text-primary);
+            font-family: var(--font-base);
+            transition: border-color 0.2s;
+            outline: none;
+        }
+
+        .form-control:focus { border-color: var(--accent); }
+
+        .btn { 
+            width: 100%; 
+            padding: 10px 16px; 
+            border-radius: 8px; 
+            font-size: 0.95rem; 
+            font-weight: 500; 
+            cursor: pointer; 
+            transition: all 0.2s; 
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-family: var(--font-base);
+        }
+
+        .btn-primary { 
+            background: var(--accent); 
+            color: #ffffff; 
+        }
+
+        .btn-primary:hover { background: var(--accent-hover); }
+
+        .btn-secondary {
+            background: transparent; 
+            color: var(--text-secondary); 
+            border: 1px solid var(--border); 
+            margin-top: 16px;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(0,0,0,0.02);
+            color: var(--text-primary);
+        }
+
+        [data-theme="dark"] .btn-secondary:hover {
+            background: rgba(255,255,255,0.05);
+        }
+
+        svg.icon { 
+            width: 18px; 
+            height: 18px; 
+            fill: none; 
+            stroke: currentColor; 
+            stroke-width: var(--icon-stroke); 
+            stroke-linecap: round; 
+            stroke-linejoin: round; 
+        }
+
+        .error-msg { 
+            color: var(--danger); 
+            background-color: rgba(213, 0, 0, 0.05);
+            border: 1px solid rgba(213, 0, 0, 0.1);
+            font-size: 0.85rem; 
+            margin-top: 16px; 
+            text-align: center; 
+            display: none; 
+            padding: 12px; 
+            border-radius: 8px; 
+        }
+
+        .site-footer {
+            margin-top: 32px;
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .site-footer a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+
+        .site-footer a:hover { color: var(--accent); }
+        .watermark-logo { height: 16px; opacity: 0.5; }
     </style>
 </head>
 <body>
-    <div class="login-card">
-        <h2>BazarChef</h2>
-        <p>Sistema de Gestión Logística</p>
-        <form id="login-form" onsubmit="handleLogin(event)">
-            <div class="form-group"><label>Usuario</label><input type="text" id="username" required></div>
-            <div class="form-group"><label>Contraseña</label><input type="password" id="password" required></div>
-            <button type="submit" class="btn-login">Ingresar al Portal</button>
-        </form>
-        <button class="btn-google" id="btn-google-oauth" onclick="redireccionarAGoogle()">Iniciar Sesión con Google</button>
-        <div id="error-box" class="error-msg"></div>
+    <div class="login-wrapper">
+        <div class="login-card">
+            <!-- SVG Logo Oficial JZTech -->
+            <svg class="brand-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 203 281">
+                <path d="M 73.0,261.5 L 62.0,261.5 L 49.0,256.5 L 45.5,253.0 L 43.5,247.0 L 45.5,237.0 L 51.0,232.5 L 61.0,231.5 L 68.5,236.0 L 78.0,252.5 L 86.0,252.5 L 92.5,240.0 L 94.5,219.0 L 47.0,218.5 L 44.5,216.0 L 44.5,212.0 L 89.0,146.5 L 89.5,188.0 L 74.5,210.0 L 94.5,210.0 L 94.5,83.0 L 74.0,86.5 L 63.0,92.5 L 54.5,103.0 L 50.5,114.0 L 46.0,114.5 L 44.5,113.0 L 44.5,80.0 L 52.0,73.5 L 94.5,73.0 L 93.5,33.0 L 91.5,29.0 L 87.0,26.5 L 70.0,24.5 L 70.0,19.5 L 140.0,19.5 L 141.0,24.5 L 127.0,27.5 L 123.5,34.0 L 123.5,73.0 L 158.0,73.5 L 161.5,76.0 L 161.5,80.0 L 129.0,128.5 L 128.5,88.0 L 132.5,81.0 L 123.5,81.0 L 122.5,208.0 L 137.0,206.5 L 148.0,200.5 L 158.5,183.0 L 160.5,175.0 L 166.0,173.5 L 166.5,214.0 L 163.0,218.5 L 121.0,218.5 L 113.5,238.0 L 101.0,251.5 L 88.0,258.5 L 73.0,261.5 Z" fill="currentColor" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+            </svg>
+            
+            <h2>JZTravell</h2>
+            <p>Sistema de Gestión Logística</p>
+            
+            <form id="login-form" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label>Usuario</label>
+                    <input type="text" id="username" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Contraseña</label>
+                    <input type="password" id="password" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+                    Ingresar al Portal
+                </button>
+            </form>
+            
+            <!-- Botón Oculto por defecto (Google Auth) -->
+            <button class="btn btn-secondary" id="btn-google-oauth" style="display: none;" onclick="redireccionarAGoogle()">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"></path><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"></path><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"></path><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"></path></svg>
+                Iniciar Sesión con Google
+            </button>
+            
+            <div id="error-box" class="error-msg"></div>
+        </div>
+
+        <footer class="site-footer">
+            <svg class="watermark-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 203 281">
+                <path d="M 73.0,261.5 L 62.0,261.5 L 49.0,256.5 L 45.5,253.0 L 43.5,247.0 L 45.5,237.0 L 51.0,232.5 L 61.0,231.5 L 68.5,236.0 L 78.0,252.5 L 86.0,252.5 L 92.5,240.0 L 94.5,219.0 L 47.0,218.5 L 44.5,216.0 L 44.5,212.0 L 89.0,146.5 L 89.5,188.0 L 74.5,210.0 L 94.5,210.0 L 94.5,83.0 L 74.0,86.5 L 63.0,92.5 L 54.5,103.0 L 50.5,114.0 L 46.0,114.5 L 44.5,113.0 L 44.5,80.0 L 52.0,73.5 L 94.5,73.0 L 93.5,33.0 L 91.5,29.0 L 87.0,26.5 L 70.0,24.5 L 70.0,19.5 L 140.0,19.5 L 141.0,24.5 L 127.0,27.5 L 123.5,34.0 L 123.5,73.0 L 158.0,73.5 L 161.5,76.0 L 161.5,80.0 L 129.0,128.5 L 128.5,88.0 L 132.5,81.0 L 123.5,81.0 L 122.5,208.0 L 137.0,206.5 L 148.0,200.5 L 158.5,183.0 L 160.5,175.0 L 166.0,173.5 L 166.5,214.0 L 163.0,218.5 L 121.0,218.5 L 113.5,238.0 L 101.0,251.5 L 88.0,258.5 L 73.0,261.5 Z" fill="currentColor" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+            </svg>
+            Powered by <a href="https://jz-tech.mywire.org" target="_blank">JZ Tech Solutions</a>
+        </footer>
     </div>
+
     <script>
+        // Aplicar tema guardado
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('jz_theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        });
+
         function getCookie(name) { let match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)')); return match ? match[2] : null; }
         
         async function evaluarConfiguracionOAuth() {
@@ -49,13 +253,15 @@
 
             // 🔥 INTERCEPTACIÓN DE PARAMETROS NATIVOS DEL SERVIDOR
             if (status === 'pending') {
-                errorBox.style.color = "#0056b3";
-                errorBox.style.backgroundColor = "#e8f4fd";
-                errorBox.innerText = "Su cuenta se encuentra en periodo de evaluacion. La solicitud de acceso fue enviada al administrador.";
+                errorBox.style.color = "var(--accent)";
+                errorBox.style.backgroundColor = "rgba(41, 98, 255, 0.1)";
+                errorBox.style.borderColor = "rgba(41, 98, 255, 0.2)";
+                errorBox.innerText = "Su cuenta se encuentra en periodo de evaluación. La solicitud de acceso fue enviada al administrador.";
                 errorBox.style.display = 'block';
             } else if (error) {
-                errorBox.style.color = "#dc3545";
-                errorBox.style.backgroundColor = "#fff5f5";
+                errorBox.style.color = "var(--danger)";
+                errorBox.style.backgroundColor = "rgba(213, 0, 0, 0.05)";
+                errorBox.style.borderColor = "rgba(213, 0, 0, 0.1)";
                 errorBox.innerText = decodeURIComponent(error);
                 errorBox.style.display = 'block';
             }
@@ -70,20 +276,45 @@
         }
 
         async function handleLogin(e) {
-            e.preventDefault(); const errorBox = document.getElementById('error-box'); errorBox.style.display = 'none';
-            const payload = { username: document.getElementById('username').value, password: document.getElementById('password').value };
+            e.preventDefault(); 
+            const errorBox = document.getElementById('error-box'); 
+            errorBox.style.display = 'none';
+            
+            const payload = { 
+                username: document.getElementById('username').value, 
+                password: document.getElementById('password').value 
+            };
+            
             try {
-                const res = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCookie('csrf_token') }, body: JSON.stringify(payload) });
-                if (res.ok) { window.location.href = (await res.json()).redirect; } 
-                else { errorBox.innerText = (await res.json()).detail || "Error."; errorBox.style.backgroundColor = "#fff5f5"; errorBox.style.display = 'block'; }
-            } catch (err) { errorBox.innerText = "Error de conexion."; errorBox.style.display = 'block'; }
+                const res = await fetch('/api/login', { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCookie('csrf_token') }, 
+                    body: JSON.stringify(payload) 
+                });
+                
+                if (res.ok) { 
+                    window.location.href = (await res.json()).redirect; 
+                } else { 
+                    errorBox.innerText = (await res.json()).detail || "Error en la autenticación."; 
+                    errorBox.style.color = "var(--danger)";
+                    errorBox.style.backgroundColor = "rgba(213, 0, 0, 0.05)";
+                    errorBox.style.borderColor = "rgba(213, 0, 0, 0.1)";
+                    errorBox.style.display = 'block'; 
+                }
+            } catch (err) { 
+                errorBox.innerText = "Error de conexión. No se pudo contactar al servidor local."; 
+                errorBox.style.color = "var(--danger)";
+                errorBox.style.backgroundColor = "rgba(213, 0, 0, 0.05)";
+                errorBox.style.borderColor = "rgba(213, 0, 0, 0.1)";
+                errorBox.style.display = 'block'; 
+            }
         }
 
         async function redireccionarAGoogle() {
             try {
                 const res = await fetch('/api/auth/google/url');
                 if (res.ok) { window.location.href = (await res.json()).url; }
-            } catch(e) { alert("Error al conectar con el servicio de autenticacion."); }
+            } catch(e) { alert("Error al conectar con el servicio de autenticación."); }
         }
 
         window.onload = evaluarConfiguracionOAuth;
