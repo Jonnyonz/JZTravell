@@ -10,6 +10,7 @@ import bcrypt
 
 app = FastAPI(title="JZ Tech Solutions - API Logística")
 db_pool = None
+SETUP_TOKEN = os.getenv("SETUP_TOKEN", "")
 
 @app.on_event("startup")
 async def startup():
@@ -42,6 +43,7 @@ class ConfigUpdate(BaseModel):
     nombre_empresa: str; gps_polling_sec: int; google_oauth_enabled: bool; google_client_id: Optional[str] = None; google_client_secret: Optional[str] = None; google_redirect_url: Optional[str] = None
     ciudad_defecto: str; provincia_defecto: str; pais_defecto: str; manejar_volumenes: bool
 
+class SetupAdminRequest(BaseModel): token: str; username: str; full_name: str; password: str
 class EstadoUpdate(BaseModel): estado: str
 class GPSData(BaseModel): lat: float; lon: float
 class ConsolidarRequest(BaseModel): flete_ids: List[int]
@@ -127,6 +129,40 @@ async def logout(request: Request, response: Response, db: asyncpg.Connection = 
     if token: await db.execute("DELETE FROM sesiones_activas WHERE token_sesion = $1", token)
     response.delete_cookie("session_token"); response.delete_cookie("user_rol")
     return {"status": "success"}
+
+@app.get("/api/setup/status")
+async def setup_status(db: asyncpg.Connection = Depends(get_db)):
+    count = await db.fetchval("SELECT COUNT(*) FROM usuarios")
+    return {"needs_setup": (count or 0) == 0}
+
+@app.post("/api/setup/admin")
+async def setup_admin(data: SetupAdminRequest, response: Response, db: asyncpg.Connection = Depends(get_db)):
+    if not SETUP_TOKEN or not secrets.compare_digest(data.token.strip(), SETUP_TOKEN):
+        raise HTTPException(403, "Token de instalación inválido.")
+
+    count = await db.fetchval("SELECT COUNT(*) FROM usuarios")
+    if (count or 0) > 0:
+        raise HTTPException(403, "La configuración inicial ya fue completada.")
+
+    username = data.username.strip()
+    full_name = data.full_name.strip()
+    password = data.password
+    if not username or not full_name:
+        raise HTTPException(400, "Complete todos los campos.")
+    if not re.match(r"^(?=.*[0-9])(?=.*[A-Z]).{8,}$", password):
+        raise HTTPException(400, "La contraseña debe tener al menos 8 caracteres, con 1 mayúscula y 1 número.")
+
+    password_hash = await asyncio.to_thread(bcrypt.hashpw, password.encode(), bcrypt.gensalt())
+    user_id = await db.fetchval(
+        "INSERT INTO usuarios (username, password_hash, nombre_completo, rol, activo) VALUES ($1,$2,$3,'admin',TRUE) RETURNING id",
+        username, password_hash.decode(), full_name
+    )
+
+    token_nuevo = secrets.token_hex(32)
+    await db.execute("INSERT INTO sesiones_activas (usuario_id, token_sesion, expira_en) VALUES ($1, $2, $3)", user_id, token_nuevo, datetime.datetime.now() + datetime.timedelta(hours=8))
+    response.set_cookie(key="session_token", value=token_nuevo, httponly=True, secure=True, samesite='lax', max_age=28800)
+    response.set_cookie(key="user_rol", value="admin", httponly=False, secure=True, samesite='lax', max_age=28800)
+    return {"status": "success", "redirect": "/admin.html"}
 
 # --- INTEGRADOR GOOGLE OAUTH2 ---
 @app.get("/api/auth/google/url")

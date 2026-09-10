@@ -153,23 +153,7 @@ CREATE TABLE documentos_flete (
 );
 CREATE INDEX idx_documentos_flete_flete_id ON documentos_flete(flete_id);
 
--- === USUARIO ADMIN INICIAL ===
--- Sin esto, un despliegue nuevo queda sin forma de crear el primer usuario: todos los endpoints
--- de alta de usuarios (/api/usuarios, /api/admin/solicitudes/procesar) requieren ya estar logueado
--- como admin. Se genera una clave aleatoria (no queda ninguna clave fija en el código ni en este
--- archivo) y se imprime UNA sola vez en el log del contenedor de la base de datos al iniciar
--- (ver con: docker compose logs db).
-DO $$
-DECLARE
-    temp_password TEXT := encode(gen_random_bytes(9), 'base64');
-BEGIN
-    INSERT INTO usuarios (username, password_hash, nombre_completo, rol, activo)
-    VALUES ('admin', crypt(temp_password, gen_salt('bf')), 'Administrador Inicial', 'admin', TRUE)
-    ON CONFLICT (username) DO NOTHING;
-
-    RAISE NOTICE '=================================================================';
-    RAISE NOTICE 'JZ Travel - usuario admin inicial creado.';
-    RAISE NOTICE 'Usuario: admin | Clave temporal: %', temp_password;
-    RAISE NOTICE 'Guardala ahora (no se vuelve a mostrar) y cambiala tras el primer login.';
-    RAISE NOTICE '=================================================================';
-END $$;
+-- El primer usuario administrador NO se crea acá: la app detecta que la tabla "usuarios" está
+-- vacía y muestra una pantalla de configuración inicial (POST /api/setup/admin) que pide el
+-- SETUP_TOKEN generado por install.sh. Así el admin elige su propio usuario y contraseña
+-- directamente desde el navegador, en vez de tener que ir a buscar una clave a los logs.

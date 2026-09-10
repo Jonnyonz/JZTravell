@@ -37,6 +37,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_HOST: db
+      SETUP_TOKEN: ${SETUP_TOKEN}
     volumes:
       - ./backend:/app
       - ./frontend:/frontend

@@ -195,7 +195,41 @@
 </head>
 <body>
     <div class="login-wrapper">
-        <div class="login-card">
+        <div class="login-card" id="setup-card" style="display:none;">
+            <h2>Configuración Inicial</h2>
+            <p>Es la primera vez que se usa el sistema. Creá el usuario administrador.</p>
+
+            <form id="setup-form" onsubmit="handleSetup(event)">
+                <div class="form-group">
+                    <label>Token de instalación</label>
+                    <input type="text" id="su-token" class="form-control" required autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label>Usuario</label>
+                    <input type="text" id="su-username" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Nombre completo</label>
+                    <input type="text" id="su-fullname" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Contraseña</label>
+                    <input type="password" id="su-password" class="form-control" required minlength="8">
+                </div>
+                <div class="form-group">
+                    <label>Confirmar contraseña</label>
+                    <input type="password" id="su-password2" class="form-control" required minlength="8">
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <svg class="icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    Crear Administrador
+                </button>
+            </form>
+
+            <div id="setup-error-box" class="error-msg"></div>
+        </div>
+
+        <div class="login-card" id="login-card">
             <!-- SVG Logo Oficial JZTech -->
             <svg class="brand-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 203 281">
                 <path d="M 73.0,261.5 L 62.0,261.5 L 49.0,256.5 L 45.5,253.0 L 43.5,247.0 L 45.5,237.0 L 51.0,232.5 L 61.0,231.5 L 68.5,236.0 L 78.0,252.5 L 86.0,252.5 L 92.5,240.0 L 94.5,219.0 L 47.0,218.5 L 44.5,216.0 L 44.5,212.0 L 89.0,146.5 L 89.5,188.0 L 74.5,210.0 L 94.5,210.0 L 94.5,83.0 L 74.0,86.5 L 63.0,92.5 L 54.5,103.0 L 50.5,114.0 L 46.0,114.5 L 44.5,113.0 L 44.5,80.0 L 52.0,73.5 L 94.5,73.0 L 93.5,33.0 L 91.5,29.0 L 87.0,26.5 L 70.0,24.5 L 70.0,19.5 L 140.0,19.5 L 141.0,24.5 L 127.0,27.5 L 123.5,34.0 L 123.5,73.0 L 158.0,73.5 L 161.5,76.0 L 161.5,80.0 L 129.0,128.5 L 128.5,88.0 L 132.5,81.0 L 123.5,81.0 L 122.5,208.0 L 137.0,206.5 L 148.0,200.5 L 158.5,183.0 L 160.5,175.0 L 166.0,173.5 L 166.5,214.0 L 163.0,218.5 L 121.0,218.5 L 113.5,238.0 L 101.0,251.5 L 88.0,258.5 L 73.0,261.5 Z" fill="currentColor" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
@@ -244,7 +278,61 @@
         });
 
         function getCookie(name) { let match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)')); return match ? match[2] : null; }
-        
+
+        async function handleSetup(e) {
+            e.preventDefault();
+            const errorBox = document.getElementById('setup-error-box');
+            errorBox.style.display = 'none';
+
+            const password = document.getElementById('su-password').value;
+            const password2 = document.getElementById('su-password2').value;
+            if (password !== password2) {
+                errorBox.innerText = "Las contraseñas no coinciden.";
+                errorBox.style.display = 'block';
+                return;
+            }
+
+            const payload = {
+                token: document.getElementById('su-token').value.trim(),
+                username: document.getElementById('su-username').value.trim(),
+                full_name: document.getElementById('su-fullname').value.trim(),
+                password: password
+            };
+
+            try {
+                const res = await fetch('/api/setup/admin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCookie('csrf_token') },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    window.location.href = data.redirect || '/admin.html';
+                } else {
+                    errorBox.innerText = data.detail || "No se pudo crear el administrador.";
+                    errorBox.style.display = 'block';
+                }
+            } catch (err) {
+                errorBox.innerText = "Error de conexión. No se pudo contactar al servidor local.";
+                errorBox.style.display = 'block';
+            }
+        }
+
+        async function evaluarConfiguracionInicial() {
+            try {
+                const res = await fetch('/api/setup/status');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.needs_setup) {
+                        document.getElementById('login-card').style.display = 'none';
+                        document.getElementById('setup-card').style.display = 'block';
+                        return true;
+                    }
+                }
+            } catch (err) { console.warn('No se pudo verificar el estado de configuración inicial:', err); }
+            return false;
+        }
+
         async function evaluarConfiguracionOAuth() {
             const urlParams = new URLSearchParams(window.location.search);
             const status = urlParams.get('status');
@@ -317,7 +405,10 @@
             } catch(e) { alert("Error al conectar con el servicio de autenticación."); }
         }
 
-        window.onload = evaluarConfiguracionOAuth;
+        window.onload = async () => {
+            const needsSetup = await evaluarConfiguracionInicial();
+            if (!needsSetup) await evaluarConfiguracionOAuth();
+        };
     </script>
 </body>
 </html>
