@@ -44,6 +44,17 @@ OSRM_REGION_URL=http://download.geofabrik.de/south-america/argentina-latest.osm.
 SETUP_TOKEN=${SETUP_TOKEN}
 EOF
     echo "Archivo .env generado con contrasenas seguras."
+
+    # Postgres solo aplica POSTGRES_PASSWORD la primera vez que inicializa sus datos. Aca los
+    # datos viven en ./postgres-data (carpeta local, no un volumen con nombre de Docker), asi
+    # que si quedo esa carpeta de una instalacion anterior con otra contrasena, la app nunca
+    # podria autenticarse. Como se acaba de generar un .env nuevo (instalacion desde cero), nos
+    # aseguramos de que no sobreviva esa carpeta con credenciales que ya no coinciden.
+    if [ -d "./postgres-data" ]; then
+        echo "Se encontro una carpeta de base de datos de una instalacion anterior. Eliminandola para evitar un desajuste de contrasenas..."
+        docker compose down > /dev/null 2>&1 || true
+        rm -rf "./postgres-data"
+    fi
 else
     echo "Se detecto un archivo .env existente. Manteniendo configuracion."
 fi
