@@ -532,11 +532,11 @@
 
                 const fleteOrigenEl = document.getElementById('flete-origen');
                 if (fleteOrigenEl) {
-                    fleteOrigenEl.innerHTML = '<option value="">Seleccione...</option>' + DB.sucursales.filter(s=>esActivo(s.activa)).map(s=>`<option value="${s.id}">${s.nombre}</option>`).join('');
+                    fleteOrigenEl.innerHTML = '<option value="">Seleccione...</option>' + DB.sucursales.filter(s=>esActivo(s.activa)).map(s=>`<option value="${s.id}">${esc(s.nombre)}</option>`).join('');
                 }
                 const fleteVehiculoEl = document.getElementById('flete-vehiculo');
                 if (fleteVehiculoEl) {
-                    fleteVehiculoEl.innerHTML = '<option value="">Seleccione...</option>' + DB.vehiculos.filter(v=>v.estado==='activo').map(v=>`<option value="${v.id}">${v.marca_modelo} (${v.patente_identificador})</option>`).join('');
+                    fleteVehiculoEl.innerHTML = '<option value="">Seleccione...</option>' + DB.vehiculos.filter(v=>v.estado==='activo').map(v=>`<option value="${v.id}">${esc(v.marca_modelo)} (${esc(v.patente_identificador)})</option>`).join('');
                 }
                 
                 try { renderUsuarios(); } catch(e){ console.error(e); }
@@ -578,13 +578,19 @@
             window['render' + tab.charAt(0).toUpperCase() + tab.slice(1)]();
         }
 
+        // Escapa datos de la DB antes de meterlos en innerHTML. Sin esto, un cliente podia
+        // guardar <script> en su razon social o direccion y ejecutarlo en el panel admin.
+        function esc(v){ return v==null ? '' : String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+        // Argumento de texto para handlers inline: onclick="fn(${jsArg(x)})".
+        function jsArg(v){ return esc(JSON.stringify(v==null ? '' : String(v))); }
+
         function renderUsuarios() {
             let res = [...DB.usuarios]; const st = GridState.usuarios;
             if (!st.showInactive) res = res.filter(u => esActivo(u.activo));
             if (st.query) res = res.filter(u => (u.username || '').toLowerCase().includes(st.query) || (u.nombre_completo || '').toLowerCase().includes(st.query));
             sortEngine(res, st.col, st.dir); updateArrows('usuarios');
             if (res.length === 0) { document.getElementById('tabla-usuarios').innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted); font-style:italic; padding:20px;">No hay usuarios registrados.</td></tr>`; return; }
-            document.getElementById('tabla-usuarios').innerHTML = res.map(u=>`<tr><td><strong class="font-mono">${u.username}</strong></td><td>${u.nombre_completo || ''}</td><td><span class="badge badge-primary">${(u.rol || '').charAt(0).toUpperCase() + (u.rol || '').slice(1)}</span></td><td><span class="badge ${esActivo(u.activo) ? 'badge-success':'badge-danger'}">${esActivo(u.activo) ? 'Activo':'Bloqueado'}</span></td><td><button class="btn btn-secondary" style="padding:6px 12px; font-size:0.8rem;" onclick="abrirEditarUsuario('${u.username}')">Editar</button></td></tr>`).join('');
+            document.getElementById('tabla-usuarios').innerHTML = res.map(u=>`<tr><td><strong class="font-mono">${esc(u.username)}</strong></td><td>${esc(u.nombre_completo || '')}</td><td><span class="badge badge-primary">${esc((u.rol || '').charAt(0).toUpperCase() + (u.rol || '').slice(1))}</span></td><td><span class="badge ${esActivo(u.activo) ? 'badge-success':'badge-danger'}">${esActivo(u.activo) ? 'Activo':'Bloqueado'}</span></td><td><button class="btn btn-secondary" style="padding:6px 12px; font-size:0.8rem;" onclick="abrirEditarUsuario(${jsArg(u.username)})">Editar</button></td></tr>`).join('');
         }
 
         function renderVehiculos() {
@@ -593,7 +599,7 @@
             if (st.query) res = res.filter(v => (v.patente_identificador || '').toLowerCase().includes(st.query) || (v.marca_modelo || '').toLowerCase().includes(st.query));
             sortEngine(res, st.col, st.dir); updateArrows('vehiculos');
             if (res.length === 0) { document.getElementById('tabla-vehiculos').innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted); font-style:italic; padding:20px;">No hay vehículos disponibles en la flota activa.</td></tr>`; return; }
-            document.getElementById('tabla-vehiculos').innerHTML = res.map(v=>`<tr><td><strong class="font-mono">${v.patente_identificador || ''}</strong></td><td>${v.marca_modelo || ''}</td><td>${(v.tipo || '').charAt(0).toUpperCase() + (v.tipo || '').slice(1)}</td><td>${v.autonomia_maxima_km || 0} KM</td><td>${v.capacidad_volumen_m3 || 0} m³</td><td><span class="badge badge-${v.estado==='activo'?'success':v.estado==='mantenimiento'?'warning':'danger'}">${(v.estado || '').charAt(0).toUpperCase() + (v.estado || '').slice(1)}</span></td><td><button class="btn btn-secondary" style="padding:6px 12px; font-size:0.8rem;" onclick="abrirEditarVehiculo(${v.id})">Editar</button></td></tr>`).join('');
+            document.getElementById('tabla-vehiculos').innerHTML = res.map(v=>`<tr><td><strong class="font-mono">${esc(v.patente_identificador || '')}</strong></td><td>${esc(v.marca_modelo || '')}</td><td>${esc((v.tipo || '').charAt(0).toUpperCase() + (v.tipo || '').slice(1))}</td><td>${esc(v.autonomia_maxima_km || 0)} KM</td><td>${esc(v.capacidad_volumen_m3 || 0)} m³</td><td><span class="badge badge-${v.estado==='activo'?'success':v.estado==='mantenimiento'?'warning':'danger'}">${esc((v.estado || '').charAt(0).toUpperCase() + (v.estado || '').slice(1))}</span></td><td><button class="btn btn-secondary" style="padding:6px 12px; font-size:0.8rem;" onclick="abrirEditarVehiculo(${v.id})">Editar</button></td></tr>`).join('');
         }
 
         function renderSucursales() {
@@ -602,7 +608,7 @@
             if (st.query) res = res.filter(s => (s.nombre || '').toLowerCase().includes(st.query) || (s.calle || '').toLowerCase().includes(st.query));
             sortEngine(res, st.col, st.dir); updateArrows('sucursales');
             if (res.length === 0) { document.getElementById('tabla-sucursales').innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted); font-style:italic; padding:20px;">No hay bases operativas registradas.</td></tr>`; return; }
-            document.getElementById('tabla-sucursales').innerHTML = res.map(s=>`<tr><td><strong>${s.nombre || ''}</strong></td><td>${s.calle || ''} ${s.altura || ''}</td><td>${s.ciudad || ''}</td><td><span class="font-mono">${s.codigo_postal || ''}</span></td><td><span class="badge badge-${esActivo(s.activa)?'success':'danger'}">${esActivo(s.activa) ? 'Activa':'Inactiva'}</span></td><td><button class="btn btn-secondary" style="padding:6px 12px; font-size:0.8rem;" onclick="abrirEditarSucursal(${s.id})">Editar</button></td></tr>`).join('');
+            document.getElementById('tabla-sucursales').innerHTML = res.map(s=>`<tr><td><strong>${esc(s.nombre || '')}</strong></td><td>${esc(s.calle || '')} ${esc(s.altura || '')}</td><td>${esc(s.ciudad || '')}</td><td><span class="font-mono">${esc(s.codigo_postal || '')}</span></td><td><span class="badge badge-${esActivo(s.activa)?'success':'danger'}">${esActivo(s.activa) ? 'Activa':'Inactiva'}</span></td><td><button class="btn btn-secondary" style="padding:6px 12px; font-size:0.8rem;" onclick="abrirEditarSucursal(${s.id})">Editar</button></td></tr>`).join('');
         }
 
         function renderClientes() {
@@ -611,7 +617,7 @@
             if (st.query) res = res.filter(c => (c.razon_social || '').toLowerCase().includes(st.query) || (c.cuit_rut || '').includes(st.query));
             sortEngine(res, st.col, st.dir); updateArrows('clientes');
             if (res.length === 0) { document.getElementById('tabla-clientes').innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--text-muted); font-style:italic; padding:20px;">No hay destinatarios cargados en el sistema.</td></tr>`; return; }
-            document.getElementById('tabla-clientes').innerHTML = res.map(c=>`<tr><td><strong>${c.razon_social || ''}</strong></td><td><span class="font-mono">${c.cuit_rut || ''}</span></td><td><button class="btn btn-secondary" style="padding:6px 12px; font-size:0.8rem;" onclick="abrirModalDirecciones(${c.id}, '${(c.razon_social || '').replace(/'/g, "\\'")}')">Direcciones</button></td></tr>`).join('');
+            document.getElementById('tabla-clientes').innerHTML = res.map(c=>`<tr><td><strong>${esc(c.razon_social || '')}</strong></td><td><span class="font-mono">${esc(c.cuit_rut || '')}</span></td><td><button class="btn btn-secondary" style="padding:6px 12px; font-size:0.8rem;" onclick="abrirModalDirecciones(${c.id}, ${jsArg(c.razon_social || '')})">Direcciones</button></td></tr>`).join('');
         }
 
         function abrirEditarVehiculo(id) {
@@ -656,7 +662,7 @@
             columnas.forEach(col => {
                 const colHTML = document.createElement('div'); colHTML.className = 'kanban-column';
                 const fletesFiltrados = DB.fletes.filter(f => f.estado === col.id);
-                const cardsHTML = fletesFiltrados.slice(0, maxTarjetas).map(f => `<div class="kanban-card"><div class="card-header"><span class="font-mono" style="font-weight:600; font-size:1.05rem;">#FLT-${String(f.id).padStart(6, '0')}</span><span class="badge badge-${f.prioridad==='alta'?'danger':'primary'}">${(f.prioridad || '').charAt(0).toUpperCase() + (f.prioridad || '').slice(1)}</span></div><div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px; line-height:1.5;"><strong>Origen:</strong> ${f.origen || 'S/D'}<br><strong>Unidad:</strong> <span class="font-mono">${f.patente_identificador || 'Sin asignar'}</span></div><div class="card-actions">${getBotonesAccion(f)}</div></div>`).join('');
+                const cardsHTML = fletesFiltrados.slice(0, maxTarjetas).map(f => `<div class="kanban-card"><div class="card-header"><span class="font-mono" style="font-weight:600; font-size:1.05rem;">#FLT-${String(f.id).padStart(6, '0')}</span><span class="badge badge-${f.prioridad==='alta'?'danger':'primary'}">${esc((f.prioridad || '').charAt(0).toUpperCase() + (f.prioridad || '').slice(1))}</span></div><div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px; line-height:1.5;"><strong>Origen:</strong> ${esc(f.origen || 'S/D')}<br><strong>Unidad:</strong> <span class="font-mono">${esc(f.patente_identificador || 'Sin asignar')}</span></div><div class="card-actions">${getBotonesAccion(f)}</div></div>`).join('');
                 
                 colHTML.innerHTML = `<h3><span>${col.titulo}</span><span class="kanban-column-count">${fletesFiltrados.length}</span></h3><div class="kanban-cards-container">${cardsHTML}</div>`;
                 if (fletesFiltrados.length > maxTarjetas) colHTML.innerHTML += `<button class="btn btn-secondary" style="width:100%; margin-top:12px; font-size:0.85rem;" onclick="abrirModalLista('${col.id}', '${col.titulo}')">Ver listado completo</button>`;
@@ -675,7 +681,7 @@
         function abrirModalLista(estadoId, titulo) {
             const fletes = DB.fletes.filter(f => f.estado === estadoId);
             document.getElementById('titulo-modal-estado').innerText = `${titulo}`;
-            document.getElementById('tabla-estado-mas').innerHTML = fletes.map(f => `<tr><td><strong class="font-mono">#FLT-${String(f.id).padStart(6, '0')}</strong></td><td><span class="badge badge-${f.prioridad==='alta'?'danger':'primary'}">${(f.prioridad || '').charAt(0).toUpperCase() + (f.prioridad || '').slice(1)}</span></td><td>${f.origen || ''}</td><td><span class="font-mono">${f.patente_identificador || ''}</span></td><td><div style="display:flex; gap:8px;">${getBotonesAccion(f)}</div></td></tr>`).join('');
+            document.getElementById('tabla-estado-mas').innerHTML = fletes.map(f => `<tr><td><strong class="font-mono">#FLT-${String(f.id).padStart(6, '0')}</strong></td><td><span class="badge badge-${f.prioridad==='alta'?'danger':'primary'}">${esc((f.prioridad || '').charAt(0).toUpperCase() + (f.prioridad || '').slice(1))}</span></td><td>${esc(f.origen || '')}</td><td><span class="font-mono">${esc(f.patente_identificador || '')}</span></td><td><div style="display:flex; gap:8px;">${getBotonesAccion(f)}</div></td></tr>`).join('');
             openModal('modal-lista-estado');
         }
 
@@ -693,7 +699,7 @@
         }
         
         async function abrirModalDirecciones(clienteId, razonSocial) { document.getElementById('nombre-cliente-modal').innerText = razonSocial; document.getElementById('dir-cliente-id').value = clienteId; document.getElementById('form-nueva-direccion').reset(); document.getElementById('dir-ciudad').value=globalConfig.ciudad_defecto; document.getElementById('dir-provincia').value=globalConfig.provincia_defecto; await cargarDireccionesEnModal(clienteId); openModal('modal-direcciones-cliente'); }
-        async function cargarDireccionesEnModal(clienteId) { const res = await fetch(`/api/clientes/${clienteId}/direcciones`); if (res.ok) { const dirs = await res.json(); document.getElementById('tabla-direcciones-cliente').innerHTML = dirs.map(d => `<tr><td><strong>${d.alias}</strong></td><td>${d.calle} ${d.altura}</td><td>${d.ciudad}</td></tr>`).join(''); } }
+        async function cargarDireccionesEnModal(clienteId) { const res = await fetch(`/api/clientes/${clienteId}/direcciones`); if (res.ok) { const dirs = await res.json(); document.getElementById('tabla-direcciones-cliente').innerHTML = dirs.map(d => `<tr><td><strong>${esc(d.alias)}</strong></td><td>${esc(d.calle)} ${esc(d.altura)}</td><td>${esc(d.ciudad)}</td></tr>`).join(''); } }
         async function guardarDireccionCliente() { 
             try {
                 const clienteId = document.getElementById('dir-cliente-id').value; const payload = { alias: document.getElementById('dir-alias').value, calle: document.getElementById('dir-calle').value, altura: document.getElementById('dir-altura').value, ciudad: document.getElementById('dir-ciudad').value, codigo_postal: document.getElementById('dir-cp').value, provincia: document.getElementById('dir-provincia').value, latitud: -34.6037, longitud: -58.3816 }; 
@@ -706,7 +712,7 @@
         
         function addParada() {
             paradaCount++; const div = document.createElement('div'); div.className = 'parada-box'; div.id = 'parada-' + paradaCount; div.style = 'border:1px solid var(--border); padding:20px; margin-bottom:16px; border-radius:10px; background:var(--bg-page);';
-            let docOptions = '<option value="">Seleccione Tipo...</option>' + DB.tipos_docs.map(t=>`<option value="${t.codigo}">${t.nombre}</option>`).join('');
+            let docOptions = '<option value="">Seleccione Tipo...</option>' + DB.tipos_docs.map(t=>`<option value="${esc(t.codigo)}">${esc(t.nombre)}</option>`).join('');
             let volFieldHTML = globalConfig.manejar_volumenes ? `<div class="form-group"><label>Volumen Requerido (m³) <span style="color:var(--danger);">*</span></label><input type="number" step="0.01" class="form-control p-volumen" value="0.00" min="0.00"></div>` : `<input type="hidden" class="p-volumen" value="0.00">`;
 
             div.innerHTML = `
@@ -722,7 +728,7 @@
                 <div class="form-group"><label>Tipo de Destino <span style="color:var(--danger);">*</span></label><select class="form-control p-tipo-destino" onchange="conmutarTipoDestino(this)"><option value="">Seleccione tipo...</option><option value="sucursal">Sucursal Interna</option><option value="destinatario">Destinatario Registrado</option><option value="esporadico">Destinatario Manual (Esporádico)</option></select></div>
                 <div class="panel-sucursal" style="display:none;"><div class="form-group"><label>Seleccionar Sucursal <span style="color:var(--danger);">*</span></label><select class="form-control p-sucursal-select"></select></div></div>
                 <div class="panel-destinatario" style="display:none; position:relative;"><div class="form-group"><label>Buscar Destinatario Maestro <span style="color:var(--danger);">*</span></label><input type="text" class="form-control p-dest-search" placeholder="Escriba Razón Social..." oninput="filtrarDestinatariosPredictivo(this)"><input type="hidden" class="p-dest-id"><div class="autocomplete-results"></div></div><div class="panel-punto-entrega" style="display:none; background:rgba(41, 98, 255, 0.05); padding:16px; border-radius:8px; margin-bottom:12px; border:1px solid rgba(41, 98, 255, 0.2);"><div class="form-group" style="margin-bottom:0;"><label style="color:var(--accent);">Punto de Entrega Asociado <span style="color:var(--danger);">*</span></label><select class="form-control p-punto-select"></select></div></div></div>
-                <div class="panel-esporadico" style="display:none; background:rgba(0,0,0,0.02); padding:16px; border-radius:8px; margin-bottom:12px; border:1px solid var(--border);"><div class="form-group"><label>Nombre Destinatario <span style="color:var(--danger);">*</span></label><input type="text" class="form-control p-alias"></div><div style="display:flex; gap:12px;"><div class="form-group" style="flex:2;"><label>Calle <span style="color:var(--danger);">*</span></label><input type="text" class="form-control p-calle"></div><div class="form-group" style="flex:1;"><label>Altura <span style="color:var(--danger);">*</span></label><input type="text" class="form-control p-alt"></div></div><div style="display:flex; gap:12px;"><div class="form-group" style="flex:1;"><label>Ciudad <span style="color:var(--danger);">*</span></label><input type="text" class="form-control p-ciudad" value="${globalConfig.ciudad_defecto || ''}"></div><div class="form-group" style="flex:1;"><label>Provincia <span style="color:var(--danger);">*</span></label><input type="text" class="form-control p-prov" value="${globalConfig.provincia_defecto || ''}"></div></div></div>
+                <div class="panel-esporadico" style="display:none; background:rgba(0,0,0,0.02); padding:16px; border-radius:8px; margin-bottom:12px; border:1px solid var(--border);"><div class="form-group"><label>Nombre Destinatario <span style="color:var(--danger);">*</span></label><input type="text" class="form-control p-alias"></div><div style="display:flex; gap:12px;"><div class="form-group" style="flex:2;"><label>Calle <span style="color:var(--danger);">*</span></label><input type="text" class="form-control p-calle"></div><div class="form-group" style="flex:1;"><label>Altura <span style="color:var(--danger);">*</span></label><input type="text" class="form-control p-alt"></div></div><div style="display:flex; gap:12px;"><div class="form-group" style="flex:1;"><label>Ciudad <span style="color:var(--danger);">*</span></label><input type="text" class="form-control p-ciudad" value="${esc(globalConfig.ciudad_defecto || '')}"></div><div class="form-group" style="flex:1;"><label>Provincia <span style="color:var(--danger);">*</span></label><input type="text" class="form-control p-prov" value="${esc(globalConfig.provincia_defecto || '')}"></div></div></div>
             `;
             document.getElementById('paradas-container').appendChild(div); validarCampos(div.querySelector('.p-tipo'));
         }
@@ -733,12 +739,12 @@
             caja.querySelector('.panel-destinatario').style.display = (tipo === 'destinatario') ? 'block' : 'none'; 
             caja.querySelector('.panel-esporadico').style.display = (tipo === 'esporadico') ? 'block' : 'none'; 
             if (tipo === 'sucursal') { 
-                caja.querySelector('.p-sucursal-select').innerHTML = DB.sucursales.filter(s=>esActivo(s.activa)).map(s=>`<option value="${s.id}">${s.nombre}</option>`).join(''); 
+                caja.querySelector('.p-sucursal-select').innerHTML = DB.sucursales.filter(s=>esActivo(s.activa)).map(s=>`<option value="${s.id}">${esc(s.nombre)}</option>`).join(''); 
             } 
         }
-        function filtrarDestinatariosPredictivo(input) { const caja = input.closest('.parada-box'); const query = input.value.toLowerCase().trim(); const resultsDiv = caja.querySelector('.autocomplete-results'); if (!query) { resultsDiv.style.display = 'none'; return; } const filtrados = DB.clientes.filter(c => c.razon_social.toLowerCase().includes(query) || c.cuit_rut.includes(query)); if (filtrados.length === 0) { resultsDiv.innerHTML = '<div class="autocomplete-item" style="color:var(--text-muted); cursor:default;">Sin coincidencias</div>'; } else { resultsDiv.innerHTML = filtrados.map(c => `<div class="autocomplete-item" onclick="seleccionarDestinatarioOpcion(this, ${c.id}, '${c.razon_social.replace(/'/g, "\\'")}')"><strong>${c.razon_social}</strong></div>`).join(''); } resultsDiv.style.display = 'block'; }
+        function filtrarDestinatariosPredictivo(input) { const caja = input.closest('.parada-box'); const query = input.value.toLowerCase().trim(); const resultsDiv = caja.querySelector('.autocomplete-results'); if (!query) { resultsDiv.style.display = 'none'; return; } const filtrados = DB.clientes.filter(c => c.razon_social.toLowerCase().includes(query) || c.cuit_rut.includes(query)); if (filtrados.length === 0) { resultsDiv.innerHTML = '<div class="autocomplete-item" style="color:var(--text-muted); cursor:default;">Sin coincidencias</div>'; } else { resultsDiv.innerHTML = filtrados.map(c => `<div class="autocomplete-item" onclick="seleccionarDestinatarioOpcion(this, ${c.id}, ${jsArg(c.razon_social)})"><strong>${esc(c.razon_social)}</strong></div>`).join(''); } resultsDiv.style.display = 'block'; }
         function seleccionarDestinatarioOpcion(item, id, nombre) { const caja = item.closest('.parada-box'); caja.querySelector('.p-dest-search').value = nombre; caja.querySelector('.p-dest-id').value = id; caja.querySelector('.autocomplete-results').style.display = 'none'; cargarPuntosEntregaParaFlete(id, caja.querySelector('.p-punto-select'), caja.querySelector('.panel-punto-entrega')); }
-        async function cargarPuntosEntregaParaFlete(clienteId, sel, panel) { sel.innerHTML = '<option value="">Cargando...</option>'; panel.style.display = 'block'; if (!direccionesCache[clienteId]) { const res = await fetch(`/api/clientes/${clienteId}/direcciones`); direccionesCache[clienteId] = res.ok ? await res.json() : []; } const dirs = direccionesCache[clienteId]; sel.innerHTML = dirs.length === 0 ? '<option value="">Sin direcciones</option>' : dirs.map(d => `<option value="${d.id}" data-calle="${d.calle}" data-altura="${d.altura}" data-ciudad="${d.ciudad}" data-provincia="${d.provincia}" data-alias="${d.alias}">${d.alias}</option>`).join(''); }
+        async function cargarPuntosEntregaParaFlete(clienteId, sel, panel) { sel.innerHTML = '<option value="">Cargando...</option>'; panel.style.display = 'block'; if (!direccionesCache[clienteId]) { const res = await fetch(`/api/clientes/${clienteId}/direcciones`); direccionesCache[clienteId] = res.ok ? await res.json() : []; } const dirs = direccionesCache[clienteId]; sel.innerHTML = dirs.length === 0 ? '<option value="">Sin direcciones</option>' : dirs.map(d => `<option value="${d.id}" data-calle="${esc(d.calle)}" data-altura="${esc(d.altura)}" data-ciudad="${esc(d.ciudad)}" data-provincia="${esc(d.provincia)}" data-alias="${esc(d.alias)}">${esc(d.alias)}</option>`).join(''); }
         function validarCampos(sel) { const caja = sel.closest('.parada-box'); const r = DB.tipos_docs.find(t => t.codigo === sel.value); caja.querySelector('.c-id').style.display = (r && r.requiere_id) ? 'block' : 'none'; caja.querySelector('.c-pv').style.display = (r && r.requiere_pto_venta) ? 'block' : 'none'; caja.querySelector('.c-num').style.display = (r && r.requiere_numero) ? 'block' : 'none'; }
         
         async function confirmarFlete() {
