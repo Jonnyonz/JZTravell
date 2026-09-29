@@ -39,8 +39,6 @@ POSTGRES_USER=jzadmin
 POSTGRES_PASSWORD=${DB_PASS}
 POSTGRES_DB=jzflete_db
 
-OSRM_REGION_URL=http://download.geofabrik.de/south-america/argentina-latest.osm.pbf
-
 SETUP_TOKEN=${SETUP_TOKEN}
 EOF
     echo "Archivo .env generado con contrasenas seguras."
@@ -60,7 +58,7 @@ else
 fi
 
 # 4. Construir y levantar contenedores con Docker Compose
-echo "Desplegando servicios con Docker Compose (esto puede tardar varios minutos la primera vez, por la descarga del mapa OSRM)..."
+echo "Desplegando servicios con Docker Compose (la primera vez puede tardar por la construccion de las imagenes)..."
 docker compose up -d --build
 
 echo ""

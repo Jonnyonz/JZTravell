@@ -22,6 +22,7 @@ CREATE TABLE usuarios (
     ultima_conexion TIMESTAMP
 );
 
+-- token_sesion guarda el hash SHA-256 del token; el valor en claro solo vive en la cookie.
 CREATE TABLE sesiones_activas (
     id SERIAL PRIMARY KEY,
     usuario_id UUID NOT NULL REFERENCES usuarios(id),
@@ -29,6 +30,13 @@ CREATE TABLE sesiones_activas (
     expira_en TIMESTAMP NOT NULL
 );
 CREATE INDEX idx_sesiones_token ON sesiones_activas(token_sesion);
+
+-- Rate limit de login por IP (la app tambien la crea al arrancar si no existe).
+CREATE TABLE login_rate_limit (
+    ip TEXT PRIMARY KEY,
+    intentos INT NOT NULL DEFAULT 0,
+    bloqueado_hasta TIMESTAMP
+);
 
 -- === CONFIGURACIÓN GLOBAL (fila única, id=1) ===
 CREATE TABLE configuracion_sistema (
