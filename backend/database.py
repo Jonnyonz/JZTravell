@@ -3,6 +3,16 @@ from datetime import datetime, timedelta
 import asyncpg
 from fastapi import HTTPException, Request, Depends
 from jztech_core.net import parse_networks, real_ip
+from jztech_core.passwords import hash_password, needs_rehash, verify_legacy_password, verify_password
+
+
+def verify_password_any(password: str, stored_hash: str) -> bool:
+    """Verifica contra Argon2id (hash actual) o un esquema legado (bcrypt), para
+    poder migrar de forma transparente en el login (ver seccion 3.4 de la hoja
+    de ruta: decision confirmada 2026-09-29)."""
+    if stored_hash.startswith("$argon2"):
+        return verify_password(password, stored_hash)
+    return verify_legacy_password(password, stored_hash)
 
 # === CONEXION A LA BASE ===
 db_pool = None

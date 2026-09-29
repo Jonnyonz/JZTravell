@@ -1,13 +1,12 @@
 import asyncio
 import secrets
-import bcrypt
 import re
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 import asyncpg
 
-from database import get_db, require_role
+from database import get_db, require_role, hash_password
 
 router = APIRouter(prefix="/api", tags=["Usuarios"])
 
@@ -41,8 +40,8 @@ async def get_usuarios(db: asyncpg.Connection = Depends(get_db), user=Depends(re
 @router.post("/usuarios")
 async def register_usuario(data: UsuarioRegister, db: asyncpg.Connection = Depends(get_db), user=Depends(require_role(['admin']))):
     if not re.match(r"^(?=.*[0-9])(?=.*[A-Z]).{8,}$", data.password): raise HTTPException(400, "Contraseña no valida.")
-    password_hash = await asyncio.to_thread(bcrypt.hashpw, data.password.encode(), bcrypt.gensalt())
-    await db.execute("INSERT INTO usuarios (username, password_hash, nombre_completo, rol, activo) VALUES ($1, $2, $3, $4, TRUE)", data.username, password_hash.decode(), data.nombre_completo, data.rol)
+    password_hash = await asyncio.to_thread(hash_password, data.password)
+    await db.execute("INSERT INTO usuarios (username, password_hash, nombre_completo, rol, activo) VALUES ($1, $2, $3, $4, TRUE)", data.username, password_hash, data.nombre_completo, data.rol)
     return {"status": "success"}
 
 
@@ -50,8 +49,8 @@ async def register_usuario(data: UsuarioRegister, db: asyncpg.Connection = Depen
 async def modificar_usuario(username: str, data: UsuarioEdit, db: asyncpg.Connection = Depends(get_db), user=Depends(require_role(['admin']))):
     if data.password:
         if not re.match(r"^(?=.*[0-9])(?=.*[A-Z]).{8,}$", data.password): raise HTTPException(400, "Contraseña invalida.")
-        pw_hash = await asyncio.to_thread(bcrypt.hashpw, data.password.encode(), bcrypt.gensalt())
-        await db.execute("UPDATE usuarios SET password_hash=$1, nombre_completo=$2, rol=$3, activo=$4 WHERE username=$5", pw_hash.decode(), data.nombre_completo, data.rol, data.activo, username)
+        pw_hash = await asyncio.to_thread(hash_password, data.password)
+        await db.execute("UPDATE usuarios SET password_hash=$1, nombre_completo=$2, rol=$3, activo=$4 WHERE username=$5", pw_hash, data.nombre_completo, data.rol, data.activo, username)
     else:
         await db.execute("UPDATE usuarios SET nombre_completo=$1, rol=$2, activo=$3 WHERE username=$4", data.nombre_completo, data.rol, data.activo, username)
     return {"status": "success"}
@@ -67,6 +66,6 @@ async def procesar_solicitud_registro(data: SolicitudProcesar, db: asyncpg.Conne
     async with db.transaction():
         await db.execute("DELETE FROM solicitudes_registro WHERE email = $1", data.email)
         if data.aprobar:
-            hash_dummy = await asyncio.to_thread(bcrypt.hashpw, secrets.token_urlsafe(24).encode(), bcrypt.gensalt())
-            await db.execute("INSERT INTO usuarios (username, password_hash, nombre_completo, rol, activo) VALUES ($1, $2, $3, $4, TRUE)", data.email, hash_dummy.decode(), data.nombre_completo, data.rol)
+            hash_dummy = await asyncio.to_thread(hash_password, secrets.token_urlsafe(24))
+            await db.execute("INSERT INTO usuarios (username, password_hash, nombre_completo, rol, activo) VALUES ($1, $2, $3, $4, TRUE)", data.email, hash_dummy, data.nombre_completo, data.rol)
     return {"status": "success"}

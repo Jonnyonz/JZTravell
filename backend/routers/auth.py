@@ -1,13 +1,15 @@
 import asyncio, os, re, secrets, httpx
 from datetime import datetime, timedelta
 from urllib.parse import urlencode
-import bcrypt
 from fastapi import APIRouter, Request, Response, HTTPException, Depends
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 import asyncpg
 
-from database import get_db, hash_token, get_client_ip, check_ip_rate_limit, record_ip_failure, reset_ip_rate_limit
+from database import (
+    get_db, hash_token, get_client_ip, check_ip_rate_limit, record_ip_failure, reset_ip_rate_limit,
+    hash_password, needs_rehash, verify_password_any,
+)
 
 router = APIRouter(prefix="/api", tags=["Auth"])
 
@@ -35,7 +37,7 @@ async def login(data: LoginRequest, request: Request, response: Response, db: as
         await record_ip_failure(db, ip)
         raise HTTPException(401, "Credenciales incorrectas.")
     if user['bloqueado_hasta'] and user['bloqueado_hasta'] > datetime.now(): raise HTTPException(423, "Cuenta bloqueada temporalmente.")
-    if not await asyncio.to_thread(bcrypt.checkpw, data.password.encode(), user['password_hash'].encode()):
+    if not await asyncio.to_thread(verify_password_any, data.password, user['password_hash']):
         await record_ip_failure(db, ip)
         intentos = user['intentos_fallidos'] + 1
         if intentos >= 5:
@@ -45,6 +47,12 @@ async def login(data: LoginRequest, request: Request, response: Response, db: as
         raise HTTPException(401, "Credenciales incorrectas.")
     await reset_ip_rate_limit(db, ip)
     await db.execute("UPDATE usuarios SET intentos_fallidos = 0, bloqueado_hasta = NULL WHERE id = $1", user['id'])
+    # Migracion transparente a Argon2id: si el hash guardado es de un esquema viejo (bcrypt)
+    # o quedo con parametros desactualizados, se re-hashea con la clave que se acaba de escribir.
+    # Sin esto no habria forma de migrar sin forzar un reset masivo de claves.
+    if not user['password_hash'].startswith("$argon2") or await asyncio.to_thread(needs_rehash, user['password_hash']):
+        nuevo_hash = await asyncio.to_thread(hash_password, data.password)
+        await db.execute("UPDATE usuarios SET password_hash=$1 WHERE id=$2", nuevo_hash, user['id'])
     token_nuevo = secrets.token_hex(32)
     await db.execute("INSERT INTO sesiones_activas (usuario_id, token_sesion, expira_en) VALUES ($1, $2, $3)", user['id'], hash_token(token_nuevo), datetime.now() + timedelta(hours=8))
     response.set_cookie(key="session_token", value=token_nuevo, httponly=True, secure=True, samesite='lax', max_age=28800)
@@ -83,10 +91,10 @@ async def setup_admin(data: SetupAdminRequest, response: Response, db: asyncpg.C
     if not re.match(r"^(?=.*[0-9])(?=.*[A-Z]).{8,}$", password):
         raise HTTPException(400, "La contraseña debe tener al menos 8 caracteres, con 1 mayúscula y 1 número.")
 
-    password_hash = await asyncio.to_thread(bcrypt.hashpw, password.encode(), bcrypt.gensalt())
+    password_hash = await asyncio.to_thread(hash_password, password)
     user_id = await db.fetchval(
         "INSERT INTO usuarios (username, password_hash, nombre_completo, rol, activo) VALUES ($1,$2,$3,'admin',TRUE) RETURNING id",
-        username, password_hash.decode(), full_name
+        username, password_hash, full_name
     )
 
     token_nuevo = secrets.token_hex(32)
