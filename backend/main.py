@@ -1,4 +1,4 @@
-import os, asyncio, secrets, httpx, json, datetime, math, re
+import os, asyncio, secrets, httpx, json, datetime, math, re, hashlib
 import html as html_lib
 from fastapi import FastAPI, Request, Response, HTTPException, Depends
 from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
@@ -25,6 +25,11 @@ async def shutdown(): await db_pool.close()
 
 async def get_db():
     async with db_pool.acquire() as connection: yield connection
+
+# El token de sesion viaja en la cookie, pero en la DB se guarda solo su hash: una lectura
+# de sesiones_activas (o un backup) ya no permite robar sesiones activas.
+def hash_token(t: str) -> str:
+    return hashlib.sha256(t.encode("utf-8")).hexdigest()
 
 # --- MODELOS DE DATOS ---
 class LoginRequest(BaseModel): username: str; password: str
@@ -93,7 +98,7 @@ async def security_and_csrf_middleware(request: Request, call_next):
 async def get_current_user(request: Request, db: asyncpg.Connection = Depends(get_db)):
     token_sesion = request.cookies.get("session_token")
     if not token_sesion: raise HTTPException(401, "Ausencia de credenciales.")
-    registro = await db.fetchrow("SELECT u.id, u.username, u.rol FROM sesiones_activas s JOIN usuarios u ON s.usuario_id = u.id WHERE s.token_sesion = $1 AND s.expira_en > NOW() AND u.activo = TRUE", token_sesion)
+    registro = await db.fetchrow("SELECT u.id, u.username, u.rol FROM sesiones_activas s JOIN usuarios u ON s.usuario_id = u.id WHERE s.token_sesion = $1 AND s.expira_en > NOW() AND u.activo = TRUE", hash_token(token_sesion))
     if not registro: raise HTTPException(401, "Sesion invalida.")
     return dict(registro)
 
@@ -118,7 +123,7 @@ async def login(data: LoginRequest, response: Response, db: asyncpg.Connection =
         raise HTTPException(401, "Credenciales incorrectas.")
     await db.execute("UPDATE usuarios SET intentos_fallidos = 0, bloqueado_hasta = NULL WHERE id = $1", user['id'])
     token_nuevo = secrets.token_hex(32)
-    await db.execute("INSERT INTO sesiones_activas (usuario_id, token_sesion, expira_en) VALUES ($1, $2, $3)", user['id'], token_nuevo, datetime.datetime.now() + datetime.timedelta(hours=8))
+    await db.execute("INSERT INTO sesiones_activas (usuario_id, token_sesion, expira_en) VALUES ($1, $2, $3)", user['id'], hash_token(token_nuevo), datetime.datetime.now() + datetime.timedelta(hours=8))
     response.set_cookie(key="session_token", value=token_nuevo, httponly=True, secure=True, samesite='lax', max_age=28800)
     response.set_cookie(key="user_rol", value=str(user['rol']), httponly=False, secure=True, samesite='lax', max_age=28800)
     return {"status": "success", "rol": user['rol'], "redirect": f"/{user['rol']}.html"}
@@ -126,7 +131,7 @@ async def login(data: LoginRequest, response: Response, db: asyncpg.Connection =
 @app.post("/api/logout")
 async def logout(request: Request, response: Response, db: asyncpg.Connection = Depends(get_db)):
     token = request.cookies.get("session_token")
-    if token: await db.execute("DELETE FROM sesiones_activas WHERE token_sesion = $1", token)
+    if token: await db.execute("DELETE FROM sesiones_activas WHERE token_sesion = $1", hash_token(token))
     response.delete_cookie("session_token"); response.delete_cookie("user_rol")
     return {"status": "success"}
 
@@ -159,21 +164,31 @@ async def setup_admin(data: SetupAdminRequest, response: Response, db: asyncpg.C
     )
 
     token_nuevo = secrets.token_hex(32)
-    await db.execute("INSERT INTO sesiones_activas (usuario_id, token_sesion, expira_en) VALUES ($1, $2, $3)", user_id, token_nuevo, datetime.datetime.now() + datetime.timedelta(hours=8))
+    await db.execute("INSERT INTO sesiones_activas (usuario_id, token_sesion, expira_en) VALUES ($1, $2, $3)", user_id, hash_token(token_nuevo), datetime.datetime.now() + datetime.timedelta(hours=8))
     response.set_cookie(key="session_token", value=token_nuevo, httponly=True, secure=True, samesite='lax', max_age=28800)
     response.set_cookie(key="user_rol", value="admin", httponly=False, secure=True, samesite='lax', max_age=28800)
     return {"status": "success", "redirect": "/admin.html"}
 
 # --- INTEGRADOR GOOGLE OAUTH2 ---
 @app.get("/api/auth/google/url")
-async def get_google_auth_url(db: asyncpg.Connection = Depends(get_db)):
+async def get_google_auth_url(response: Response, db: asyncpg.Connection = Depends(get_db)):
     cfg = await db.fetchrow("SELECT google_oauth_enabled, google_client_id, google_redirect_url FROM configuracion_sistema WHERE id=1")
     if not cfg or not cfg['google_oauth_enabled']: raise HTTPException(400, "Autenticacion Google deshabilitada.")
-    return {"url": f"https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id={cfg['google_client_id']}&redirect_uri={cfg['google_redirect_url']}&scope=openid%20email%20profile"}
+    # Parametro state (anti-CSRF de login): se guarda en una cookie y se verifica en el callback,
+    # para que un atacante no pueda forzar el ingreso con SU codigo de Google en la sesion ajena.
+    state = secrets.token_urlsafe(24)
+    response.set_cookie(key="oauth_state", value=state, httponly=True, secure=True, samesite='lax', max_age=600)
+    from urllib.parse import urlencode
+    params = urlencode({"response_type": "code", "client_id": cfg['google_client_id'], "redirect_uri": cfg['google_redirect_url'], "scope": "openid email profile", "state": state})
+    return {"url": f"https://accounts.google.com/o/oauth2/v2/auth?{params}"}
 
 @app.get("/api/auth/google/callback")
-async def google_callback(code: str, db: asyncpg.Connection = Depends(get_db)):
+async def google_callback(request: Request, code: str = "", state: str = "", db: asyncpg.Connection = Depends(get_db)):
     if not code: return RedirectResponse(url="/index.html?error=Codigo+Google+ausente")
+    # Verificacion del state contra la cookie emitida al iniciar el flujo.
+    cookie_state = request.cookies.get("oauth_state")
+    if not cookie_state or not state or not secrets.compare_digest(state, cookie_state):
+        return RedirectResponse(url="/index.html?error=Estado+de+sesion+invalido")
     cfg = await db.fetchrow("SELECT google_client_id, google_client_secret, google_redirect_url FROM configuracion_sistema WHERE id=1")
     async with httpx.AsyncClient() as client:
         res_token = await client.post("https://oauth2.googleapis.com/token", data={"code": code, "client_id": cfg['google_client_id'], "client_secret": cfg['google_client_secret'], "redirect_uri": cfg['google_redirect_url'], "grant_type": "authorization_code"})
@@ -186,10 +201,11 @@ async def google_callback(code: str, db: asyncpg.Connection = Depends(get_db)):
             await db.execute("INSERT INTO solicitudes_registro (email, nombre_completo) VALUES ($1, $2)", email, user_info.get("name", "Usuario"))
         return RedirectResponse(url="/index.html?status=pending")
     token_nuevo = secrets.token_hex(32)
-    await db.execute("INSERT INTO sesiones_activas (usuario_id, token_sesion, expira_en) VALUES ($1, $2, $3)", user['id'], token_nuevo, datetime.datetime.now() + datetime.timedelta(hours=8))
+    await db.execute("INSERT INTO sesiones_activas (usuario_id, token_sesion, expira_en) VALUES ($1, $2, $3)", user['id'], hash_token(token_nuevo), datetime.datetime.now() + datetime.timedelta(hours=8))
     response = RedirectResponse(url=f"/{user['rol']}.html")
     response.set_cookie(key="session_token", value=token_nuevo, httponly=True, secure=True, samesite='lax', max_age=28800)
     response.set_cookie(key="user_rol", value=str(user['rol']), httponly=False, secure=True, samesite='lax', max_age=28800)
+    response.delete_cookie("oauth_state")
     return response
 
 # --- ADMINISTRACIÓN GLOBAL ---
@@ -317,11 +333,17 @@ async def get_fletes(db: asyncpg.Connection = Depends(get_db), user=Depends(get_
 @app.post("/api/fletes")
 async def create_flete(data: FleteCreate, request: Request, db: asyncpg.Connection = Depends(get_db), user=Depends(get_current_user)):
     cfg = await db.fetchrow("SELECT manejar_volumenes FROM configuracion_sistema WHERE id=1")
+    # Validar existencia antes de insertar: si el vehiculo u origen no existen, devolver 400
+    # en vez de un 500 (antes v_cap era None y explotaba, o saltaba la violacion de FK).
+    v_cap = await db.fetchval("SELECT capacidad_volumen_m3 FROM flota_vehiculos WHERE id = $1", data.vehiculo_id)
+    if v_cap is None:
+        raise HTTPException(400, "El vehiculo indicado no existe.")
+    if not await db.fetchval("SELECT 1 FROM sucursales WHERE id = $1", data.origen_id):
+        raise HTTPException(400, "La sucursal de origen no existe.")
     if cfg['manejar_volumenes']:
-        v_cap = await db.fetchval("SELECT capacidad_volumen_m3 FROM flota_vehiculos WHERE id = $1", data.vehiculo_id)
         v_req = sum(doc.volumen_m3 for doc in data.documentos)
         if v_req > v_cap: raise HTTPException(400, f"Capacidad volumetrica excedida. Requerido: {v_req} m3 | Disponible: {v_cap} m3.")
-        
+
     async with db.transaction():
         flete_id = await db.fetchval("INSERT INTO fletes (solicitante_id, vehiculo_id, origen_id, prioridad, distancia_total_km) VALUES ($1::uuid, $2, $3, $4, $5) RETURNING id", user['id'], data.vehiculo_id, data.origen_id, data.prioridad, data.distancia_estimada_km)
         for idx, doc in enumerate(data.documentos): 
