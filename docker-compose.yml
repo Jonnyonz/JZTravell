@@ -18,17 +18,6 @@ services:
       timeout: 5s
       retries: 5
 
-  osrm:
-    build: ./osrm-init
-    container_name: jztravel_osrm
-    environment:
-      - OSRM_REGION_URL=${OSRM_REGION_URL}
-    volumes:
-      - ./osrm-data:/data
-    ports:
-      - "5000:5000"
-    restart: unless-stopped
-
   backend:
     build: ./backend
     container_name: jztravel_backend
@@ -46,7 +35,5 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      osrm:
-        condition: service_started
     restart: unless-stopped
 
