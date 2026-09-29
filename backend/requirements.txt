@@ -316,8 +316,8 @@ idna==3.20 \
     # via
     #   anyio
     #   httpx
-jztech-core @ https://github.com/Jonnyonz/jztech-core/releases/download/v0.1.4/jztech_core-0.1.4-py3-none-any.whl \
-    --hash=sha256:cdf9c6ec9c7ea3bc1ef63a14684e62b54d58c3867fa68a817ceef1bca2e7e3d4
+jztech-core @ https://github.com/Jonnyonz/jztech-core/releases/download/v0.1.5/jztech_core-0.1.5-py3-none-any.whl \
+    --hash=sha256:86fe7da6ce7ffaf77c6111592faead17f9a778012161594cab9651c09961f715
     # via -r requirements.in
 pycparser==3.0 \
     --hash=sha256:600f49d217304a5902ac3c37e1281c9fe94e4d0489de643a9504c5cdfdfc6b29 \

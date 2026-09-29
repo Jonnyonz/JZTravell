@@ -1,9 +1,12 @@
+import logging
 import os, secrets, hashlib, asyncio
 from datetime import datetime, timedelta
 import asyncpg
 from fastapi import HTTPException, Request, Depends
 from jztech_core.net import parse_networks, real_ip
 from jztech_core.passwords import hash_password, needs_rehash, verify_legacy_password, verify_password
+
+logger = logging.getLogger("jztravell")
 
 
 def verify_password_any(password: str, stored_hash: str) -> bool:
@@ -35,11 +38,11 @@ async def init_db_schema():
             )
             break
         except Exception as e:
-            print(f"[JZTravell] Intento {intento + 1}/10 de conexion a PostgreSQL fallido: {e!r}")
+            logger.warning("Intento %d/10 de conexion a PostgreSQL fallido: %r", intento + 1, e)
             await asyncio.sleep(1.0)
 
     if db_pool is None:
-        print("[JZTravell] No se pudo conectar a PostgreSQL: la API respondera 503 hasta reiniciar el servicio.")
+        logger.error("No se pudo conectar a PostgreSQL: la API respondera 503 hasta reiniciar el servicio.")
         return
 
     # Tabla del rate limit por IP (idempotente): cubre tambien instalaciones ya inicializadas

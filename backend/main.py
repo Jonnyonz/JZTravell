@@ -3,7 +3,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from jztech_core.logging_setup import configure_logging, install_generic_error_handler
 from jztech_core.security_headers import SecurityHeadersMiddleware
+
+# Antes de importar database: ese modulo ya puede loguear al cargarse.
+configure_logging()
 
 from database import init_db_schema, close_db_pool
 from routers import auth, users, config, fleet, branches, clients, shipments
@@ -17,6 +21,9 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="JZ Tech Solutions - API Logística", lifespan=lifespan)
+# Excepcion no manejada: traceback al log (JSON a stdout) y al cliente {"detail": "Error interno
+# del servidor."} con 500 (el frontend lee "detail", el formato de FastAPI). Nunca str(e).
+install_generic_error_handler(app, "jztravell", field="detail")
 
 # === REGISTRO DE ROUTERS MODULARES ===
 app.include_router(auth.router)
