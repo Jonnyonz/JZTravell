@@ -271,9 +271,9 @@ async def create_cliente_transaccional(data: ClienteTransaccionalCreate, db: asy
     return {"status": "success"}
 
 @app.get("/api/clientes")
-async def get_clientes(db: asyncpg.Connection = Depends(get_db), user=Depends(get_current_user)): return [dict(r) for r in await db.fetch("SELECT id, razon_social, cuit_rut, activo FROM clientes ORDER BY razon_social ASC")]
+async def get_clientes(db: asyncpg.Connection = Depends(get_db), user=Depends(require_role(['admin']))): return [dict(r) for r in await db.fetch("SELECT id, razon_social, cuit_rut, activo FROM clientes ORDER BY razon_social ASC")]
 @app.get("/api/clientes/{cliente_id}/direcciones")
-async def get_direcciones_cliente(cliente_id: int, db: asyncpg.Connection = Depends(get_db), user=Depends(get_current_user)): return [dict(r) for r in await db.fetch("SELECT * FROM direcciones_cliente WHERE cliente_id = $1", cliente_id)]
+async def get_direcciones_cliente(cliente_id: int, db: asyncpg.Connection = Depends(get_db), user=Depends(require_role(['admin']))): return [dict(r) for r in await db.fetch("SELECT * FROM direcciones_cliente WHERE cliente_id = $1", cliente_id)]
 
 @app.get("/api/admin/solicitudes")
 async def listar_solicitudes_registro(db: asyncpg.Connection = Depends(get_db), user=Depends(require_role(['admin']))): return [dict(r) for r in await db.fetch("SELECT * FROM solicitudes_registro ORDER BY creado_en DESC")]
@@ -298,8 +298,16 @@ async def update_gps(data: GPSData, request: Request, db: asyncpg.Connection = D
 # --- DESPACHO DE FLETES ---
 @app.get("/api/fletes")
 async def get_fletes(db: asyncpg.Connection = Depends(get_db), user=Depends(get_current_user)):
-    query = "SELECT f.id, f.prioridad, f.estado, f.distancia_total_km, f.creado_en, f.chofer_id, v.patente_identificador, v.marca_modelo, s.nombre as origen, s.calle as origen_calle, s.altura as origen_altura, s.ciudad as origen_ciudad, s.provincia as origen_provincia, s.latitud as origen_lat, s.longitud as origen_lon, COALESCE(u.nombre_completo, 'Desconocido') as solicitante FROM fletes f LEFT JOIN flota_vehiculos v ON f.vehiculo_id = v.id LEFT JOIN sucursales s ON f.origen_id = s.id LEFT JOIN usuarios u ON f.solicitante_id = u.id ORDER BY f.id DESC LIMIT 100"
-    fletes = [dict(r) for r in await db.fetch(query)]
+    # Autorizacion por rol: admin ve todo; chofer sus fletes + los pendientes (disponibles para
+    # tomar); cliente solo los que solicito. Antes devolvia todos a cualquier rol.
+    if user['rol'] == 'admin':
+        where, params = "", []
+    elif user['rol'] == 'chofer':
+        where, params = "WHERE (f.chofer_id = $1::uuid OR f.estado = 'pendiente')", [user['id']]
+    else:
+        where, params = "WHERE f.solicitante_id = $1::uuid", [user['id']]
+    query = f"SELECT f.id, f.prioridad, f.estado, f.distancia_total_km, f.creado_en, f.chofer_id, v.patente_identificador, v.marca_modelo, s.nombre as origen, s.calle as origen_calle, s.altura as origen_altura, s.ciudad as origen_ciudad, s.provincia as origen_provincia, s.latitud as origen_lat, s.longitud as origen_lon, COALESCE(u.nombre_completo, 'Desconocido') as solicitante FROM fletes f LEFT JOIN flota_vehiculos v ON f.vehiculo_id = v.id LEFT JOIN sucursales s ON f.origen_id = s.id LEFT JOIN usuarios u ON f.solicitante_id = u.id {where} ORDER BY f.id DESC LIMIT 100"
+    fletes = [dict(r) for r in await db.fetch(query, *params)]
     for f in fletes:
         f['creado_en'] = f['creado_en'].isoformat()
         if f['chofer_id']: f['chofer_id'] = str(f['chofer_id'])
@@ -324,8 +332,11 @@ async def create_flete(data: FleteCreate, request: Request, db: asyncpg.Connecti
 async def consolidar_y_optimizar(data: ConsolidarRequest, request: Request, db: asyncpg.Connection = Depends(get_db), user=Depends(require_role(['chofer']))):
     if not data.flete_ids: raise HTTPException(400, "Lista vacía.")
     async with db.transaction():
-        fletes_data = await db.fetch("SELECT f.id, s.latitud, s.longitud FROM fletes f JOIN sucursales s ON f.origen_id = s.id WHERE f.id = ANY($1::int[])", data.flete_ids)
-        if not fletes_data: raise HTTPException(400, "Fletes no identificados.")
+        # Solo se pueden consolidar fletes disponibles (pendientes y sin chofer): asi un chofer
+        # no puede tomar fletes ajenos ni ya en curso.
+        fletes_data = await db.fetch("SELECT f.id, s.latitud, s.longitud FROM fletes f JOIN sucursales s ON f.origen_id = s.id WHERE f.id = ANY($1::int[]) AND f.estado = 'pendiente' AND f.chofer_id IS NULL", data.flete_ids)
+        if len(fletes_data) != len(set(data.flete_ids)):
+            raise HTTPException(400, "Alguno de los fletes no esta disponible para consolidar.")
         orig_lat, orig_lon = fletes_data[0]['latitud'], fletes_data[0]['longitud']
         paradas = [dict(p) for p in await db.fetch("SELECT * FROM documentos_flete WHERE flete_id = ANY($1::int[])", data.flete_ids)]
         for p in paradas:
@@ -336,8 +347,27 @@ async def consolidar_y_optimizar(data: ConsolidarRequest, request: Request, db: 
         for idx, p in enumerate(paradas_ordenadas): await db.execute("UPDATE documentos_flete SET orden_ruta = $1 WHERE id = $2", idx + 1, p['id'])
     return {"status": "success"}
 
+# Transiciones de estado permitidas (lista cerrada).
+TRANSICIONES_FLETE = {
+    "pendiente": {"camino"},
+    "camino": {"completado", "problema"},
+    "problema": {"pendiente"},
+    "completado": set(),
+}
+
 @app.post("/api/fletes/{flete_id}/estado")
 async def update_flete_estado(flete_id: int, data: EstadoUpdate, db: asyncpg.Connection = Depends(get_db), user=Depends(get_current_user)):
+    flete = await db.fetchrow("SELECT estado, chofer_id FROM fletes WHERE id = $1", flete_id)
+    if not flete:
+        raise HTTPException(404, "Flete no encontrado.")
+    # Solo el admin o el chofer asignado a ese flete pueden cambiar su estado.
+    es_chofer_asignado = user['rol'] == 'chofer' and flete['chofer_id'] is not None and str(flete['chofer_id']) == str(user['id'])
+    if user['rol'] != 'admin' and not es_chofer_asignado:
+        raise HTTPException(403, "No tiene permiso sobre este flete.")
+    if data.estado not in TRANSICIONES_FLETE:
+        raise HTTPException(400, "Estado invalido.")
+    if data.estado not in TRANSICIONES_FLETE.get(flete['estado'], set()):
+        raise HTTPException(400, f"Transicion no permitida desde '{flete['estado']}'.")
     await db.execute("UPDATE fletes SET estado = $1 WHERE id = $2", data.estado, flete_id)
     return {"status": "success"}
 
