@@ -1,4 +1,4 @@
-import os, asyncio, secrets, httpx, json, datetime, math, re, hashlib, ipaddress
+import os, asyncio, secrets, httpx, json, datetime, math, re, hashlib
 import html as html_lib
 from fastapi import FastAPI, Request, Response, HTTPException, Depends
 from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 import asyncpg
 import bcrypt
+from jztech_core.net import parse_networks, real_ip
 
 app = FastAPI(title="JZ Tech Solutions - API Logística")
 db_pool = None
@@ -36,33 +37,14 @@ def hash_token(t: str) -> str:
     return hashlib.sha256(t.encode("utf-8")).hexdigest()
 
 # --- IP REAL DEL CLIENTE (DETRAS DE PROXY INVERSO) ---
-# X-Forwarded-For solo se cree si la conexion viene de un proxy de confianza. Por defecto:
-# loopback y redes internas de Docker (el proxy corre en el mismo host).
-def _parse_networks(raw):
-    nets = []
-    for part in raw.split(","):
-        part = part.strip()
-        if not part: continue
-        try: nets.append(ipaddress.ip_network(part, strict=False))
-        except ValueError: print(f"[JZTravell] TRUSTED_PROXIES: valor invalido ignorado: {part}")
-    return nets
-
-TRUSTED_PROXIES = _parse_networks(os.getenv("TRUSTED_PROXIES", "127.0.0.1/32,::1/128,172.16.0.0/12"))
-
-def _is_trusted_proxy(ip):
-    try: addr = ipaddress.ip_address(ip)
-    except ValueError: return False
-    return any(addr in net for net in TRUSTED_PROXIES)
+# X-Forwarded-For solo se cree si la conexion viene de un proxy de confianza (ver
+# jztech_core.net: por defecto loopback y redes internas de Docker, el proxy
+# corre en el mismo host). A diferencia de la version anterior, un valor
+# invalido en TRUSTED_PROXIES ahora frena el arranque en vez de ignorarse.
+TRUSTED_PROXIES = parse_networks(os.getenv("TRUSTED_PROXIES", "127.0.0.1/32,::1/128,172.16.0.0/12"))
 
 def get_client_ip(request: Request) -> str:
-    peer = request.client.host if request.client else "desconocido"
-    if not _is_trusted_proxy(peer):
-        return peer
-    forwarded = [p.strip() for p in request.headers.get("x-forwarded-for", "").split(",") if p.strip()]
-    for hop in reversed(forwarded):
-        if not _is_trusted_proxy(hop):
-            return hop
-    return forwarded[0] if forwarded else peer
+    return real_ip(request, TRUSTED_PROXIES)
 
 # Rate limit de login por IP (ademas del bloqueo por cuenta): frena el credential-stuffing
 # que rota usuarios desde una misma IP.
