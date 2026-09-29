@@ -1,4 +1,4 @@
-import os, asyncio, secrets, httpx, json, datetime, math, re, hashlib
+import os, asyncio, secrets, httpx, json, datetime, math, re, hashlib, ipaddress
 import html as html_lib
 from fastapi import FastAPI, Request, Response, HTTPException, Depends
 from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
@@ -19,6 +19,10 @@ async def startup():
         user=os.getenv("POSTGRES_USER", "jzadmin"), password=os.getenv("POSTGRES_PASSWORD", secrets.token_hex(24)),
         database=os.getenv("POSTGRES_DB", "jzflete_db"), host=os.getenv("POSTGRES_HOST", "db"), min_size=2, max_size=10
     )
+    # Tabla del rate limit por IP (idempotente): cubre tambien instalaciones ya inicializadas
+    # cuyo init_db.sql no vuelve a ejecutarse.
+    async with db_pool.acquire() as conn:
+        await conn.execute("CREATE TABLE IF NOT EXISTS login_rate_limit (ip TEXT PRIMARY KEY, intentos INT NOT NULL DEFAULT 0, bloqueado_hasta TIMESTAMP)")
 
 @app.on_event("shutdown")
 async def shutdown(): await db_pool.close()
@@ -30,6 +34,57 @@ async def get_db():
 # de sesiones_activas (o un backup) ya no permite robar sesiones activas.
 def hash_token(t: str) -> str:
     return hashlib.sha256(t.encode("utf-8")).hexdigest()
+
+# --- IP REAL DEL CLIENTE (DETRAS DE PROXY INVERSO) ---
+# X-Forwarded-For solo se cree si la conexion viene de un proxy de confianza. Por defecto:
+# loopback y redes internas de Docker (el proxy corre en el mismo host).
+def _parse_networks(raw):
+    nets = []
+    for part in raw.split(","):
+        part = part.strip()
+        if not part: continue
+        try: nets.append(ipaddress.ip_network(part, strict=False))
+        except ValueError: print(f"[JZTravell] TRUSTED_PROXIES: valor invalido ignorado: {part}")
+    return nets
+
+TRUSTED_PROXIES = _parse_networks(os.getenv("TRUSTED_PROXIES", "127.0.0.1/32,::1/128,172.16.0.0/12"))
+
+def _is_trusted_proxy(ip):
+    try: addr = ipaddress.ip_address(ip)
+    except ValueError: return False
+    return any(addr in net for net in TRUSTED_PROXIES)
+
+def get_client_ip(request: Request) -> str:
+    peer = request.client.host if request.client else "desconocido"
+    if not _is_trusted_proxy(peer):
+        return peer
+    forwarded = [p.strip() for p in request.headers.get("x-forwarded-for", "").split(",") if p.strip()]
+    for hop in reversed(forwarded):
+        if not _is_trusted_proxy(hop):
+            return hop
+    return forwarded[0] if forwarded else peer
+
+# Rate limit de login por IP (ademas del bloqueo por cuenta): frena el credential-stuffing
+# que rota usuarios desde una misma IP.
+IP_MAX_INTENTOS = 15
+IP_BLOQUEO_MIN = 15
+
+async def check_ip_rate_limit(db, ip):
+    row = await db.fetchrow("SELECT bloqueado_hasta FROM login_rate_limit WHERE ip = $1", ip)
+    if row and row["bloqueado_hasta"] and row["bloqueado_hasta"] > datetime.datetime.now():
+        raise HTTPException(429, "Demasiados intentos desde esta red. Reintente mas tarde.")
+
+async def record_ip_failure(db, ip):
+    row = await db.fetchrow("""
+        INSERT INTO login_rate_limit (ip, intentos) VALUES ($1, 1)
+        ON CONFLICT (ip) DO UPDATE SET intentos = login_rate_limit.intentos + 1 RETURNING intentos
+    """, ip)
+    if row and row["intentos"] >= IP_MAX_INTENTOS:
+        await db.execute("UPDATE login_rate_limit SET bloqueado_hasta = $1 WHERE ip = $2",
+                         datetime.datetime.now() + datetime.timedelta(minutes=IP_BLOQUEO_MIN), ip)
+
+async def reset_ip_rate_limit(db, ip):
+    await db.execute("DELETE FROM login_rate_limit WHERE ip = $1", ip)
 
 # --- MODELOS DE DATOS ---
 class LoginRequest(BaseModel): username: str; password: str
@@ -110,17 +165,23 @@ def require_role(allowed_roles: List[str]):
 
 # --- ENDPOINTS CONTROL DE ACCESO ---
 @app.post("/api/login")
-async def login(data: LoginRequest, response: Response, db: asyncpg.Connection = Depends(get_db)):
+async def login(data: LoginRequest, request: Request, response: Response, db: asyncpg.Connection = Depends(get_db)):
+    ip = get_client_ip(request)
+    await check_ip_rate_limit(db, ip)
     user = await db.fetchrow("SELECT id, password_hash, rol, intentos_fallidos, bloqueado_hasta FROM usuarios WHERE username = $1 AND activo = TRUE", data.username)
-    if not user: raise HTTPException(401, "Credenciales incorrectas.")
+    if not user:
+        await record_ip_failure(db, ip)
+        raise HTTPException(401, "Credenciales incorrectas.")
     if user['bloqueado_hasta'] and user['bloqueado_hasta'] > datetime.datetime.now(): raise HTTPException(423, "Cuenta bloqueada temporalmente.")
     if not await asyncio.to_thread(bcrypt.checkpw, data.password.encode(), user['password_hash'].encode()):
+        await record_ip_failure(db, ip)
         intentos = user['intentos_fallidos'] + 1
         if intentos >= 5:
             await db.execute("UPDATE usuarios SET intentos_fallidos = $1, bloqueado_hasta = $2 WHERE id = $3", intentos, datetime.datetime.now() + datetime.timedelta(minutes=15), user['id'])
             raise HTTPException(423, "Cuenta bloqueada por 15 minutos.")
         await db.execute("UPDATE usuarios SET intentos_fallidos = $1 WHERE id = $2", intentos, user['id'])
         raise HTTPException(401, "Credenciales incorrectas.")
+    await reset_ip_rate_limit(db, ip)
     await db.execute("UPDATE usuarios SET intentos_fallidos = 0, bloqueado_hasta = NULL WHERE id = $1", user['id'])
     token_nuevo = secrets.token_hex(32)
     await db.execute("INSERT INTO sesiones_activas (usuario_id, token_sesion, expira_en) VALUES ($1, $2, $3)", user['id'], hash_token(token_nuevo), datetime.datetime.now() + datetime.timedelta(hours=8))
