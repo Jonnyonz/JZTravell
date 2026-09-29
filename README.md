@@ -319,8 +319,8 @@ docker run --rm -v "$PWD:/w" -w /w python:3.11-slim-bookworm sh -c \
 
 ## Contribuir y licencia
 
-Las contribuciones son bienvenidas. Cada commit tiene que llevar `Signed-off-by`
+Las contribuciones son bienvenidas: ver `CONTRIBUTING.md`. Cada commit tiene que llevar `Signed-off-by`
 (`git commit -s`, Developer Certificate of Origin), ser un único cambio probado y pasar los
 tests. Sin emojis en la interfaz: íconos solo en SVG.
 
-Licencia: ver el archivo `LICENSE`.
+Licencia: **AGPLv3** (GNU Affero General Public License v3). Ver `LICENSE`. Si ofrecés una versión modificada como servicio en red, tenés que publicar su código fuente.
