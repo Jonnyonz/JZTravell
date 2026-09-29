@@ -4,7 +4,7 @@ datos: get_client_ip no la toca."""
 
 from starlette.requests import Request
 
-from main import get_client_ip
+from database import get_client_ip
 
 
 def _make_request(client_ip: str, forwarded_for: str | None = None) -> Request:
@@ -27,7 +27,7 @@ def test_ignores_forwarded_for_from_untrusted_origin():
 
 
 def test_trusts_forwarded_for_from_default_trusted_proxy():
-    # 127.0.0.1 esta en el TRUSTED_PROXIES por defecto de main.py.
+    # 127.0.0.1 esta en el TRUSTED_PROXIES por defecto de database.py.
     assert get_client_ip(_make_request("127.0.0.1", "203.0.113.9")) == "203.0.113.9"
 
 
