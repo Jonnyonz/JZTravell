@@ -241,6 +241,8 @@
     </div>
 
     <script>
+        // Escapa datos de la DB antes de innerHTML (defensa en profundidad contra XSS almacenado).
+        function esc(v){ return v==null ? '' : String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
         var DB = { fletes: [] };
         function openModal(id) { document.getElementById(id).classList.add('active'); }
         function closeModal(id) { document.getElementById(id).classList.remove('active'); }
@@ -269,11 +271,11 @@
                     <div class="kanban-card">
                         <div class="card-header">
                             <span class="font-mono" style="font-weight:600; font-size:1.05rem;">#FLT-${String(f.id).padStart(6, '0')}</span>
-                            <span class="badge badge-${f.prioridad === 'alta' ? 'danger' : 'primary'}">${(f.prioridad || 'Normal').charAt(0).toUpperCase() + (f.prioridad || 'normal').slice(1)}</span>
+                            <span class="badge badge-${f.prioridad === 'alta' ? 'danger' : 'primary'}">${esc((f.prioridad || 'Normal').charAt(0).toUpperCase() + (f.prioridad || 'normal').slice(1))}</span>
                         </div>
                         <div style="font-size: 0.85rem; color: var(--text-secondary); line-height:1.5;">
-                            <strong>Origen:</strong> ${f.origen || 'S/D'}<br>
-                            <strong>Unidad:</strong> <span class="font-mono">${f.marca_modelo || 'Asignando...'}</span>
+                            <strong>Origen:</strong> ${esc(f.origen || 'S/D')}<br>
+                            <strong>Unidad:</strong> <span class="font-mono">${esc(f.marca_modelo || 'Asignando...')}</span>
                         </div>
                     </div>`).join('');
                 

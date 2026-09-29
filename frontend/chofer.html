@@ -226,6 +226,8 @@
     </div>
 
     <script>
+        // Escapa datos de la DB antes de innerHTML (direcciones/nombres cargados por clientes).
+        function esc(v){ return v==null ? '' : String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
         var DB = { fletes: [] }; var myUserId = getCookie('user_id');
         async function initApp() { await loadData(); iniciarMotorGPS(); }
         async function loadData() { try { DB.fletes = await (await fetch('/api/fletes')).json(); renderUI(); } catch (e) { console.error(e); } }
@@ -253,12 +255,12 @@
                             ${todasParadas.map((p, i) => `
                                 <div class="parada-item">
                                     <div style="font-weight:600; margin-bottom:4px; display:flex; justify-content:space-between;">
-                                        <span>${i+1}. ${p.destino_alias}</span>
-                                        <span style="color:var(--accent);">${p.bultos} Bultos</span>
+                                        <span>${i+1}. ${esc(p.destino_alias)}</span>
+                                        <span style="color:var(--accent);">${esc(p.bultos)} Bultos</span>
                                     </div>
                                     <div style="color:var(--text-secondary); font-size:0.85rem; display:flex; gap:6px; align-items:flex-start;">
                                         <svg class="icon" style="width:14px; height:14px; flex-shrink:0; margin-top:2px;" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                                        <span>${p.destino_calle} ${p.destino_altura}</span>
+                                        <span>${esc(p.destino_calle)} ${esc(p.destino_altura)}</span>
                                     </div>
                                 </div>
                             `).join('')}
@@ -292,7 +294,7 @@
                         <div class="card-body">
                             <div style="display:flex; gap:8px; align-items:flex-start;">
                                 <svg class="icon" style="width:16px; height:16px; margin-top:2px; flex-shrink:0;" viewBox="0 0 24 24"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
-                                <span><strong>Base:</strong> ${f.origen}</span>
+                                <span><strong>Base:</strong> ${esc(f.origen)}</span>
                             </div>
                         </div>
                     </div>
