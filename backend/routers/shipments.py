@@ -86,8 +86,7 @@ async def get_tipos_docs(db: asyncpg.Connection = Depends(get_db), user=Depends(
 
 
 @router.post("/gps")
-async def update_gps(data: GPSData, request: Request, db: asyncpg.Connection = Depends(get_db)):
-    user = await get_current_user(request, db)
+async def update_gps(data: GPSData, db: asyncpg.Connection = Depends(get_db), user=Depends(get_current_user)):
     await db.execute("UPDATE usuarios SET lat_actual = $1, lon_actual = $2, ultima_conexion = NOW() WHERE id = $3::uuid", data.lat, data.lon, user['id'])
     return {"status": "ok"}
 
