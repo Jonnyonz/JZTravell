@@ -58,8 +58,7 @@ Texto original: <https://developercertificate.org/>.
 5. **Errores:** nunca `except: pass` ni devolver `str(e)` al cliente. Se registra el detalle
    en el servidor y al usuario se le muestra un mensaje genérico.
 6. **Interfaz sin emojis:** íconos solo en SVG.
-7. Los tests del repo tienen que pasar antes de abrir un PR (ver la sección de tests del
-   `README.md`).
+7. Cada cambio tiene que estar probado antes de abrir un PR.
 
 ## Reportar una vulnerabilidad
 

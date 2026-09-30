@@ -12,7 +12,8 @@ en una PC de oficina común.
 - [Acceso desde la red (HTTPS)](#acceso-desde-la-red-https)
 - [Configuración](#configuración)
 - [Operación](#operación)
-- [Tests](#tests)
+- [Regenerar el lockfile](#regenerar-el-lockfile)
+- [Cambios](#cambios)
 - [Contribuir y licencia](#contribuir-y-licencia)
 
 ---
@@ -63,7 +64,6 @@ JZTravell/
 │   │   ├── branches.py    # sucursales
 │   │   ├── clients.py     # clientes y sus direcciones
 │   │   └── shipments.py   # fletes, consolidación, estados, GPS, impresión
-│   ├── tests/             # pytest
 │   ├── requirements.in    # dependencias directas
 │   ├── requirements.txt   # lockfile con hashes (generado, no editar a mano)
 │   └── Dockerfile
@@ -98,8 +98,7 @@ configuración y los tipos de documento. Tablas principales:
 - **Claves con Argon2id** (parámetros mínimos de OWASP: 19 MiB, t=2, p=1). Las cuentas con
   hashes bcrypt de versiones anteriores se migran solas en el primer login correcto.
 - **Denegar por defecto:** toda ruta de la API exige sesión salvo una lista explícita de
-  públicas (login, configuración inicial, Google SSO y `GET /api/config`). Un test
-  (`tests/test_deny_by_default.py`) falla si se agrega una ruta sin proteger. Los permisos por
+  públicas (login, configuración inicial, Google SSO y `GET /api/config`). Los permisos por
   rol se validan en el servidor; la cookie `user_rol` es solo para la interfaz.
 - **CSRF:** todo `POST`/`PUT`/`DELETE` tiene que mandar la cabecera `X-CSRF-Token` igual a la
   cookie `csrf_token` (double-submit).
@@ -289,22 +288,9 @@ Los datos de Postgres viven en la carpeta `./postgres-data` del proyecto: inclui
 
 ---
 
-## Tests
+## Regenerar el lockfile
 
-```bash
-cd backend
-python -m venv .venv && . .venv/bin/activate
-pip install --require-hashes -r requirements.txt
-pip install pytest
-python -m pytest
-```
-
-No hace falta una base de datos: los tests cubren la arquitectura (todos los routers
-registrados), el hash de claves, la IP real, las cabeceras de seguridad y que ninguna ruta
-quede sin proteger. Tardan alrededor de un minuto porque la app reintenta conectarse a
-Postgres al arrancar.
-
-**Regenerar el lockfile** (al cambiar `requirements.in`): hacerlo siempre en Linux, dentro de
+Al cambiar `requirements.in`, el lockfile se regenera siempre en Linux, dentro de
 la misma imagen base del Dockerfile. En Windows `pip-compile` resuelve las dependencias propias
 de Windows y el build de Docker falla.
 
@@ -317,10 +303,16 @@ docker run --rm -v "$PWD:/w" -w /w python:3.11-slim-bookworm sh -c \
 
 ---
 
+## Cambios
+
+Lo que cambia en cada actualización está en `CHANGELOG.md`.
+
+---
+
 ## Contribuir y licencia
 
 Las contribuciones son bienvenidas: ver `CONTRIBUTING.md`. Cada commit tiene que llevar `Signed-off-by`
-(`git commit -s`, Developer Certificate of Origin), ser un único cambio probado y pasar los
-tests. Sin emojis en la interfaz: íconos solo en SVG.
+(`git commit -s`, Developer Certificate of Origin), ser un único cambio y estar
+probado. Sin emojis en la interfaz: íconos solo en SVG.
 
 Licencia: **AGPLv3** (GNU Affero General Public License v3). Ver `LICENSE`. Si ofrecés una versión modificada como servicio en red, tenés que publicar su código fuente.
