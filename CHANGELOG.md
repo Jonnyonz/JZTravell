@@ -4,6 +4,11 @@ Cambios de JZTravell, del más nuevo al más viejo. Cada entrada corresponde a u
 
 ## 2026-10-05
 
+### Seguridad (datos)
+- `install.sh` (Docker) ya no borra la base: si no encontraba el `.env` pero quedaba la carpeta de la base de
+  una instalación anterior (`postgres-data`), la eliminaba sin preguntar. Ahora se detiene sin tocar nada y
+  explica las opciones: restaurar el `.env`, o empezar de cero a propósito con `JZTRAVELL_RESET_DB=1`.
+
 ### Agregado (instalación sin Docker)
 - Instalador para servidores sin Docker: `sudo ./install-native.sh` (Debian 12/13, Ubuntu 24.04). Deja JZTravell
   como servicio del sistema (`jztravell`, usuario propio sin login, código de solo lectura), con su base y rol en

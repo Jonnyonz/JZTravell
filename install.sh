@@ -43,15 +43,23 @@ SETUP_TOKEN=${SETUP_TOKEN}
 EOF
     echo "Archivo .env generado con contrasenas seguras."
 
-    # Postgres solo aplica POSTGRES_PASSWORD la primera vez que inicializa sus datos. Aca los
-    # datos viven en ./postgres-data (carpeta local, no un volumen con nombre de Docker), asi
-    # que si quedo esa carpeta de una instalacion anterior con otra contrasena, la app nunca
-    # podria autenticarse. Como se acaba de generar un .env nuevo (instalacion desde cero), nos
-    # aseguramos de que no sobreviva esa carpeta con credenciales que ya no coinciden.
-    if [ -d "./postgres-data" ]; then
-        echo "Se encontro una carpeta de base de datos de una instalacion anterior. Eliminandola para evitar un desajuste de contrasenas..."
-        docker compose down > /dev/null 2>&1 || true
-        rm -rf "./postgres-data"
+    # Postgres solo aplica POSTGRES_PASSWORD la primera vez que inicializa sus datos (./postgres-data):
+    # un .env nuevo no sirve contra la base de una instalacion anterior. Antes esa carpeta se BORRABA sin
+    # preguntar, y quien habia movido o perdido el .env perdia toda la base. Ahora se detiene sin tocar nada
+    # salvo que se pida explicitamente.
+    if [ -d "./postgres-data" ] && [ -n "$(ls -A ./postgres-data 2>/dev/null)" ]; then
+        if [ "${JZTRAVELL_RESET_DB:-}" = "1" ]; then
+            echo "JZTRAVELL_RESET_DB=1: se BORRA la base de la instalacion anterior (./postgres-data)."
+            docker compose down > /dev/null 2>&1 || true
+            rm -rf "./postgres-data"
+        else
+            rm -f .env
+            echo "ERROR: hay una base de una instalacion anterior (./postgres-data) pero no hay .env."
+            echo "No se borro nada. Opciones:"
+            echo "  - Restaurar el .env de esa instalacion en $PWD y volver a correr ./install.sh"
+            echo "  - Empezar de cero BORRANDO esos datos: JZTRAVELL_RESET_DB=1 ./install.sh"
+            exit 1
+        fi
     fi
 else
     echo "Se detecto un archivo .env existente. Manteniendo configuracion."
