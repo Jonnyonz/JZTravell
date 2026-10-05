@@ -1,8 +1,12 @@
-fastapi==0.104.1
-uvicorn[standard]==0.24.0.post1
-asyncpg==0.28.0
+# Versiones alineadas con Tracker360, JZ_Middle_ML-Tracker y JZPass, todas con binarios para Python 3.11 a 3.13
+# (la instalacion nativa en Debian 13 usa 3.13 e instala sin compilar). requirements.txt se genera SIEMPRE dentro
+# de Linux, en la imagen base del Dockerfile:
+#   docker run --rm -v "$PWD:/w" -w /w python:3.11-slim-bookworm sh -c \n#     "pip install pip-tools==7.4.1 && pip-compile --allow-unsafe --generate-hashes --output-file=requirements.txt requirements.in"
+fastapi==0.141.1
+uvicorn==0.54.0
+asyncpg==0.31.0
 bcrypt==4.0.1
-pydantic==2.5.2
-python-multipart==0.0.6
-httpx==0.25.2
+pydantic==2.13.5
+python-multipart==0.0.32
+httpx==0.28.1
 jztech-core @ https://github.com/Jonnyonz/jztech-core/releases/download/v0.1.5/jztech_core-0.1.5-py3-none-any.whl
