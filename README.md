@@ -129,7 +129,15 @@ cd JZTravell
 ```
 
 `install.sh` genera un `.env` con clave de base y `SETUP_TOKEN` aleatorios (si ya existe uno,
-lo respeta), levanta los contenedores y al final muestra la URL y el `SETUP_TOKEN`.
+lo respeta), levanta los contenedores y un **Caddy con HTTPS** (`jztravel_caddy`), y al final muestra la
+dirección, el `SETUP_TOKEN` y un aviso de HTTPS. Con dominio (`JZTRAVELL_DOMAIN=fletes.empresa.com`, o
+contestando la pregunta) Caddy saca el certificado solo; sin dominio usa la IP del servidor con la CA local de
+Caddy y deja el certificado raíz en `caddy/ca-local.crt` para instalarlo en las PCs y celulares. Si el 443 ya lo
+usa otro programa, HTTPS queda en el primero libre entre 8443, 9443 y 10443. `JZTRAVELL_HTTPS=no` lo desactiva.
+
+Para **actualizar**, volver a correr `./install.sh` en la carpeta: trae la última versión, guarda una copia de
+la base en `backups/` y reconstruye. Si no hay `.env` pero quedó la base de una instalación anterior, se detiene
+sin borrar nada (para empezar de cero a propósito: `JZTRAVELL_RESET_DB=1 ./install.sh`).
 
 ### Opción B: a mano
 
@@ -145,7 +153,7 @@ docker compose up -d --build
 
 ### Primer ingreso
 
-1. Abrir `http://localhost:8000` (o el puerto definido en `PORT`).
+1. Abrir la dirección que muestra el instalador (`https://...`), o `http://localhost:<PORT>` en el propio servidor.
 2. La pantalla detecta que no hay usuarios y pide el **token de instalación**: pegar el
    `SETUP_TOKEN` del `.env`.
 3. Completar usuario, nombre y clave del administrador (mínimo 8 caracteres, con al menos una
@@ -239,8 +247,8 @@ proxy con HTTPS adelante.
 
 Para entrar desde otras PCs o desde el celular de los choferes hace falta HTTPS, porque las
 cookies de sesión son `Secure` y el navegador solo comparte la ubicación GPS en sitios
-seguros. La forma más simple es [Caddy](https://caddyserver.com/) como proxy inverso en el
-mismo servidor:
+seguros. Los dos instaladores ya lo configuran con Caddy (`install.sh` en un contenedor, `install-native.sh` con
+el del sistema). Para un proxy propio, por ejemplo [Caddy](https://caddyserver.com/) en el mismo servidor:
 
 ```
 # /etc/caddy/Caddyfile
@@ -252,8 +260,7 @@ jztravell.miempresa.com {
 Con un dominio público, Caddy obtiene el certificado solo. En una red interna sin dominio se
 puede usar `tls internal` (certificado de una CA local, que hay que instalar en cada equipo).
 
-Con el proxy delante, conviene publicar la app solo en la máquina local: en
-`docker-compose.yml`, cambiar `"${PORT:-8000}:8000"` por `"127.0.0.1:${PORT:-8000}:8000"`.
+Con el proxy delante, conviene publicar la app solo en la máquina local: `APP_BIND=127.0.0.1` en el `.env`.
 
 ---
 
@@ -267,7 +274,8 @@ Con el proxy delante, conviene publicar la app solo en la máquina local: en
 | `POSTGRES_PASSWORD` | Sí | — | Clave de la base. Generarla con `openssl rand -hex 16`. Postgres la toma solo la primera vez que crea sus datos (`postgres-data/`): si se cambia después, hay que cambiarla también dentro de la base. |
 | `POSTGRES_DB` | Sí | `jzflete_db` | Nombre de la base. |
 | `SETUP_TOKEN` | Sí (para la primera vez) | vacío | Token para crear el primer administrador. Vacío = la configuración inicial queda deshabilitada. Generarlo con `openssl rand -hex 24`. |
-| `PORT` | No | `8000` | Puerto donde Docker publica la app. |
+| `PORT` | No | `8000` (`install.sh`: `8010`) | Puerto donde Docker publica la app. |
+| `APP_BIND` | No | `0.0.0.0` (`install.sh`: `127.0.0.1`) | Interfaz donde Docker publica la app. Con HTTPS delante, `127.0.0.1`. |
 | `PROJECT_NAME` | No | `JZ_Travel` | Informativa, la app no la usa. |
 | `TRUSTED_PROXIES` | No | `127.0.0.1/32,::1/128,172.16.0.0/12` | Proxies de confianza (IPs o redes, separadas por coma). Solo de ellos se acepta `X-Forwarded-For` para saber la IP real del cliente (rate limit del login). |
 | `POSTGRES_HOST` | No | `db` | Host de Postgres. En Docker lo fija el compose; en instalación local, `127.0.0.1`. |

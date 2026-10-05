@@ -4,3 +4,7 @@ __pycache__/
 *.pyc
 .venv/
 .pytest_cache/
+
+# Generados por install.sh (Docker): Caddyfile y CA local, y copias de la base
+caddy/
+backups/

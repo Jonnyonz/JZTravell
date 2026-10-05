@@ -4,6 +4,19 @@ Cambios de JZTravell, del más nuevo al más viejo. Cada entrada corresponde a u
 
 ## 2026-10-05
 
+### Agregado (HTTPS en la instalación con Docker)
+- `install.sh` configura HTTPS: levanta un contenedor de Caddy (`jztravel_caddy`, perfil `https` del compose)
+  delante del backend. Con dominio (`JZTRAVELL_DOMAIN=fletes.empresa.com`, o contestando la pregunta) saca el
+  certificado solo; sin dominio usa la IP del servidor con la CA local de Caddy y deja el certificado raíz en
+  `caddy/ca-local.crt`. Si el 443 ya está en uso, queda en el primero libre entre 8443, 9443 y 10443. Al terminar
+  muestra un aviso con la dirección y qué hacer con el certificado. Sin HTTPS no se podía iniciar sesión desde
+  otra PC ni usar el GPS del chofer. `JZTRAVELL_HTTPS=no` lo desactiva.
+- `install.sh` ahora también actualiza: trae la versión nueva (`git pull --ff-only`), respalda la base en
+  `backups/` antes de reconstruir y sigue con la versión recién bajada del propio instalador.
+- Una instalación nueva usa el puerto 8010 (antes 8000, el mismo que JZPass) y escucha solo en el servidor
+  (se entra por Caddy). Las instalaciones existentes conservan su puerto. El compose acepta `APP_BIND` y pasa
+  `TRUSTED_PROXIES` al backend.
+
 ### Seguridad (datos)
 - `install.sh` (Docker) ya no borra la base: si no encontraba el `.env` pero quedaba la carpeta de la base de
   una instalación anterior (`postgres-data`), la eliminaba sin preguntar. Ahora se detiene sin tocar nada y
