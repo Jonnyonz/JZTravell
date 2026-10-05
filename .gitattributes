@@ -1,0 +1,3 @@
+# Scripts que corren en Linux: siempre con finales de linea LF (con CRLF, bash falla en el servidor).
+*.sh text eol=lf
+tools/jztravell-actualizar text eol=lf

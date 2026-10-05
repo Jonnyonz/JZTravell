@@ -8,7 +8,7 @@ en una PC de oficina común.
 - [Funcionalidades](#funcionalidades)
 - [Detalle técnico](#detalle-técnico)
 - [Instalación rápida con Docker](#instalación-rápida-con-docker)
-- [Instalación local (sin Docker)](#instalación-local-sin-docker)
+- [Instalación en el servidor (sin Docker)](#instalación-en-el-servidor-sin-docker)
 - [Acceso desde la red (HTTPS)](#acceso-desde-la-red-https)
 - [Configuración](#configuración)
 - [Operación](#operación)
@@ -39,11 +39,11 @@ Otras funciones: hoja de ruta imprimible (`/api/fletes/imprimir`), tipos de docu
 
 | Componente | Versión |
 |---|---|
-| Python | 3.11 (imagen `python:3.11-slim-bookworm`) |
-| FastAPI / Starlette | 0.104.1 / 0.27.0 |
-| Uvicorn | 0.24.0.post1 (`[standard]`) |
-| asyncpg | 0.28.0 (SQL directo, sin ORM) |
-| PostgreSQL | 15 (imagen `postgres:15-alpine`) |
+| Python | 3.11 a 3.13 (Docker: imagen `python:3.11-slim-bookworm`; sin Docker: el del sistema) |
+| FastAPI / Starlette | 0.141.1 / 1.7.0 |
+| Uvicorn | 0.54.0 |
+| asyncpg | 0.31.0 (SQL directo, sin ORM) |
+| PostgreSQL | 15 (Docker, imagen `postgres:15-alpine`); sin Docker, el del sistema (15 a 17) |
 | [jztech-core](https://github.com/Jonnyonz/jztech-core) | 0.1.5 (librería de seguridad común de JZTech) |
 
 Todas las dependencias están fijadas con hash en `backend/requirements.txt` (se instalan con
@@ -158,11 +158,49 @@ docker compose up -d --build
 
 ---
 
-## Instalación local (sin Docker)
+## Instalación en el servidor (sin Docker)
 
-Útil para desarrollo o para servidores sin Docker. Probado en Debian 12 (Python 3.11,
-PostgreSQL 15). Se usa Python 3.11 porque es la versión con la que están fijadas las
-dependencias.
+Para servidores sin Docker: Debian 12/13 o Ubuntu 24.04. El instalador deja JZTravell como servicio del
+sistema, con PostgreSQL del servidor y **Caddy con HTTPS** delante (la sesión usa cookies `Secure`: sin HTTPS no
+se puede ingresar desde otra PC, celular o tablet).
+
+```bash
+git clone https://github.com/Jonnyonz/JZTravell.git
+cd JZTravell
+sudo ./install-native.sh                                       # red interna: HTTPS por la IP del servidor
+sudo JZTRAVELL_DOMAIN=fletes.suempresa.com ./install-native.sh   # con dominio: certificado automatico
+```
+
+Al terminar muestra la dirección (`https://<IP>` o `https://<dominio>`) y el `SETUP_TOKEN` para crear el
+administrador. Sin dominio, el certificado lo firma la CA local de Caddy: el navegador avisa "la conexión no
+es privada" hasta que se instala en cada equipo el certificado raíz que indica el instalador
+(`/var/lib/caddy/.local/share/caddy/pki/authorities/local/root.crt`). En el celular del chofer el GPS del
+navegador solo funciona por HTTPS.
+
+Queda así: código y su venv en `/opt/jztravell/releases/<versión>` (la versión es el commit), enlace
+`/opt/jztravell/current` a la que está en uso, configuración en `/etc/jztravell/jztravell.env`
+(`root:jztravell`, 0640), servicio `jztravell` (uvicorn en `127.0.0.1:8010`, usuario de sistema sin login,
+código de solo lectura) y base `jztravell_db` con su propio rol; el esquema (`init_db.sql`) se carga solo en
+una base nueva. Las dependencias se instalan sin compilador, verificando los hashes. Se puede volver a correr:
+no pisa los secretos ni lo agregado a mano al `.env`. Si el puerto 80 lo usa otro programa (por ejemplo
+Apache), Caddy atiende solo el 443. Opciones: `JZTRAVELL_IP`, `JZTRAVELL_PORT`, `JZTRAVELL_CADDY=0` (si ya hay
+otro proxy HTTPS) y `JZTRAVELL_REPO_URL`. Si en el mismo servidor sin dominio ya hay otra app de JZTech en
+`https://<IP>`, usar un dominio (o nombre interno) para cada una. Es independiente de la instalación con
+Docker: no se pueden usar las dos en el mismo puerto.
+
+**Actualizar:**
+
+```bash
+sudo jztravell-actualizar            # trae la ultima version, respalda la base y cambia
+sudo jztravell-actualizar --buscar   # solo dice si hay una version nueva
+sudo jztravell-actualizar --volver   # vuelve a la version anterior (y a la base de antes, si cambio)
+```
+
+Arma la versión nueva aparte (si algo falla ahí, no se cambia nada), respalda la base en
+`/var/backups/jztravell/`, cambia y verifica que responda. Si la versión nueva no responde, vuelve sola a la
+anterior y, si el esquema de la base cambió, la restaura como estaba.
+
+### Para desarrollo (a mano)
 
 ```bash
 # 1. Paquetes del sistema

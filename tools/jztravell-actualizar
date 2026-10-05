@@ -1,0 +1,218 @@
+#!/bin/bash
+# ==============================================================================
+# jztravell-actualizar: actualiza JZTravell (instalacion nativa, install-native.sh)
+# ==============================================================================
+#   sudo jztravell-actualizar            ultima version publicada (rama principal del repositorio)
+#   sudo jztravell-actualizar --buscar   solo dice si hay una version nueva (no cambia nada)
+#   sudo jztravell-actualizar --volver   vuelve a la version anterior a la ultima actualizacion
+#   sudo jztravell-actualizar --forzar   reinstala aunque ya este en la ultima version
+#
+# Pasos: trae la version nueva con git (de /opt/jztravell/src) y la arma en su propia carpeta con su venv
+# (con hashes y sin compilar); si algo falla aca, no se cambio nada. Despues respalda la base (pg_dump),
+# cambia a la version nueva y reinicia (las migraciones corren al arrancar) y verifica que responda. Si no
+# responde, vuelve sola: version anterior y, si el esquema de la base cambio, la base como estaba antes.
+# ==============================================================================
+
+set -euo pipefail
+
+BASE_DIR="${JZTRAVELL_DIR:-/opt/jztravell}"
+RELEASES="$BASE_DIR/releases"
+SRC="$BASE_DIR/src"
+ENV_FILE="/etc/jztravell/jztravell.env"
+SERVICE="jztravell"
+BACKUP_DIR="/var/backups/jztravell"
+ESTADO="$BASE_DIR/ultima-actualizacion"
+GUARDAR_VERSIONES=3
+GUARDAR_RESPALDOS=10
+
+uso() { sed -n '5,8p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
+error() { echo "Error: $*" >&2; exit 1; }
+
+MODO="actualizar"; FORZAR=0; SI=0
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --buscar) MODO="buscar" ;;
+    --volver) MODO="volver" ;;
+    --forzar) FORZAR=1 ;;
+    --si) SI=1 ;;
+    -h|--help) uso 0 ;;
+    *) echo "Opcion desconocida: $1" >&2; uso 2 ;;
+  esac
+  shift
+done
+
+[ "$EUID" -eq 0 ] || error "correr como root (sudo jztravell-actualizar)."
+[ -f "$ENV_FILE" ] && [ -L "$BASE_DIR/current" ] || error "no se encontro una instalacion nativa (falta $ENV_FILE o $BASE_DIR/current)."
+
+valor() { sed -n "s/^$1=//p" "$ENV_FILE" | tail -n1; }
+DB_NAME="$(valor POSTGRES_DB)"; DB_USER="$(valor POSTGRES_USER)"
+PUERTO="$(valor APP_PORT)"; PUERTO="${PUERTO:-8010}"
+GIT="git -c safe.directory=* -C $SRC"
+
+version_de() { cat "$1/.jztravell-version" 2>/dev/null || true; }
+DIR_ACTUAL="$(readlink -f "$BASE_DIR/current")"
+ACTUAL="$(version_de "$DIR_ACTUAL")"
+[ -n "$ACTUAL" ] || error "no se pudo leer la version instalada."
+
+# Huella del esquema de la base (JZTravell no tiene migraciones versionadas): si una version cambia tablas o
+# columnas, la huella cambia y la vuelta atras restaura la base.
+esquema() { sudo -u postgres pg_dump --schema-only --no-owner --no-privileges "$DB_NAME" 2>/dev/null | grep -v '^--' | sha256sum | cut -c1-16; }
+
+salud() {   # espera que el servicio responda (el servicio se detiene antes del cambio: responde la version nueva)
+  for _ in $(seq 1 45); do
+    if systemctl is-active --quiet "$SERVICE" \
+        && curl -fsS --max-time 5 "http://127.0.0.1:$PUERTO/api/setup/status" > /dev/null 2>&1; then
+      return 0
+    fi
+    sleep 2
+  done
+  return 1
+}
+
+usar() {   # cambia el enlace current a la carpeta $1 de forma atomica
+  ln -sfn "$1" "$BASE_DIR/current.tmp"
+  mv -Tf "$BASE_DIR/current.tmp" "$BASE_DIR/current"
+}
+
+restaurar_base() {   # $1 = respaldo (pg_dump -Fc). El servicio tiene que estar parado.
+  # Se restaura en una base aparte y solo si sale bien reemplaza a la actual: si el respaldo no se puede
+  # leer o falla a mitad de camino, la base actual queda intacta. El respaldo es solo de root: se le pasa a
+  # pg_restore por la entrada estandar.
+  local nueva="${DB_NAME}_restaurando"
+  echo "Restaurando la base desde $1..."
+  sudo -u postgres dropdb --if-exists "$nueva"
+  sudo -u postgres createdb -O "$DB_USER" "$nueva"
+  if ! sudo -u postgres pg_restore --exit-on-error -d "$nueva" < "$1"; then
+    sudo -u postgres dropdb --if-exists "$nueva"
+    echo "No se pudo restaurar el respaldo $1: la base no se toco." >&2
+    return 1
+  fi
+  sudo -u postgres psql -q -v ON_ERROR_STOP=1 -c "DROP DATABASE \"$DB_NAME\"" -c "ALTER DATABASE \"$nueva\" RENAME TO \"$DB_NAME\""
+}
+
+cd /   # psql como postgres no puede entrar a la carpeta de root
+exec 9> /run/jztravell-actualizar.lock
+flock -n 9 || error "ya hay otra actualizacion en curso."
+
+ultima() {   # trae la rama principal y devuelve su commit (12 caracteres)
+  [ -d "$SRC/.git" ] || error "no esta el clon $SRC (lo crea install-native.sh)."
+  $GIT fetch --quiet origin || error "no se pudo consultar el repositorio ($($GIT remote get-url origin 2>/dev/null))."
+  local rama
+  rama="$($GIT symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null || echo origin/main)"
+  $GIT rev-parse --short=12 "$rama"
+}
+
+# --- Solo buscar ---
+if [ "$MODO" = "buscar" ]; then
+  ULTIMA="$(ultima)"
+  echo "Instalada: $ACTUAL"
+  echo "Ultima publicada: $ULTIMA"
+  if [ "${ACTUAL%-local}" = "$ULTIMA" ]; then echo "Esta al dia."; else echo "Hay una version nueva: sudo jztravell-actualizar"; fi
+  exit 0
+fi
+
+# --- Volver a la version anterior ---
+if [ "$MODO" = "volver" ]; then
+  [ -f "$ESTADO" ] || error "no hay registro de una actualizacion anterior."
+  IFS='|' read -r ANTERIOR DIR_ANTERIOR RESPALDO ESQUEMA_ANTES < "$ESTADO"
+  [ -d "$DIR_ANTERIOR" ] || error "la version $ANTERIOR ya no esta en $DIR_ANTERIOR."
+  [ "$DIR_ANTERIOR" != "$DIR_ACTUAL" ] || error "ya esta en uso la version $ANTERIOR."
+  CAMBIA_BASE=0
+  [ "$(esquema)" != "$ESQUEMA_ANTES" ] && CAMBIA_BASE=1
+  echo "Se vuelve de la $ACTUAL a la $ANTERIOR."
+  if [ "$CAMBIA_BASE" = "1" ]; then
+    echo "El esquema de la base cambio con la actualizacion: se restaura el respaldo $RESPALDO."
+    echo "ATENCION: se pierde lo que se registro desde la actualizacion (fletes, clientes, posiciones GPS)."
+    if [ "$SI" != "1" ]; then
+      [ -t 0 ] || error "confirmar con --si (no hay terminal para preguntar)."
+      read -r -p "Escribir SI para continuar: " R; [ "$R" = "SI" ] || error "cancelado."
+    fi
+    [ -f "$RESPALDO" ] || error "no esta el respaldo $RESPALDO."
+  fi
+  systemctl stop "$SERVICE"
+  if [ "$CAMBIA_BASE" = "1" ] && ! restaurar_base "$RESPALDO"; then
+    systemctl start "$SERVICE"
+    error "no se pudo restaurar la base: se sigue con la version $ACTUAL."
+  fi
+  usar "$DIR_ANTERIOR"
+  systemctl start "$SERVICE"
+  salud || error "la version $ANTERIOR no responde. Ver: journalctl -u $SERVICE -n 50"
+  install -m 0755 "$DIR_ANTERIOR/tools/jztravell-actualizar" /usr/local/sbin/jztravell-actualizar
+  rm -f "$ESTADO"
+  echo "Listo: en uso la version $ANTERIOR."
+  exit 0
+fi
+
+# --- Actualizar ---
+NUEVA="$(ultima)"
+if [ "${ACTUAL%-local}" = "$NUEVA" ] && [ "$FORZAR" != "1" ]; then
+  echo "Ya esta en la ultima version ($ACTUAL). Usar --forzar para reinstalarla."
+  exit 0
+fi
+
+# Carpeta de la version nueva. Un venv guarda su ruta en los scripts: se arma directo en la definitiva.
+DEST="$RELEASES/$NUEVA"
+if [ -e "$DEST" ] && [ "$(readlink -f "$DEST")" = "$DIR_ACTUAL" ]; then
+  DEST="$RELEASES/$NUEVA-$(date +%Y%m%d%H%M%S)"   # reinstalacion de la misma version (--forzar)
+fi
+echo "Preparando la version $NUEVA en $DEST..."
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+$GIT archive --format=tar "$NUEVA" | tar -x -C "$TMP" --no-same-owner || error "no se pudo extraer la version $NUEVA."
+[ -f "$TMP/backend/main.py" ] && [ -f "$TMP/backend/requirements.txt" ] || error "la version $NUEVA no es una version de JZTravell."
+rm -rf "$DEST"
+mv "$TMP" "$DEST"
+trap - EXIT
+echo "$NUEVA" > "$DEST/.jztravell-version"
+python3 -m venv "$DEST/venv"
+if ! "$DEST/venv/bin/pip" install --quiet --disable-pip-version-check --require-hashes --only-binary=:all: \
+    -r "$DEST/backend/requirements.txt"; then
+  rm -rf "$DEST"
+  error "no se pudieron instalar las dependencias de la $NUEVA. No se cambio nada."
+fi
+chown -R root:root "$DEST"
+chmod -R a+rX,go-w "$DEST"
+
+echo "Respaldando la base..."
+install -d -m 0700 "$BACKUP_DIR"
+RESPALDO="$BACKUP_DIR/jztravell-$ACTUAL-$(date +%Y%m%d-%H%M%S).dump"
+if ! sudo -u postgres pg_dump -Fc "$DB_NAME" > "$RESPALDO"; then
+  rm -f "$RESPALDO"
+  error "no se pudo respaldar la base. No se cambio nada."
+fi
+chmod 600 "$RESPALDO"
+ESQUEMA_ANTES="$(esquema)"
+
+echo "Cambiando a la version $NUEVA..."
+systemctl stop "$SERVICE"
+usar "$DEST"
+systemctl start "$SERVICE" || true
+if salud; then
+  echo "$ACTUAL|$DIR_ACTUAL|$RESPALDO|$ESQUEMA_ANTES" > "$ESTADO"
+  install -m 0755 "$DEST/tools/jztravell-actualizar" /usr/local/sbin/jztravell-actualizar
+  # Limpieza: se guardan la version en uso, la anterior y las mas nuevas hasta GUARDAR_VERSIONES.
+  ls -1td "$RELEASES"/*/ 2>/dev/null | sed 's#/$##' | grep -vxF "$DEST" | grep -vxF "$DIR_ACTUAL" \
+    | tail -n +"$((GUARDAR_VERSIONES - 1))" | xargs -r rm -rf || true
+  ls -1t "$BACKUP_DIR"/jztravell-*.dump 2>/dev/null | tail -n +"$((GUARDAR_RESPALDOS + 1))" | xargs -r rm -f || true
+  echo "Listo: actualizado de la $ACTUAL a la $NUEVA. Respaldo previo: $RESPALDO"
+  echo "Los cambios de cada version estan en $DEST/CHANGELOG.md"
+  echo "Si hiciera falta volver atras: sudo jztravell-actualizar --volver"
+  exit 0
+fi
+
+echo "La version $NUEVA no respondio. Volviendo a la $ACTUAL..." >&2
+journalctl -u "$SERVICE" -n 20 --no-pager >&2 || true
+systemctl stop "$SERVICE" || true
+BASE_OK=1
+if [ "$(esquema)" != "$ESQUEMA_ANTES" ]; then
+  restaurar_base "$RESPALDO" || BASE_OK=0
+fi
+usar "$DIR_ACTUAL"
+systemctl start "$SERVICE"
+if salud && [ "$BASE_OK" = "1" ]; then
+  error "la actualizacion fallo y se volvio a la version $ACTUAL (la base quedo como antes). Respaldo: $RESPALDO"
+fi
+if [ "$BASE_OK" = "0" ]; then
+  error "la actualizacion fallo y NO se pudo restaurar la base (tiene las migraciones de la $NUEVA). Restaurar a mano: $RESPALDO"
+fi
+error "la actualizacion fallo y la version $ACTUAL tampoco responde. Ver: journalctl -u $SERVICE -n 50. Respaldo: $RESPALDO"
