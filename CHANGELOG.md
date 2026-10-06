@@ -2,6 +2,11 @@
 
 Cambios de JZTravell, del más nuevo al más viejo. Cada entrada corresponde a un push a `main`.
 
+## 1.0.0 — 2026-10-06
+
+Primer release numerado (tag `v1.0.0`, publicado en GitHub Releases). Marca como 1.0.0 todo lo que está
+abajo; desde acá cada release se numera (1.x).
+
 ## 2026-10-05
 
 ### Agregado (HTTPS en la instalación con Docker)
