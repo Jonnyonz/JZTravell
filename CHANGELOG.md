@@ -2,6 +2,22 @@
 
 Cambios de JZTravell, del más nuevo al más viejo. Cada entrada corresponde a un push a `main`.
 
+## Sin versión todavía (2026-10-06)
+
+### Cambiado (instaladores sin Caddy)
+- `install.sh` (Docker) e `install-native.sh` ya no levantan ni instalan Caddy: instalan JZTravell y lo dejan
+  escuchando por http en su puerto (8010 en instalaciones nuevas; las existentes conservan el suyo) de todas las
+  interfaces (`JZTRAVELL_BIND` lo cambia). El HTTPS lo pone el proxy del servidor. Al terminar muestran dónde quedó
+  escuchando, la dirección pública (`JZTRAVELL_DOMAIN`) y el token inicial. `JZTRAVELL_PROXY_IP=<IP>` suma a
+  `TRUSTED_PROXIES` la IP de un proxy que esté en otro equipo. Se saca el servicio `caddy` y su perfil `https` del
+  compose; `JZTRAVELL_HTTPS`, `JZTRAVELL_IP` y `JZTRAVELL_CADDY` se ignoran con un aviso.
+- Instalaciones existentes: al volver a correr el instalador con Docker se saca el contenedor `jztravel_caddy`, la
+  carpeta `caddy/` y las claves que ya no se usan del `.env` (`CADDY_*`, `JZTRAVELL_HTTPS`, `JZTRAVELL_IP`,
+  `COMPOSE_PROFILES=https`), y la app pasa a escuchar en todas las interfaces; los volúmenes de certificados de
+  Caddy no se borran solos (el instalador muestra el `docker volume rm`). Sin Docker, un Caddy configurado por una
+  versión anterior no se desinstala (puede usarlo otra app): el instalador avisa cómo sacarlo.
+  `jztravell-actualizar` verifica la salud en la interfaz donde escucha el servicio.
+
 ## 1.0.0 — 2026-10-06
 
 Primer release numerado (tag `v1.0.0`, publicado en GitHub Releases). Marca como 1.0.0 todo lo que está

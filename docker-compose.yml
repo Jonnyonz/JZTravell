@@ -31,31 +31,10 @@ services:
     volumes:
       - ./backend:/app
       - ./frontend:/frontend
+    # El HTTPS lo pone el proxy del servidor, que llega a la app por APP_BIND:PORT (install.sh: 0.0.0.0:8010).
     ports:
       - "${APP_BIND:-0.0.0.0}:${PORT:-8000}:8000"
     depends_on:
       db:
         condition: service_healthy
     restart: unless-stopped
-
-  # HTTPS delante del backend. Lo activa install.sh (COMPOSE_PROFILES=https en el .env) y escribe
-  # caddy/Caddyfile: con dominio saca el certificado solo; sin dominio usa la IP del servidor con la CA local
-  # de Caddy. Sin HTTPS la sesion no se guarda desde otra PC y el GPS del chofer no funciona.
-  caddy:
-    image: caddy:2-alpine
-    container_name: jztravel_caddy
-    profiles: ["https"]
-    restart: unless-stopped
-    depends_on:
-      - backend
-    ports:
-      - "${CADDY_HTTP_BIND:-0.0.0.0}:${CADDY_HTTP_PORT-80}:80"
-      - "0.0.0.0:${CADDY_HTTPS_PORT:-443}:443"
-    volumes:
-      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-
-volumes:
-  caddy_data:
-  caddy_config:

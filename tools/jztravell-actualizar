@@ -47,6 +47,8 @@ done
 valor() { sed -n "s/^$1=//p" "$ENV_FILE" | tail -n1; }
 DB_NAME="$(valor POSTGRES_DB)"; DB_USER="$(valor POSTGRES_USER)"
 PUERTO="$(valor APP_PORT)"; PUERTO="${PUERTO:-8010}"
+LOCAL="$(valor JZTRAVELL_BIND)"   # interfaz del servicio (por defecto 0.0.0.0: se prueba por 127.0.0.1)
+case "$LOCAL" in ""|0.0.0.0|::) LOCAL="127.0.0.1" ;; esac
 GIT="git -c safe.directory=* -C $SRC"
 
 version_de() { cat "$1/.jztravell-version" 2>/dev/null || true; }
@@ -61,7 +63,7 @@ esquema() { sudo -u postgres pg_dump --schema-only --no-owner --no-privileges "$
 salud() {   # espera que el servicio responda (el servicio se detiene antes del cambio: responde la version nueva)
   for _ in $(seq 1 45); do
     if systemctl is-active --quiet "$SERVICE" \
-        && curl -fsS --max-time 5 "http://127.0.0.1:$PUERTO/api/setup/status" > /dev/null 2>&1; then
+        && curl -fsS --max-time 5 "http://$LOCAL:$PUERTO/api/setup/status" > /dev/null 2>&1; then
       return 0
     fi
     sleep 2
