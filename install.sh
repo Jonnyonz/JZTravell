@@ -174,11 +174,12 @@ if docker compose ps --status running --services 2>/dev/null | grep -qx db; then
     fi
 fi
 
-# 6. Construir y levantar (--remove-orphans saca el contenedor de Caddy de una version anterior).
+# 6. Construir y levantar. Sin --remove-orphans: en un servidor compartido Docker puede contar como "huerfanos" del
+#    proyecto contenedores de otras aplicaciones y los borraria. El Caddy de la version anterior se saca por nombre.
 SE_SACO_CADDY=0
 if docker inspect jztravel_caddy > /dev/null 2>&1; then SE_SACO_CADDY=1; fi
 echo "Desplegando con Docker Compose (la primera vez tarda por la construccion de las imagenes)..."
-docker compose up -d --build --remove-orphans
+docker compose up -d --build
 if docker inspect jztravel_caddy > /dev/null 2>&1; then docker rm -f jztravel_caddy > /dev/null; fi
 rm -rf caddy   # Caddyfile y certificado de la CA local que generaba la version anterior
 PROYECTO="$(docker compose config 2>/dev/null | sed -n 's/^name: //p' | head -n1)"

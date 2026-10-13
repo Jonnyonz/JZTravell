@@ -2,7 +2,12 @@
 
 Cambios de JZTravell, del más nuevo al más viejo. Cada entrada corresponde a un push a `main`.
 
-## Sin versión todavía (2026-10-06)
+## Sin versión todavía (2026-10-06 / 2026-10-13)
+
+### Corregido (instalador con Docker, 2026-10-13)
+- `install.sh` ya no levanta los contenedores con `--remove-orphans`. En un servidor compartido, Docker puede
+  contar como "huérfanos" del proyecto contenedores de otras aplicaciones con la misma etiqueta de proyecto, y los
+  borraba. El Caddy de la versión anterior (`jztravel_caddy`) se sigue borrando por su nombre.
 
 ### Cambiado (instaladores sin Caddy)
 - `install.sh` (Docker) e `install-native.sh` ya no levantan ni instalan Caddy: instalan JZTravell y lo dejan
