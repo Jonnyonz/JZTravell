@@ -1,0 +1,10 @@
+.git
+.env
+*.env
+postgres-data/
+backups/
+graphify-out/
+**/__pycache__
+**/*.pyc
+**/.venv
+*.log

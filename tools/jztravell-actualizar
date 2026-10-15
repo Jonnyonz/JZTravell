@@ -56,8 +56,8 @@ DIR_ACTUAL="$(readlink -f "$BASE_DIR/current")"
 ACTUAL="$(version_de "$DIR_ACTUAL")"
 [ -n "$ACTUAL" ] || error "no se pudo leer la version instalada."
 
-# Huella del esquema de la base (JZTravell no tiene migraciones versionadas): si una version cambia tablas o
-# columnas, la huella cambia y la vuelta atras restaura la base.
+# Huella del esquema de la base: si la version nueva aplica migraciones (backend/migrations) y cambia tablas
+# o columnas, la huella cambia y la vuelta atras restaura la base.
 esquema() { sudo -u postgres pg_dump --schema-only --no-owner --no-privileges "$DB_NAME" 2>/dev/null | grep -v '^--' | sha256sum | cut -c1-16; }
 
 salud() {   # espera que el servicio responda (el servicio se detiene antes del cambio: responde la version nueva)

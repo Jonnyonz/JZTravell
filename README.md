@@ -64,11 +64,11 @@ JZTravell/
 │   │   ├── branches.py    # sucursales
 │   │   ├── clients.py     # clientes y sus direcciones
 │   │   └── shipments.py   # fletes, consolidación, estados, GPS, impresión
+│   ├── migrations/        # esquema de la base, versionado (0001_esquema_base.sql, ...)
 │   ├── requirements.in    # dependencias directas
 │   ├── requirements.txt   # lockfile con hashes (generado, no editar a mano)
 │   └── Dockerfile
 ├── frontend/              # index.html (login), admin.html, chofer.html, cliente.html
-├── init_db.sql            # esquema y datos iniciales de la base
 ├── docker-compose.yml
 ├── install.sh             # instalador con Docker
 └── .env.example
@@ -76,13 +76,16 @@ JZTravell/
 
 ### Modelo de datos
 
-`init_db.sql` crea el esquema (usa la extensión `pgcrypto` para los UUID) y carga la fila de
-configuración y los tipos de documento. Tablas principales:
+El esquema lo crea y lo actualiza la propia app al arrancar: aplica en orden los archivos de
+`backend/migrations/` que falten (`jztech_core.migrations`, registrados en la tabla `schema_version`).
+`0001_esquema_base.sql` crea las tablas y carga la fila de configuración y los tipos de documento. Un
+cambio de esquema nuevo va en un archivo `0002_...`, `0003_...`; nunca se edita uno ya publicado. Si una
+migración falla, la app no arranca. Tablas principales:
 
 | Tabla | Contenido |
 |---|---|
 | `usuarios` | Usuarios, rol, hash de clave, bloqueo por intentos, última posición GPS |
-| `sesiones_activas` | Sesiones abiertas (solo el hash del token) |
+| `jztech_sessions` | Sesiones abiertas (solo el hash del token) |
 | `solicitudes_registro` | Altas pedidas desde Google, pendientes de aprobación |
 | `configuracion_sistema` | Una sola fila (`id=1`) con la configuración editable desde el panel |
 | `sucursales`, `flota_vehiculos` | Sucursales (con coordenadas) y vehículos |
@@ -92,16 +95,18 @@ configuración y los tipos de documento. Tablas principales:
 
 ### Seguridad
 
-- **Sesiones opacas en base:** al iniciar sesión se genera un token aleatorio que viaja en una
-  cookie `HttpOnly` + `Secure` + `SameSite=Lax` (8 horas). En la base se guarda solo su hash
-  SHA-256, así que una copia de la base no permite robar sesiones. El logout la borra.
+- **Sesiones opacas en base** (`jztech_core.sessions`): al iniciar sesión se genera un token
+  aleatorio que viaja en una cookie `HttpOnly` + `Secure` + `SameSite=Strict` (8 horas). En la base
+  se guarda solo su hash SHA-256, así que una copia de la base no permite robar sesiones. El logout
+  la borra; cambiar la clave de un usuario o desactivarlo cierra todas sus sesiones.
 - **Claves con Argon2id** (parámetros mínimos de OWASP: 19 MiB, t=2, p=1). Las cuentas con
   hashes bcrypt de versiones anteriores se migran solas en el primer login correcto.
 - **Denegar por defecto:** toda ruta de la API exige sesión salvo una lista explícita de
   públicas (login, configuración inicial, Google SSO y `GET /api/config`). Los permisos por
   rol se validan en el servidor; la cookie `user_rol` es solo para la interfaz.
-- **CSRF:** todo `POST`/`PUT`/`DELETE` tiene que mandar la cabecera `X-CSRF-Token` igual a la
-  cookie `csrf_token` (double-submit).
+- **CSRF** (`jztech_core.csrf`): todo `POST`/`PUT`/`DELETE` con sesión tiene que mandar la
+  cabecera `X-CSRF-Token` con el valor de la cookie `csrf_token`, que es un HMAC ligado a la
+  sesión (otro sitio no puede leerlo ni calcularlo).
 - **Fuerza bruta:** límite de intentos fallidos por IP y bloqueo de la cuenta por 15 minutos
   tras 5 intentos. La IP real se toma de `X-Forwarded-For` solo si la conexión viene de un
   proxy listado en `TRUSTED_PROXIES`.
@@ -110,7 +115,8 @@ configuración y los tipos de documento. Tablas principales:
   los choferes; cámara y micrófono bloqueados).
 - **Configuración inicial con token:** el primer administrador solo se puede crear con el
   `SETUP_TOKEN` del `.env`, y una sola vez.
-- **Google SSO** con parámetro `state` contra CSRF de login. Un email desconocido no entra:
+- **Google SSO** con parámetro `state` contra CSRF de login; solo entran emails verificados por
+  Google. Un email desconocido no entra:
   queda como solicitud hasta que un admin la apruebe.
 
 ---
@@ -185,8 +191,8 @@ administrador. En el celular del chofer el GPS del navegador solo funciona por H
 Queda así: código y su venv en `/opt/jztravell/releases/<versión>` (la versión es el commit), enlace
 `/opt/jztravell/current` a la que está en uso, configuración en `/etc/jztravell/jztravell.env`
 (`root:jztravell`, 0640), servicio `jztravell` (uvicorn en `0.0.0.0:8010`, usuario de sistema sin login,
-código de solo lectura) y base `jztravell_db` con su propio rol; el esquema (`init_db.sql`) se carga solo en
-una base nueva. Las dependencias se instalan sin compilador, verificando los hashes. Se puede volver a correr:
+código de solo lectura) y base `jztravell_db` con su propio rol; el esquema lo crea la app al arrancar
+(`backend/migrations`). Las dependencias se instalan sin compilador, verificando los hashes. Se puede volver a correr:
 no pisa los secretos ni lo agregado a mano al `.env`. Opciones: `JZTRAVELL_DOMAIN`, `JZTRAVELL_PORT`,
 `JZTRAVELL_BIND`, `JZTRAVELL_PROXY_IP` y `JZTRAVELL_REPO_URL`. Un Caddy que haya configurado una versión anterior
 del instalador no se desinstala solo: el instalador avisa cómo sacarlo. Es independiente de la instalación con
@@ -214,10 +220,9 @@ sudo apt install -y python3 python3-venv postgresql git openssl
 sudo -u postgres psql -c "CREATE USER jzadmin WITH PASSWORD 'CLAVE';"
 sudo -u postgres psql -c "CREATE DATABASE jzflete_db OWNER jzadmin;"
 
-# 3. Código y esquema
+# 3. Código (el esquema lo crea la app la primera vez que arranca)
 git clone https://github.com/Jonnyonz/JZTravell.git
 cd JZTravell
-PGPASSWORD='CLAVE' psql -h 127.0.0.1 -U jzadmin -d jzflete_db -f init_db.sql
 
 # 4. Entorno de Python
 python3 -m venv .venv
@@ -264,9 +269,8 @@ servidor, que recibe el dominio y lo reenvía a `http://<IP del servidor>:8010`.
 | `TRUSTED_PROXIES` | No | `127.0.0.1/32,::1/128,172.16.0.0/12` | Proxies de confianza (IPs o redes, separadas por coma). Solo de ellos se acepta `X-Forwarded-For` para saber la IP real del cliente (rate limit del login). |
 | `POSTGRES_HOST` | No | `db` | Host de Postgres. En Docker lo fija el compose; en instalación local, `127.0.0.1`. |
 
-> `TRUSTED_PROXIES` está en `.env.example`, pero hoy el `docker-compose.yml` no se la pasa al
-> contenedor, así que en Docker siempre rige el default. El default ya cubre un proxy en el
-> mismo servidor.
+> El default cubre un proxy en el mismo servidor. Si el proxy está en otro equipo, sumar su IP
+> (`install.sh` lo hace con `JZTRAVELL_PROXY_IP=<IP>`).
 
 ### Configuración desde el panel
 

@@ -14,7 +14,7 @@
 #   /opt/jztravell/current              enlace a la version en uso (el actualizador lo cambia)
 #   /etc/jztravell/jztravell.env        configuracion y secretos (root:jztravell, 0640)
 #   servicio systemd "jztravell"        uvicorn en 0.0.0.0:8010, un worker
-#   base "jztravell_db" y rol "jztravell" propios en el PostgreSQL del servidor (esquema: init_db.sql)
+#   base "jztravell_db" y rol "jztravell" propios en el PostgreSQL del servidor (el esquema lo crea la app al arrancar: backend/migrations)
 #   Sin proxy propio (sin Caddy): el HTTPS lo pone el proxy del servidor, que reenvia el dominio al puerto
 #   del servicio (la sesion usa cookies Secure: sin HTTPS no se puede ingresar desde otra PC)
 #   /usr/local/sbin/jztravell-actualizar  actualizador (respaldo, chequeo y vuelta atras)
@@ -66,8 +66,8 @@ if [ ! -f /etc/debian_version ]; then
   echo "Error: este instalador es para Debian/Ubuntu (apt)." >&2
   exit 1
 fi
-if [ ! -f "$SCRIPT_DIR/backend/main.py" ] || [ ! -f "$SCRIPT_DIR/backend/requirements.txt" ] || [ ! -f "$SCRIPT_DIR/init_db.sql" ]; then
-  echo "Error: correr el script desde la raiz del repo (faltan backend/main.py, backend/requirements.txt o init_db.sql)." >&2
+if [ ! -f "$SCRIPT_DIR/backend/main.py" ] || [ ! -f "$SCRIPT_DIR/backend/requirements.txt" ] || [ ! -d "$SCRIPT_DIR/backend/migrations" ]; then
+  echo "Error: correr el script desde la raiz del repo (faltan backend/main.py, backend/requirements.txt o backend/migrations)." >&2
   exit 1
 fi
 
@@ -209,15 +209,8 @@ if [ "$BASE_EXISTE" != "1" ]; then
   echo "Creando base $DB_NAME..."
   sudo -u postgres psql -q -v ON_ERROR_STOP=1 -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;"
 fi
-# Esquema: init_db.sql no se puede volver a correr (crea tablas y carga datos iniciales), asi que se carga
-# solo si la base todavia no lo tiene. Se carga como el rol de la app para que sea duena de las tablas;
-# la extension pgcrypto la crea antes el superusuario.
-TIENE_ESQUEMA=$(sudo -u postgres psql -d "$DB_NAME" -tAc "SELECT to_regclass('public.usuarios') IS NOT NULL")
-if [ "$TIENE_ESQUEMA" != "t" ]; then
-  echo "Creando el esquema de la base (init_db.sql)..."
-  sudo -u postgres psql -q -v ON_ERROR_STOP=1 -d "$DB_NAME" -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
-  PGPASSWORD="$DB_PASSWORD" psql -q -v ON_ERROR_STOP=1 -h 127.0.0.1 -U "$DB_USER" -d "$DB_NAME" < "$DEST/init_db.sql" > /dev/null
-fi
+# Esquema: lo crea y lo actualiza la app al arrancar (backend/migrations, tabla schema_version), como el
+# rol de la app, que queda dueno de las tablas.
 
 # 7. Configuracion (se reescribe con los mismos secretos; root:jztravell 0640)
 echo "Escribiendo $ENV_FILE..."

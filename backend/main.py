@@ -1,7 +1,5 @@
-import secrets
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from jztech_core.logging_setup import configure_logging, install_generic_error_handler
 from jztech_core.security_headers import SecurityHeadersMiddleware
@@ -35,21 +33,12 @@ app.include_router(clients.router)
 app.include_router(shipments.router)
 
 
-# --- MIDDLEWARE DE SEGURIDAD ---
-@app.middleware("http")
-async def security_and_csrf_middleware(request: Request, call_next):
-    if request.method in ["POST", "PUT", "DELETE"]:
-        csrf_token = request.headers.get("X-CSRF-Token")
-        if not csrf_token or csrf_token != request.cookies.get("csrf_token"):
-            return JSONResponse(status_code=403, content={"detail": "Accion rechazada por validacion de seguridad CSRF."})
-    response = await call_next(request)
-    if "csrf_token" not in request.cookies:
-        response.set_cookie(key="csrf_token", value=secrets.token_urlsafe(32), httponly=False, secure=True, samesite='lax')
-    return response
+# CSRF: lo valida get_current_user (database.py) en cada POST/PUT/DELETE con sesion, con un token
+# ligado a la sesion (jztech_core.csrf). Login, setup y logout no tienen sesion: la cookie de sesion es
+# SameSite=Strict, asi que otro sitio no puede usarla.
 
 
-# Cabeceras de seguridad (jztech_core). Se agrega despues del middleware de CSRF para quedar
-# por fuera y cubrir tambien sus respuestas 403. 'unsafe-inline' es temporal: el frontend
+# Cabeceras de seguridad (jztech_core). 'unsafe-inline' es temporal: el frontend
 # tiene <script>, <style> y handlers on*= inline; se quita al separar JS/CSS (seccion 3.7).
 # geolocation=(self): chofer.html envia la posicion GPS del chofer.
 app.add_middleware(

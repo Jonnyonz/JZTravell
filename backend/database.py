@@ -1,8 +1,12 @@
 import logging
-import os, secrets, hashlib, asyncio
+import os, secrets, asyncio, uuid
 from datetime import datetime, timedelta
+from pathlib import Path
 import asyncpg
 from fastapi import HTTPException, Request, Depends
+from jztech_core import sessions as core_sessions
+from jztech_core.csrf import enforce_csrf, generate_csrf_token
+from jztech_core.migrations import apply_migrations
 from jztech_core.net import parse_networks, real_ip
 from jztech_core.passwords import hash_password, needs_rehash, verify_legacy_password, verify_password
 
@@ -20,9 +24,11 @@ def verify_password_any(password: str, stored_hash: str) -> bool:
 # === CONEXION A LA BASE ===
 db_pool = None
 
+MIGRATIONS_DIR = Path(__file__).resolve().parent / "migrations"
+
 async def init_db_schema():
-    """Crea el pool de conexiones y las tablas que la app gestiona por si sola
-    (el resto del esquema lo carga init_db.sql, ver README/install.sh).
+    """Crea el pool de conexiones y aplica las migraciones pendientes (backend/migrations,
+    jztech_core.migrations): el esquema lo crea y lo actualiza la app al arrancar.
 
     Reintenta la conexion (Postgres puede tardar en levantar, p. ej. en el primer
     arranque de docker-compose); si sigue sin responder despues de los reintentos,
@@ -45,10 +51,10 @@ async def init_db_schema():
         logger.error("No se pudo conectar a PostgreSQL: la API respondera 503 hasta reiniciar el servicio.")
         return
 
-    # Tabla del rate limit por IP (idempotente): cubre tambien instalaciones ya inicializadas
-    # cuyo init_db.sql no vuelve a ejecutarse.
-    async with db_pool.acquire() as conn:
-        await conn.execute("CREATE TABLE IF NOT EXISTS login_rate_limit (ip TEXT PRIMARY KEY, intentos INT NOT NULL DEFAULT 0, bloqueado_hasta TIMESTAMP)")
+    # Una migracion que falla frena el arranque (no se silencia): mejor caido que con un esquema a medias.
+    aplicadas = await apply_migrations(db_pool, MIGRATIONS_DIR)
+    if aplicadas:
+        logger.info("Migraciones aplicadas: %s", aplicadas)
 
 async def close_db_pool():
     if db_pool is not None:
@@ -59,10 +65,47 @@ async def get_db():
         raise HTTPException(status_code=503, detail="Servicio de base de datos no disponible.")
     async with db_pool.acquire() as connection: yield connection
 
-# El token de sesion viaja en la cookie, pero en la DB se guarda solo su hash: una lectura
-# de sesiones_activas (o un backup) ya no permite robar sesiones activas.
-def hash_token(t: str) -> str:
-    return hashlib.sha256(t.encode("utf-8")).hexdigest()
+# === SESIONES (jztech_core.sessions) ===
+# Token opaco al azar en la cookie; en la base (jztech_sessions) solo queda su hash. Se revoca borrando la fila.
+SESSION_TTL = timedelta(hours=8)
+# CSRF de doble envio: la cookie csrf_token (legible por el JS) se repite en el header X-CSRF-Token en cada
+# POST/PUT/DELETE. Es un HMAC con la propia sesion como clave: otro sitio no puede leerlo ni calcularlo.
+CSRF_COOKIE = "csrf_token"
+_CSRF_SUJETO = "jztravell-csrf"
+
+class _ConexionComoPool:
+    """jztech_core.sessions pide un pool; asi usa la conexion que ya tiene el request."""
+    def __init__(self, conn):
+        self._conn = conn
+    def acquire(self):
+        return self
+    async def __aenter__(self):
+        return self._conn
+    async def __aexit__(self, *exc):
+        return False
+
+async def start_session(db, response, user_id, rol: str) -> None:
+    await db.execute("DELETE FROM jztech_sessions WHERE expires_at <= now()")
+    token = await core_sessions.create_session(_ConexionComoPool(db), str(user_id), SESSION_TTL)
+    core_sessions.set_session_cookie(response, token, SESSION_TTL)
+    max_age = int(SESSION_TTL.total_seconds())
+    response.set_cookie(key=CSRF_COOKIE, value=generate_csrf_token(token, _CSRF_SUJETO), httponly=False,
+                        secure=True, samesite="strict", max_age=max_age)
+    # Solo para la UI (que pagina mostrar); la autorizacion real la hace el servidor.
+    response.set_cookie(key="user_rol", value=str(rol), httponly=False, secure=True, samesite="strict", max_age=max_age)
+
+async def end_session(db, request: Request, response) -> None:
+    """Cierra solo la sesion de este dispositivo."""
+    token = request.cookies.get(core_sessions.SESSION_COOKIE_NAME)
+    if token:
+        await core_sessions.revoke_session(_ConexionComoPool(db), token)
+    core_sessions.clear_session_cookie(response)
+    response.delete_cookie(CSRF_COOKIE, secure=True, samesite="strict")
+    response.delete_cookie("user_rol", secure=True, samesite="strict")
+
+async def revoke_user_sessions(db, user_id) -> None:
+    """Cambio de clave o desactivacion: se cierran todas las sesiones del usuario."""
+    await core_sessions.revoke_all_sessions_for_user(_ConexionComoPool(db), str(user_id))
 
 # --- IP REAL DEL CLIENTE (DETRAS DE PROXY INVERSO) ---
 # X-Forwarded-For solo se cree si la conexion viene de un proxy de confianza (ver
@@ -97,10 +140,17 @@ async def reset_ip_rate_limit(db, ip):
 
 # --- CONTROL DE IDENTIDAD ---
 async def get_current_user(request: Request, db: asyncpg.Connection = Depends(get_db)):
-    token_sesion = request.cookies.get("session_token")
+    token_sesion = request.cookies.get(core_sessions.SESSION_COOKIE_NAME)
     if not token_sesion: raise HTTPException(401, "Ausencia de credenciales.")
-    registro = await db.fetchrow("SELECT u.id, u.username, u.rol FROM sesiones_activas s JOIN usuarios u ON s.usuario_id = u.id WHERE s.token_sesion = $1 AND s.expira_en > NOW() AND u.activo = TRUE", hash_token(token_sesion))
+    user_id = await core_sessions.verify_session(_ConexionComoPool(db), token_sesion)
+    try:
+        uid = uuid.UUID(user_id) if user_id else None
+    except ValueError:
+        uid = None
+    registro = await db.fetchrow("SELECT id, username, rol FROM usuarios WHERE id = $1 AND activo = TRUE", uid) if uid else None
     if not registro: raise HTTPException(401, "Sesion invalida.")
+    # CSRF despues de autenticar: 403 si un POST/PUT/DELETE no trae el token de esta sesion.
+    await enforce_csrf(request, token_sesion, _CSRF_SUJETO)
     return dict(registro)
 
 def require_role(allowed_roles):

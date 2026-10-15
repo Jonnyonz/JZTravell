@@ -33,7 +33,7 @@ fi
 
 # 1. Codigo: si no estamos en el repo, se clona (o se usa ./jztravell de una instalacion anterior).
 REPO_URL="${JZTRAVELL_REPO_URL:-https://github.com/Jonnyonz/JZTravell.git}"
-if [ ! -f "docker-compose.yml" ] || [ ! -f "init_db.sql" ]; then
+if [ ! -f "docker-compose.yml" ] || [ ! -d "backend/migrations" ]; then
     if [ -f "jztravell/docker-compose.yml" ]; then
         cd jztravell
     else

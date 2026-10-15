@@ -6,8 +6,10 @@ from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 import asyncpg
 
+from jztech_core.setup_flow import verify_setup_token
+
 from database import (
-    get_db, hash_token, get_client_ip, check_ip_rate_limit, record_ip_failure, reset_ip_rate_limit,
+    get_db, start_session, end_session, get_client_ip, check_ip_rate_limit, record_ip_failure, reset_ip_rate_limit,
     hash_password, needs_rehash, verify_password_any,
 )
 
@@ -53,18 +55,13 @@ async def login(data: LoginRequest, request: Request, response: Response, db: as
     if not user['password_hash'].startswith("$argon2") or await asyncio.to_thread(needs_rehash, user['password_hash']):
         nuevo_hash = await asyncio.to_thread(hash_password, data.password)
         await db.execute("UPDATE usuarios SET password_hash=$1 WHERE id=$2", nuevo_hash, user['id'])
-    token_nuevo = secrets.token_hex(32)
-    await db.execute("INSERT INTO sesiones_activas (usuario_id, token_sesion, expira_en) VALUES ($1, $2, $3)", user['id'], hash_token(token_nuevo), datetime.now() + timedelta(hours=8))
-    response.set_cookie(key="session_token", value=token_nuevo, httponly=True, secure=True, samesite='lax', max_age=28800)
-    response.set_cookie(key="user_rol", value=str(user['rol']), httponly=False, secure=True, samesite='lax', max_age=28800)
+    await start_session(db, response, user['id'], user['rol'])
     return {"status": "success", "rol": user['rol'], "redirect": f"/{user['rol']}.html"}
 
 
 @router.post("/logout")
 async def logout(request: Request, response: Response, db: asyncpg.Connection = Depends(get_db)):
-    token = request.cookies.get("session_token")
-    if token: await db.execute("DELETE FROM sesiones_activas WHERE token_sesion = $1", hash_token(token))
-    response.delete_cookie("session_token"); response.delete_cookie("user_rol")
+    await end_session(db, request, response)
     return {"status": "success"}
 
 
@@ -76,7 +73,7 @@ async def setup_status(db: asyncpg.Connection = Depends(get_db)):
 
 @router.post("/setup/admin")
 async def setup_admin(data: SetupAdminRequest, response: Response, db: asyncpg.Connection = Depends(get_db)):
-    if not SETUP_TOKEN or not secrets.compare_digest(data.token.strip(), SETUP_TOKEN):
+    if not verify_setup_token(SETUP_TOKEN, data.token):
         raise HTTPException(403, "Token de instalación inválido.")
 
     count = await db.fetchval("SELECT COUNT(*) FROM usuarios")
@@ -97,10 +94,7 @@ async def setup_admin(data: SetupAdminRequest, response: Response, db: asyncpg.C
         username, password_hash, full_name
     )
 
-    token_nuevo = secrets.token_hex(32)
-    await db.execute("INSERT INTO sesiones_activas (usuario_id, token_sesion, expira_en) VALUES ($1, $2, $3)", user_id, hash_token(token_nuevo), datetime.now() + timedelta(hours=8))
-    response.set_cookie(key="session_token", value=token_nuevo, httponly=True, secure=True, samesite='lax', max_age=28800)
-    response.set_cookie(key="user_rol", value="admin", httponly=False, secure=True, samesite='lax', max_age=28800)
+    await start_session(db, response, user_id, "admin")
     return {"status": "success", "redirect": "/admin.html"}
 
 
@@ -130,15 +124,15 @@ async def google_callback(request: Request, code: str = "", state: str = "", db:
         if res_token.status_code != 200: return RedirectResponse(url="/index.html?error=Fallo+intercambio+tokens")
         user_info = (await client.get("https://www.googleapis.com/oauth2/v3/userinfo", headers={"Authorization": f"Bearer {res_token.json()['access_token']}"})).json()
     email = user_info.get("email")
+    # Solo emails verificados por Google: si no, alguien podria abrir una cuenta de Google con el email de otro.
+    if not email or user_info.get("email_verified") is not True:
+        return RedirectResponse(url="/index.html?error=Email+de+Google+sin+verificar")
     user = await db.fetchrow("SELECT id, rol FROM usuarios WHERE username = $1 AND activo = TRUE", email)
     if not user:
         if not await db.fetchval("SELECT 1 FROM solicitudes_registro WHERE email = $1", email):
             await db.execute("INSERT INTO solicitudes_registro (email, nombre_completo) VALUES ($1, $2)", email, user_info.get("name", "Usuario"))
         return RedirectResponse(url="/index.html?status=pending")
-    token_nuevo = secrets.token_hex(32)
-    await db.execute("INSERT INTO sesiones_activas (usuario_id, token_sesion, expira_en) VALUES ($1, $2, $3)", user['id'], hash_token(token_nuevo), datetime.now() + timedelta(hours=8))
     response = RedirectResponse(url=f"/{user['rol']}.html")
-    response.set_cookie(key="session_token", value=token_nuevo, httponly=True, secure=True, samesite='lax', max_age=28800)
-    response.set_cookie(key="user_rol", value=str(user['rol']), httponly=False, secure=True, samesite='lax', max_age=28800)
+    await start_session(db, response, user['id'], user['rol'])
     response.delete_cookie("oauth_state")
     return response

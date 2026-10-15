@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 import asyncpg
 
-from database import get_db, require_role, hash_password
+from database import get_db, require_role, hash_password, revoke_user_sessions
 
 router = APIRouter(prefix="/api", tags=["Usuarios"])
 
@@ -53,6 +53,11 @@ async def modificar_usuario(username: str, data: UsuarioEdit, db: asyncpg.Connec
         await db.execute("UPDATE usuarios SET password_hash=$1, nombre_completo=$2, rol=$3, activo=$4 WHERE username=$5", pw_hash, data.nombre_completo, data.rol, data.activo, username)
     else:
         await db.execute("UPDATE usuarios SET nombre_completo=$1, rol=$2, activo=$3 WHERE username=$4", data.nombre_completo, data.rol, data.activo, username)
+    # Clave nueva o usuario desactivado: se cierran sus sesiones abiertas (en todos los dispositivos).
+    if data.password or not data.activo:
+        user_id = await db.fetchval("SELECT id FROM usuarios WHERE username=$1", username)
+        if user_id:
+            await revoke_user_sessions(db, user_id)
     return {"status": "success"}
 
 

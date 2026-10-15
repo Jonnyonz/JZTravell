@@ -1,14 +1,14 @@
--- Esquema de base de datos de JZ Travel.
--- Reconstruido a partir de las queries SQL usadas en backend/main.py y del contrato de
--- datos esperado por el frontend (frontend/admin.html, cliente.html), ya que este archivo
--- estaba vacío en el repositorio y Docker Compose lo usa para inicializar Postgres desde cero.
--- Se ejecuta automáticamente una sola vez, la primera vez que se levanta el contenedor de la base
--- (docker-entrypoint-initdb.d), solo si el volumen de datos está vacío.
-
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
+-- Esquema base de JZTravell (antes init_db.sql, que cargaba Postgres una sola vez). Lo aplica la app al
+-- arrancar (jztech_core.migrations, tabla schema_version). Todo es idempotente (IF NOT EXISTS / ON CONFLICT),
+-- asi que sobre una base creada por init_db.sql no cambia los datos. Los cambios de esquema nuevos van en
+-- archivos 0002_..., 0003_... (nunca editar uno ya publicado).
+--
+-- El primer administrador no se crea aca: con la tabla usuarios vacia, la app muestra la configuracion
+-- inicial (POST /api/setup/admin), que pide el SETUP_TOKEN del instalador.
+-- gen_random_uuid() viene con PostgreSQL 13+ (no hace falta pgcrypto).
 
 -- === USUARIOS Y SESIONES ===
-CREATE TABLE usuarios (
+CREATE TABLE IF NOT EXISTS usuarios (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     username TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
@@ -22,24 +22,27 @@ CREATE TABLE usuarios (
     ultima_conexion TIMESTAMP
 );
 
--- token_sesion guarda el hash SHA-256 del token; el valor en claro solo vive en la cookie.
-CREATE TABLE sesiones_activas (
-    id SERIAL PRIMARY KEY,
-    usuario_id UUID NOT NULL REFERENCES usuarios(id),
-    token_sesion TEXT UNIQUE NOT NULL,
-    expira_en TIMESTAMP NOT NULL
+-- Sesiones de jztech_core.sessions: solo se guarda el hash SHA-256 del token (el valor en claro vive
+-- en la cookie). Reemplaza a sesiones_activas (versiones hasta 1.0.x): al actualizar se cierran las
+-- sesiones abiertas y cada usuario vuelve a iniciar sesion una vez.
+CREATE TABLE IF NOT EXISTS jztech_sessions (
+    token_hash TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    expires_at TIMESTAMPTZ NOT NULL
 );
-CREATE INDEX idx_sesiones_token ON sesiones_activas(token_sesion);
+CREATE INDEX IF NOT EXISTS jztech_sessions_user_id_idx ON jztech_sessions (user_id);
+DROP TABLE IF EXISTS sesiones_activas;
 
--- Rate limit de login por IP (la app tambien la crea al arrancar si no existe).
-CREATE TABLE login_rate_limit (
+-- Rate limit de login por IP.
+CREATE TABLE IF NOT EXISTS login_rate_limit (
     ip TEXT PRIMARY KEY,
     intentos INT NOT NULL DEFAULT 0,
     bloqueado_hasta TIMESTAMP
 );
 
 -- === CONFIGURACIÓN GLOBAL (fila única, id=1) ===
-CREATE TABLE configuracion_sistema (
+CREATE TABLE IF NOT EXISTS configuracion_sistema (
     id INT PRIMARY KEY DEFAULT 1,
     nombre_empresa TEXT NOT NULL DEFAULT 'Mi Empresa',
     gps_polling_sec INT NOT NULL DEFAULT 30,
@@ -53,10 +56,10 @@ CREATE TABLE configuracion_sistema (
     manejar_volumenes BOOLEAN NOT NULL DEFAULT FALSE,
     CONSTRAINT solo_una_fila CHECK (id = 1)
 );
-INSERT INTO configuracion_sistema (id) VALUES (1);
+INSERT INTO configuracion_sistema (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
 
 -- === ALTAS PENDIENTES (autoregistro vía Google) ===
-CREATE TABLE solicitudes_registro (
+CREATE TABLE IF NOT EXISTS solicitudes_registro (
     id SERIAL PRIMARY KEY,
     email TEXT UNIQUE NOT NULL,
     nombre_completo TEXT NOT NULL DEFAULT '',
@@ -64,7 +67,7 @@ CREATE TABLE solicitudes_registro (
 );
 
 -- === SUCURSALES (puntos de origen) ===
-CREATE TABLE sucursales (
+CREATE TABLE IF NOT EXISTS sucursales (
     id SERIAL PRIMARY KEY,
     nombre TEXT NOT NULL,
     calle TEXT NOT NULL DEFAULT '',
@@ -78,7 +81,7 @@ CREATE TABLE sucursales (
 );
 
 -- === FLOTA DE VEHÍCULOS ===
-CREATE TABLE flota_vehiculos (
+CREATE TABLE IF NOT EXISTS flota_vehiculos (
     id SERIAL PRIMARY KEY,
     patente_identificador TEXT NOT NULL,
     marca_modelo TEXT NOT NULL DEFAULT '',
@@ -89,14 +92,14 @@ CREATE TABLE flota_vehiculos (
 );
 
 -- === CLIENTES Y SUS DIRECCIONES ===
-CREATE TABLE clientes (
+CREATE TABLE IF NOT EXISTS clientes (
     id SERIAL PRIMARY KEY,
     razon_social TEXT NOT NULL,
     cuit_rut TEXT UNIQUE NOT NULL,
     activo BOOLEAN NOT NULL DEFAULT TRUE
 );
 
-CREATE TABLE direcciones_cliente (
+CREATE TABLE IF NOT EXISTS direcciones_cliente (
     id SERIAL PRIMARY KEY,
     cliente_id INT NOT NULL REFERENCES clientes(id),
     alias TEXT NOT NULL DEFAULT '',
@@ -113,7 +116,7 @@ CREATE TABLE direcciones_cliente (
 -- La app solo LEE esta tabla (GET /api/tipos_documentos); no hay endpoint para administrarla
 -- desde la UI, así que tiene que venir precargada. Columnas confirmadas en frontend/admin.html
 -- (DB.tipos_docs.map(t => t.codigo, t.nombre), y los flags requiere_id/requiere_pto_venta/requiere_numero).
-CREATE TABLE tipos_documentos (
+CREATE TABLE IF NOT EXISTS tipos_documentos (
     id SERIAL PRIMARY KEY,
     codigo TEXT UNIQUE NOT NULL,
     nombre TEXT NOT NULL,
@@ -124,10 +127,11 @@ CREATE TABLE tipos_documentos (
 );
 INSERT INTO tipos_documentos (codigo, nombre, requiere_id, requiere_pto_venta, requiere_numero) VALUES
     ('remito', 'Remito', TRUE, TRUE, TRUE),
-    ('odt', 'ODT', TRUE, FALSE, FALSE);
+    ('odt', 'ODT', TRUE, FALSE, FALSE)
+ON CONFLICT (codigo) DO NOTHING;
 
 -- === FLETES Y SUS PARADAS ===
-CREATE TABLE fletes (
+CREATE TABLE IF NOT EXISTS fletes (
     id SERIAL PRIMARY KEY,
     solicitante_id UUID NOT NULL REFERENCES usuarios(id),
     vehiculo_id INT NOT NULL REFERENCES flota_vehiculos(id),
@@ -138,9 +142,9 @@ CREATE TABLE fletes (
     creado_en TIMESTAMP NOT NULL DEFAULT NOW(),
     chofer_id UUID REFERENCES usuarios(id)
 );
-CREATE INDEX idx_fletes_estado ON fletes(estado);
+CREATE INDEX IF NOT EXISTS idx_fletes_estado ON fletes(estado);
 
-CREATE TABLE documentos_flete (
+CREATE TABLE IF NOT EXISTS documentos_flete (
     id SERIAL PRIMARY KEY,
     flete_id INT NOT NULL REFERENCES fletes(id) ON DELETE CASCADE,
     tipo_documento TEXT NOT NULL,
@@ -159,9 +163,4 @@ CREATE TABLE documentos_flete (
     bultos INT NOT NULL DEFAULT 1,
     volumen_m3 DOUBLE PRECISION NOT NULL DEFAULT 0
 );
-CREATE INDEX idx_documentos_flete_flete_id ON documentos_flete(flete_id);
-
--- El primer usuario administrador NO se crea acá: la app detecta que la tabla "usuarios" está
--- vacía y muestra una pantalla de configuración inicial (POST /api/setup/admin) que pide el
--- SETUP_TOKEN generado por install.sh. Así el admin elige su propio usuario y contraseña
--- directamente desde el navegador, en vez de tener que ir a buscar una clave a los logs.
+CREATE INDEX IF NOT EXISTS idx_documentos_flete_flete_id ON documentos_flete(flete_id);

@@ -2,7 +2,35 @@
 
 Cambios de JZTravell, del más nuevo al más viejo. Cada entrada corresponde a un push a `main`.
 
-## Sin versión todavía (2026-10-06 / 2026-10-13)
+## 1.1.0 — 2026-10-15
+
+Alinea JZTravell con `jztech-core` y con Tracker360. **Al actualizar se cierran las sesiones abiertas: cada
+usuario vuelve a iniciar sesión una vez.**
+
+### Cambiado (sesiones y CSRF de jztech-core)
+- Las sesiones pasan a `jztech_core.sessions` (tabla `jztech_sessions`, la misma de Tracker360 y JZPass) y
+  reemplazan a `sesiones_activas`. La cookie de sesión pasa de `SameSite=Lax` a `Strict`.
+- El CSRF pasa a `jztech_core.csrf`: el token es un HMAC ligado a la sesión (antes era un valor al azar que no
+  dependía del usuario). Se valida al autenticar cada `POST`/`PUT`/`DELETE` y la cookie `csrf_token` la pone el
+  login. El frontend no cambia: sigue mandando la cookie en el encabezado `X-CSRF-Token`.
+- El token de la configuración inicial se valida con `jztech_core.setup_flow`.
+
+### Agregado (migraciones versionadas)
+- El esquema de la base lo crea y lo actualiza la app al arrancar (`jztech_core.migrations`, tabla
+  `schema_version`), con los archivos de `backend/migrations/`. `0001_esquema_base.sql` es el esquema de antes,
+  idempotente: sobre una base creada por una versión anterior no cambia los datos. Se borra `init_db.sql`; los
+  instaladores ya no cargan el esquema a mano y Postgres ya no lo carga al crear el contenedor.
+
+### Cambiado (imagen Docker autocontenida)
+- El código y el frontend van dentro de la imagen (como en Tracker360): el compose ya no monta `./backend` ni
+  `./frontend`. La app corre con un usuario sin privilegios y la imagen tiene healthcheck. `install.sh` ya
+  reconstruía la imagen en cada corrida.
+
+### Corregido (seguridad)
+- Cambiar la clave de un usuario o desactivarlo cierra todas sus sesiones abiertas.
+- El ingreso con Google solo acepta emails verificados por Google (`email_verified`).
+
+### Incluye lo que no tenía versión (2026-10-06 / 2026-10-13)
 
 ### Corregido (instalador con Docker, 2026-10-13)
 - `install.sh` ya no levanta los contenedores con `--remove-orphans`. En un servidor compartido, Docker puede
