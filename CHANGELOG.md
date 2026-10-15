@@ -2,6 +2,31 @@
 
 Cambios de JZTravell, del más nuevo al más viejo. Cada entrada corresponde a un push a `main`.
 
+## 1.3.0 — 2026-10-15
+
+Migración `0003` (se aplica sola al arrancar).
+
+### Agregado
+- **Prueba de entrega:** en cada parada el chofer registra quién recibe, la firma (con el dedo en la pantalla), una
+  foto opcional (se achica en el celular) y su posición GPS. Si la dirección no tenía ubicación, se guarda la del
+  GPS. El comprobante impreso muestra hora, quién recibió y la firma; el admin las ve en "Detalle".
+- **Incidencias:** "No entregada" con motivo (ausente, rechazo, dirección errónea, dañado, cerrado, otro),
+  observaciones y foto. Al cerrar la ruta, el flete queda en Incidencia para reprogramarlo.
+- **Link de seguimiento** público por flete (`/seguimiento.html?t=...`): estado, paradas y ubicación aproximada del
+  vehículo en camino, sin cuenta y sin datos personales. Lo copian el admin y el cliente.
+- **Vencimientos:** VTV, seguro y habilitación de cada vehículo y licencia de cada chofer. Con alguno vencido no se
+  puede salir (se controla al tomar fletes) y el tablero avisa los que vencen en los próximos 30 días.
+- **Mantenimiento:** aviso de service cada tantos km e historial (service, reparación, cubiertas) con km y costo.
+- **Ventanas horarias** por parada (en fletes y cotizaciones): el orden de la ruta atiende primero los horarios
+  límite más tempranos.
+- **Costo real:** al cerrar la ruta el chofer carga combustible, peajes y otros gastos.
+- **Reportes:** fletes, entregas a tiempo, incidencias por motivo, facturación por cliente, km y mantenimiento por
+  vehículo y costo real contra ingresos de cada ruta, con descarga en CSV.
+
+### Cambiado
+- El cierre de ruta del chofer pasa a una ventana con odómetro y gastos (antes, un aviso del navegador).
+- La CSP permite imágenes `data:` y `blob:` (vista previa de la foto en el celular).
+
 ## 1.2.0 — 2026-10-15
 
 Funciones nuevas para la prueba piloto. Migración `0002` (se aplica sola al arrancar).

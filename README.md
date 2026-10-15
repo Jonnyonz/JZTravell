@@ -48,6 +48,28 @@ al salir y al cerrar la ruta y, como respaldo, del rastro GPS del viaje (sin pun
 imposibles). Con los viajes cerrados el sistema sugiere un factor de calle más preciso. Para todo esto, sucursales
 y direcciones necesitan su ubicación: se pega el link de Google Maps o "latitud, longitud".
 
+**Prueba de entrega e incidencias.** En cada parada el chofer registra la entrega (quién recibe, firma con el dedo
+en la pantalla, foto opcional y su posición GPS) o que no se pudo entregar (motivo: ausente, rechazo, dirección
+errónea, dañado, cerrado u otro). Si la dirección no tenía ubicación, se completa con la del GPS. Al cerrar la
+ruta, los fletes con alguna parada no entregada pasan a Incidencia para reprogramarlos. El comprobante impreso
+muestra la hora, quién recibió y la firma.
+
+**Link de seguimiento.** Cada flete tiene un link público (`/seguimiento.html?t=...`) para mandarle al
+destinatario: estado, paradas y, en camino, la ubicación aproximada del vehículo. Sin cuenta y sin datos
+personales.
+
+**Flota.** Vencimientos de VTV, seguro y habilitación de cada vehículo y de la licencia de cada chofer: con alguno
+vencido no se puede salir, y el tablero avisa los que vencen en 30 días. Aviso de service cada tantos km e
+historial de mantenimiento con su costo.
+
+**Ventanas horarias.** Cada parada puede tener un horario de entrega; el orden de la ruta atiende primero los
+horarios límite más tempranos.
+
+**Reportes y costo real.** Al cerrar la ruta el chofer carga los gastos reales (combustible, peajes, otros). La
+pestaña Reportes muestra, para un período, los fletes, las entregas a tiempo, las incidencias por motivo, la
+facturación por cliente, km y mantenimiento por vehículo y el costo real contra los ingresos de cada ruta
+(descargable en CSV).
+
 Otras funciones: hoja de ruta imprimible (`/api/fletes/imprimir`), tipos de documento por flete
 (remito, factura, etc.) e ingreso opcional con cuenta de Google.
 
@@ -85,12 +107,14 @@ JZTravell/
 │   │   ├── branches.py    # sucursales
 │   │   ├── clients.py     # clientes y sus direcciones
 │   │   ├── shipments.py   # fletes, rutas (consolidación, odómetro, rastro GPS), estados, impresión
-│   │   └── quotes.py      # cotizaciones
+│   │   ├── quotes.py      # cotizaciones
+│   │   ├── deliveries.py  # prueba de entrega por parada y seguimiento público
+│   │   └── reports.py     # reportes
 │   ├── migrations/        # esquema de la base, versionado (0001_esquema_base.sql, ...)
 │   ├── requirements.in    # dependencias directas
 │   ├── requirements.txt   # lockfile con hashes (generado, no editar a mano)
 │   └── Dockerfile
-├── frontend/              # index.html (login), admin.html, chofer.html, cliente.html, js/comun.js
+├── frontend/              # index.html (login), admin.html, chofer.html, cliente.html, seguimiento.html, js/comun.js
 ├── docker-compose.yml
 ├── install.sh             # instalador con Docker
 └── .env.example
@@ -115,6 +139,8 @@ migración falla, la app no arranca. Tablas principales:
 | `fletes`, `documentos_flete`, `tipos_documentos` | Fletes (internos o externos, con cliente y precio), paradas con coordenadas y tipos de documento |
 | `rutas`, `ruta_gps` | Lo que un chofer consolida y recorre de una vez: odómetro, km estimados, rastro GPS y km medidos |
 | `cotizaciones` | Pedidos de cotización de los clientes: origen y paradas, vehículo, desglose de costos y total |
+| `entregas` | Prueba de entrega o incidencia de cada parada: quién recibió, motivo, firma y foto (en la base), GPS |
+| `mantenimientos` | Services, reparaciones y cubiertas de cada vehículo, con km y costo |
 | `login_rate_limit` | Intentos de login fallidos por IP (la crea la app al arrancar) |
 
 ### Seguridad

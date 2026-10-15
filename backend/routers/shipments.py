@@ -1,5 +1,6 @@
 import datetime
 import html as html_lib
+import secrets
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import HTMLResponse
@@ -25,6 +26,10 @@ class ConsolidarRequest(BaseModel):
 
 class FinalizarRuta(BaseModel):
     odometro_llegada: Optional[float] = None
+    # Gastos reales del viaje (los carga el chofer al cerrar): con ellos sale el costo real de la ruta.
+    gasto_combustible: float = 0.0
+    gasto_peajes: float = 0.0
+    gasto_otros: float = 0.0
 
 
 class EstadoUpdate(BaseModel):
@@ -50,6 +55,9 @@ class DocFlete(BaseModel):
     destino_lon: Optional[float] = None
     bultos: int = 1
     volumen_m3: float = 0.0
+    # Ventana horaria de entrega (opcional): el orden de la ruta atiende primero los horarios limite.
+    ventana_desde: Optional[datetime.time] = None
+    ventana_hasta: Optional[datetime.time] = None
 
 
 class FleteCreate(BaseModel):
@@ -74,7 +82,7 @@ TRANSICIONES_FLETE = {
 
 # Origen: la sucursal propia o, en un flete externo, la direccion de retiro guardada en el flete.
 SELECT_FLETE = """
-    SELECT f.id, f.tipo, f.prioridad, f.estado, f.distancia_total_km, f.creado_en, f.chofer_id, f.ruta_id,
+    SELECT f.id, f.tipo, f.prioridad, f.estado, f.distancia_total_km, f.creado_en, f.chofer_id, f.ruta_id, f.token_seguimiento,
            f.cliente_id, cl.razon_social AS cliente, f.precio, v.patente_identificador, v.marca_modelo, v.usa_volumen,
            COALESCE(s.nombre, NULLIF(f.origen_alias, ''), 'Retiro') AS origen,
            COALESCE(s.calle, f.origen_calle) AS origen_calle, COALESCE(s.altura, f.origen_altura) AS origen_altura,
@@ -135,8 +143,21 @@ async def get_fletes(db: asyncpg.Connection = Depends(get_db), user=Depends(get_
     for f in fletes:
         f['creado_en'] = f['creado_en'].isoformat()
         if f['chofer_id']: f['chofer_id'] = str(f['chofer_id'])
-        f['paradas'] = [dict(p) for p in await db.fetch("SELECT * FROM documentos_flete WHERE flete_id = $1 ORDER BY orden_ruta ASC", f['id'])]
+        f['paradas'] = [dict(p) for p in await db.fetch(PARADAS_CON_ENTREGA, f['id'])]
     return fletes
+
+
+# Paradas de un flete con su prueba de entrega o incidencia (sin las imagenes: se piden aparte).
+PARADAS_CON_ENTREGA = """
+    SELECT d.*, e.estado AS entrega_estado, e.recibido_por, e.motivo, e.observaciones AS entrega_obs,
+           e.registrado_en AS entregado_en, (e.firma IS NOT NULL) AS tiene_firma, (e.foto IS NOT NULL) AS tiene_foto
+    FROM documentos_flete d LEFT JOIN entregas e ON e.documento_id = d.id
+    WHERE d.flete_id = $1 ORDER BY d.orden_ruta ASC"""
+
+
+def nuevo_token():
+    """Token del link de seguimiento publico (no adivinable)."""
+    return secrets.token_urlsafe(16)
 
 
 @router.post("/fletes")
@@ -160,16 +181,18 @@ async def create_flete(data: FleteCreate, db: asyncpg.Connection = Depends(get_d
 
     async with db.transaction():
         flete_id = await db.fetchval(
-            "INSERT INTO fletes (solicitante_id, vehiculo_id, origen_id, prioridad, distancia_total_km, tipo, cliente_id, precio) VALUES ($1::uuid, $2, $3, $4, $5, $6, $7, $8) RETURNING id",
+            "INSERT INTO fletes (solicitante_id, vehiculo_id, origen_id, prioridad, distancia_total_km, tipo, cliente_id, precio, token_seguimiento) VALUES ($1::uuid, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id",
             user['id'], data.vehiculo_id, data.origen_id, data.prioridad, data.distancia_estimada_km, data.tipo,
-            data.cliente_id if data.tipo == "externo" else None, data.precio)
+            data.cliente_id if data.tipo == "externo" else None, data.precio, nuevo_token())
         for idx, doc in enumerate(data.documentos):
             if doc.destino_tipo not in ("sucursal", "destinatario", "esporadico", "cliente"):
                 raise HTTPException(400, "Tipo de destino invalido.")
             tipo_db = "sucursal" if doc.destino_tipo == "sucursal" else "cliente"
             destino_id = 0 if doc.destino_tipo == "esporadico" else doc.destino_id
+            if doc.ventana_desde and doc.ventana_hasta and doc.ventana_desde > doc.ventana_hasta:
+                raise HTTPException(400, "La ventana horaria termina antes de empezar.")
             lat, lon = await ubicacion_parada(db, tipo_db, destino_id, doc.destino_lat, doc.destino_lon)
-            await db.execute("INSERT INTO documentos_flete (flete_id, tipo_documento, doc_id, punto_venta, numero, destino_tipo, destino_id, destino_alias, destino_calle, destino_altura, destino_ciudad, destino_codigo_postal, destino_provincia, orden_ruta, bultos, volumen_m3, destino_lat, destino_lon) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)", flete_id, doc.tipo_documento, doc.doc_id, doc.punto_venta, doc.numero, tipo_db, destino_id, doc.destino_alias, doc.destino_calle, doc.destino_altura, doc.destino_ciudad, doc.destino_codigo_postal, doc.destino_provincia, idx + 1, doc.bultos, doc.volumen_m3, lat, lon)
+            await db.execute("INSERT INTO documentos_flete (flete_id, tipo_documento, doc_id, punto_venta, numero, destino_tipo, destino_id, destino_alias, destino_calle, destino_altura, destino_ciudad, destino_codigo_postal, destino_provincia, orden_ruta, bultos, volumen_m3, destino_lat, destino_lon, ventana_desde, ventana_hasta) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)", flete_id, doc.tipo_documento, doc.doc_id, doc.punto_venta, doc.numero, tipo_db, destino_id, doc.destino_alias, doc.destino_calle, doc.destino_altura, doc.destino_ciudad, doc.destino_codigo_postal, doc.destino_provincia, idx + 1, doc.bultos, doc.volumen_m3, lat, lon, doc.ventana_desde, doc.ventana_hasta)
     return {"status": "success", "id": flete_id}
 
 
@@ -188,16 +211,17 @@ async def consolidar_y_optimizar(data: ConsolidarRequest, db: asyncpg.Connection
         if len(fletes_data) != len(set(data.flete_ids)):
             raise HTTPException(400, "Alguno de los fletes no esta disponible para consolidar.")
         primero = fletes_data[0]
+        vehiculo_id = await db.fetchval("SELECT vehiculo_id FROM fletes WHERE id = $1", primero['id'])
+        await _controlar_vencimientos(db, vehiculo_id, user['id'])
         origen = {"alias": primero['origen'], "lat": primero['origen_lat'], "lon": primero['origen_lon']}
         paradas = []
-        for p in await db.fetch("SELECT id, destino_tipo, destino_id, destino_alias, destino_lat, destino_lon FROM documentos_flete WHERE flete_id = ANY($1::int[])", data.flete_ids):
+        for p in await db.fetch("SELECT id, destino_tipo, destino_id, destino_alias, destino_lat, destino_lon, ventana_hasta FROM documentos_flete WHERE flete_id = ANY($1::int[])", data.flete_ids):
             lat, lon = await ubicacion_parada(db, p['destino_tipo'], p['destino_id'], p['destino_lat'], p['destino_lon'])
-            paradas.append({"id": p['id'], "alias": p['destino_alias'], "lat": lat, "lon": lon})
+            paradas.append({"id": p['id'], "alias": p['destino_alias'], "lat": lat, "lon": lon, "hasta": p['ventana_hasta']})
         orden = calculos.ordenar_paradas(origen, paradas)
         km_linea = round(calculos.km_linea_recta(origen, orden), 2)
         factor = await db.fetchval("SELECT factor_calle FROM configuracion_sistema WHERE id=1") or 1.3
         km_estimados = round(km_linea * factor, 2)
-        vehiculo_id = await db.fetchval("SELECT vehiculo_id FROM fletes WHERE id = $1", primero['id'])
         ruta_id = await db.fetchval(
             "INSERT INTO rutas (chofer_id, vehiculo_id, odometro_salida, km_linea_recta, km_estimados) VALUES ($1::uuid, $2, $3, $4, $5) RETURNING id",
             user['id'], vehiculo_id, data.odometro_salida, km_linea, km_estimados)
@@ -206,6 +230,22 @@ async def consolidar_y_optimizar(data: ConsolidarRequest, db: asyncpg.Connection
             await db.execute("UPDATE documentos_flete SET orden_ruta = $1, destino_lat = $2, destino_lon = $3 WHERE id = $4", idx + 1, p['lat'], p['lon'], p['id'])
     return {"status": "success", "ruta_id": ruta_id, "km_estimados": km_estimados,
             "sin_ubicar": calculos.faltan_coordenadas(origen, paradas)}
+
+
+async def _controlar_vencimientos(db, vehiculo_id, chofer_id):
+    """No se sale con documentacion vencida: VTV, seguro o habilitacion del vehiculo, o licencia del chofer."""
+    hoy = datetime.date.today()
+    vencidos = []
+    v = await db.fetchrow("SELECT patente_identificador, vtv_vence, seguro_vence, habilitacion_vence FROM flota_vehiculos WHERE id = $1", vehiculo_id)
+    if v:
+        for campo, nombre in (("vtv_vence", "VTV"), ("seguro_vence", "seguro"), ("habilitacion_vence", "habilitacion")):
+            if v[campo] and v[campo] < hoy:
+                vencidos.append(f"{nombre} de {v['patente_identificador']} (vencio el {v[campo]:%d/%m/%Y})")
+    licencia = await db.fetchval("SELECT licencia_vence FROM usuarios WHERE id = $1::uuid", chofer_id)
+    if licencia and licencia < hoy:
+        vencidos.append(f"licencia de conducir (vencio el {licencia:%d/%m/%Y})")
+    if vencidos:
+        raise HTTPException(400, "No se puede salir con documentacion vencida: " + "; ".join(vencidos) + ".")
 
 
 @router.get("/rutas/actual")
@@ -232,16 +272,25 @@ async def finalizar_ruta(ruta_id: int, data: FinalizarRuta, db: asyncpg.Connecti
         if ruta['finalizada_en'] is not None:
             raise HTTPException(400, "La ruta ya estaba cerrada.")
         llegada = data.odometro_llegada
+        if min(data.gasto_combustible, data.gasto_peajes, data.gasto_otros) < 0:
+            raise HTTPException(400, "Los gastos no pueden ser negativos.")
         if llegada is not None and ruta['odometro_salida'] is not None and llegada < ruta['odometro_salida']:
             raise HTTPException(400, f"El odometro de llegada no puede ser menor al de salida ({ruta['odometro_salida']:g} km).")
         puntos = await db.fetch("SELECT lat, lon, precision_m, registrado_en FROM ruta_gps WHERE ruta_id = $1 ORDER BY registrado_en, id", ruta_id)
         km_gps = calculos.km_gps([(p['lat'], p['lon'], p['precision_m'], p['registrado_en']) for p in puntos]) if puntos else None
-        await db.execute("UPDATE rutas SET finalizada_en = NOW(), odometro_llegada = $1, km_gps = $2 WHERE id = $3", llegada, km_gps, ruta_id)
+        await db.execute("UPDATE rutas SET finalizada_en = NOW(), odometro_llegada = $1, km_gps = $2, gasto_combustible = $3, gasto_peajes = $4, gasto_otros = $5 WHERE id = $6",
+                         llegada, km_gps, data.gasto_combustible, data.gasto_peajes, data.gasto_otros, ruta_id)
+        # Un flete con alguna parada no entregada queda como incidencia (para reprogramarlo); el resto, completado.
+        incidencias = await db.fetch("""
+            UPDATE fletes f SET estado = 'problema' WHERE f.ruta_id = $1 AND f.estado = 'camino'
+              AND EXISTS (SELECT 1 FROM documentos_flete d JOIN entregas e ON e.documento_id = d.id WHERE d.flete_id = f.id AND e.estado = 'no_entregada')
+            RETURNING f.id""", ruta_id)
         await db.execute("UPDATE fletes SET estado = 'completado' WHERE ruta_id = $1 AND estado = 'camino'", ruta_id)
         if llegada is not None and ruta['vehiculo_id']:
             await db.execute("UPDATE flota_vehiculos SET odometro_km = GREATEST(odometro_km, $1) WHERE id = $2", llegada, ruta['vehiculo_id'])
     km_odometro = round(llegada - ruta['odometro_salida'], 2) if llegada is not None and ruta['odometro_salida'] is not None else None
-    return {"status": "success", "km_odometro": km_odometro, "km_gps": km_gps, "km_estimados": ruta['km_estimados']}
+    return {"status": "success", "km_odometro": km_odometro, "km_gps": km_gps, "km_estimados": ruta['km_estimados'],
+            "con_incidencia": [r['id'] for r in incidencias]}
 
 
 @router.get("/rutas")
@@ -249,6 +298,7 @@ async def listar_rutas(db: asyncpg.Connection = Depends(get_db), user=Depends(re
     filas = await db.fetch("""
         SELECT r.id, r.iniciada_en, r.finalizada_en, r.odometro_salida, r.odometro_llegada, r.km_linea_recta, r.km_estimados,
                r.km_gps, (r.odometro_llegada - r.odometro_salida) AS km_odometro, u.nombre_completo AS chofer,
+               r.gasto_combustible, r.gasto_peajes, r.gasto_otros,
                v.patente_identificador, (SELECT COUNT(*) FROM fletes f WHERE f.ruta_id = r.id) AS fletes
         FROM rutas r JOIN usuarios u ON u.id = r.chofer_id LEFT JOIN flota_vehiculos v ON v.id = r.vehiculo_id
         ORDER BY r.id DESC LIMIT 100""")
@@ -309,7 +359,10 @@ async def imprimir_hoja_ruta(ids: str, db: asyncpg.Connection = Depends(get_db),
     fletes_rows = await db.fetch(f"{SELECT_FLETE} WHERE f.id = ANY($1::int[]) ORDER BY f.id", flete_ids)
     usa_volumen = any(f['usa_volumen'] for f in fletes_rows)
     origen_de = {f['id']: f['origen'] for f in fletes_rows}
-    paradas_rows = await db.fetch("SELECT * FROM documentos_flete WHERE flete_id = ANY($1::int[]) ORDER BY orden_ruta ASC", flete_ids)
+    paradas_rows = await db.fetch("""
+        SELECT d.*, e.estado AS entrega_estado, e.recibido_por, e.motivo, e.registrado_en AS entregado_en, (e.firma IS NOT NULL) AS tiene_firma
+        FROM documentos_flete d LEFT JOIN entregas e ON e.documento_id = d.id
+        WHERE d.flete_id = ANY($1::int[]) ORDER BY d.orden_ruta ASC""", flete_ids)
     fecha_actual = datetime.date.today().strftime("%d/%m/%Y"); codigo_control = str(fletes_rows[0]['id']).zfill(6)
 
     # Todo dato de la DB (cargado por clientes/choferes) se escapa: sin esto, un campo con
@@ -319,11 +372,26 @@ async def imprimir_hoja_ruta(ids: str, db: asyncpg.Connection = Depends(get_db),
 
     col_vol_header = '<th style="width: 8%; text-align:center;">Vol (m³)</th>' if usa_volumen else ''
 
+    celda = 'padding:8px; border:1px solid #cbd5e0;'
+    linea = '<span style="display:block; border-bottom:1px dotted #a0aec0; height:15px;"></span>'
     tabla_filas = ""
     for idx, p in enumerate(paradas_rows):
         bg = "background-color: #ffffff;" if idx % 2 == 0 else "background-color: #f7fafc;"
-        col_vol_td = f'<td style="padding:8px; border:1px solid #cbd5e0; text-align:center;">{esc(p["volumen_m3"])} m³</td>' if usa_volumen else ''
-        tabla_filas += f'<tr style="{bg}"><td style="padding:8px; border:1px solid #cbd5e0; text-align:center;"><strong>{idx + 1}</strong></td><td style="padding:8px; border:1px solid #cbd5e0;">{esc(p["tipo_documento"].upper())}<br><small style="color:#555;">N° {esc(p["punto_venta"])}-{esc(p["numero"])}</small></td><td style="padding:8px; border:1px solid #cbd5e0;">{esc(origen_de.get(p["flete_id"]))}</td><td style="padding:8px; border:1px solid #cbd5e0; text-align:center;"><strong>{esc(p["bultos"])}</strong></td>{col_vol_td}<td style="padding:8px; border:1px solid #cbd5e0;">{esc(p["destino_alias"])}<br>{esc(p["destino_calle"])} {esc(p["destino_altura"])}, {esc(p["destino_ciudad"])}</td><td style="padding:8px; border:1px solid #cbd5e0;"><span style="display:block; border-bottom:1px dotted #a0aec0; height:15px;"></span></td><td style="padding:8px; border:1px solid #cbd5e0;"><span style="display:block; border-bottom:1px dotted #a0aec0; height:15px;"></span></td><td style="padding:8px; border:1px solid #cbd5e0;"><span style="display:block; border-bottom:1px dotted #a0aec0; height:15px;"></span></td></tr>'
+        col_vol_td = f'<td style="{celda} text-align:center;">{esc(p["volumen_m3"])} m³</td>' if usa_volumen else ''
+        horario = f'<br><small>Horario: {p["ventana_desde"]:%H:%M} a {p["ventana_hasta"]:%H:%M}</small>' if p["ventana_desde"] and p["ventana_hasta"] else ''
+        hora = f'{p["entregado_en"]:%H:%M}' if p["entregado_en"] else linea
+        if p["entrega_estado"] == "entregada":
+            firma = esc(p["recibido_por"]) + (f'<br><img src="/api/paradas/{p["id"]}/firma" alt="firma" style="max-height:34px; max-width:110px;">' if p["tiene_firma"] else '')
+        elif p["entrega_estado"] == "no_entregada":
+            firma = f'<strong>No entregada</strong><br>{esc(p["motivo"])}'
+        else:
+            firma = linea
+        tabla_filas += (f'<tr style="{bg}"><td style="{celda} text-align:center;"><strong>{idx + 1}</strong></td>'
+                        f'<td style="{celda}">{esc(p["tipo_documento"].upper())}<br><small style="color:#555;">N° {esc(p["punto_venta"])}-{esc(p["numero"])}</small></td>'
+                        f'<td style="{celda}">{esc(origen_de.get(p["flete_id"]))}</td>'
+                        f'<td style="{celda} text-align:center;"><strong>{esc(p["bultos"])}</strong></td>{col_vol_td}'
+                        f'<td style="{celda}">{esc(p["destino_alias"])}<br>{esc(p["destino_calle"])} {esc(p["destino_altura"])}, {esc(p["destino_ciudad"])}{horario}</td>'
+                        f'<td style="{celda} text-align:center;">{hora}</td><td style="{celda}">{linea}</td><td style="{celda}">{firma}</td></tr>')
 
     primero = fletes_rows[0]
-    return f'<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Despacho</title><style>@page {{ size: A4 portrait; margin: 15mm 10mm; }} body {{ font-family: system-ui, sans-serif; color: #333; margin: 0; padding: 0; font-size: 9pt; line-height: 1.4; }} .header-table {{ width: 100%; border-collapse: collapse; margin-bottom: 20px; }} .title {{ font-size: 18pt; font-weight: bold; text-transform: uppercase; }} .meta-table {{ width: 100%; border-collapse: collapse; background-color: #f8f9fa; border: 1px solid #e2e8f0; margin-bottom: 20px; }} .meta-table td {{ padding: 8px 10px; border-bottom: 1px solid #e2e8f0; }} .section-title {{ font-size: 11pt; font-weight: bold; border-bottom: 2px solid #2d3748; padding-bottom: 4px; text-transform: uppercase; margin-bottom: 12px; }} .route-table {{ width: 100%; border-collapse: collapse; margin-bottom: 25px; }} .route-table th {{ background-color: #2d3748; color: white; padding: 8px 6px; font-size: 8pt; text-transform: uppercase; text-align: left; }} .signature-table {{ width: 100%; border-collapse: collapse; margin-top: 40px; }} .signature-box {{ width: 45%; text-align: center; }} .signature-space {{ height: 50px; border-bottom: 1px solid #4a5568; margin-bottom: 8px; }} .footer-brand {{ text-align: center; font-size: 7.5pt; color: #888; margin-top: 30px; }} .footer-brand a {{ color: #f06a25; text-decoration: none; font-weight: bold; }} </style></head><body onload="window.print()"><table class="header-table"><tr><td><div class="title">{nombre_empresa}</div><div>Control de Distribución y Logística</div></td><td style="text-align: right; font-size: 8.5pt; color: #555;"><strong>Documento Oficial de Despacho</strong><br>Fecha de Emisión: {fecha_actual}<br><span style="font-size: 18pt; font-weight: bold; color: #000; display: block; margin-top: 5px; letter-spacing: 1px;">N° {codigo_control}</span></td></tr></table><table class="meta-table"><tr><td><strong>Transportista:</strong></td><td>{esc(primero["chofer"] or "No asignado")}</td><td><strong>Vehículo / Patente:</strong></td><td>{esc(primero["marca_modelo"] or "S/D")} ({esc(primero["patente_identificador"] or "S/D")})</td></tr><tr><td><strong>Punto de Salida:</strong></td><td>{esc(primero["origen"])}</td><td><strong>Total Envíos:</strong></td><td>{len(fletes_rows)} Consolidados</td></tr><tr><td style="color: #4a5568; font-weight: bold; border-top: 2px solid #cbd5e0;">Hora de Inicio:</td><td style="border-top: 2px solid #cbd5e0;">______ : ______ hs</td><td style="color: #4a5568; font-weight: bold; border-top: 2px solid #cbd5e0;">Hora de Finalización:</td><td style="border-top: 2px solid #cbd5e0;">______ : ______ hs</td></tr></table><div class="section-title">Secuencia de Entrega Optimizada</div><table class="route-table"><thead><tr><th style="width: 4%; text-align:center;">Sec.</th><th style="width: 15%;">Referencia / Doc.</th><th style="width: 15%;">Origen</th><th style="width: 8%; text-align:center;">Bultos</th>{col_vol_header}<th style="width: 28%;">Dirección de Entrega</th><th style="width: 10%; text-align:center;">Hora Arribo</th><th style="width: 10%; text-align:center;">Hora Salida</th><th style="width: 10%;">Firma Recepción</th></tr></thead><tbody>{tabla_filas}</tbody></table><table class="signature-table"><tr><td class="signature-box"><div class="signature-space"></div><div>Firma del Transportista</div></td><td style="width: 10%;"></td><td class="signature-box"><div class="signature-space"></div><div>Control de Despacho Central</div></td></tr></table><div class="footer-brand">Powered by <a href="https://jz-tech.mywire.org" target="_blank">JZ Tech Solutions</a></div></body></html>'
+    return f'<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Despacho</title><style>@page {{ size: A4 portrait; margin: 15mm 10mm; }} body {{ font-family: system-ui, sans-serif; color: #333; margin: 0; padding: 0; font-size: 9pt; line-height: 1.4; }} .header-table {{ width: 100%; border-collapse: collapse; margin-bottom: 20px; }} .title {{ font-size: 18pt; font-weight: bold; text-transform: uppercase; }} .meta-table {{ width: 100%; border-collapse: collapse; background-color: #f8f9fa; border: 1px solid #e2e8f0; margin-bottom: 20px; }} .meta-table td {{ padding: 8px 10px; border-bottom: 1px solid #e2e8f0; }} .section-title {{ font-size: 11pt; font-weight: bold; border-bottom: 2px solid #2d3748; padding-bottom: 4px; text-transform: uppercase; margin-bottom: 12px; }} .route-table {{ width: 100%; border-collapse: collapse; margin-bottom: 25px; }} .route-table th {{ background-color: #2d3748; color: white; padding: 8px 6px; font-size: 8pt; text-transform: uppercase; text-align: left; }} .signature-table {{ width: 100%; border-collapse: collapse; margin-top: 40px; }} .signature-box {{ width: 45%; text-align: center; }} .signature-space {{ height: 50px; border-bottom: 1px solid #4a5568; margin-bottom: 8px; }} .footer-brand {{ text-align: center; font-size: 7.5pt; color: #888; margin-top: 30px; }} .footer-brand a {{ color: #f06a25; text-decoration: none; font-weight: bold; }} </style></head><body onload="window.print()"><table class="header-table"><tr><td><div class="title">{nombre_empresa}</div><div>Control de Distribución y Logística</div></td><td style="text-align: right; font-size: 8.5pt; color: #555;"><strong>Documento Oficial de Despacho</strong><br>Fecha de Emisión: {fecha_actual}<br><span style="font-size: 18pt; font-weight: bold; color: #000; display: block; margin-top: 5px; letter-spacing: 1px;">N° {codigo_control}</span></td></tr></table><table class="meta-table"><tr><td><strong>Transportista:</strong></td><td>{esc(primero["chofer"] or "No asignado")}</td><td><strong>Vehículo / Patente:</strong></td><td>{esc(primero["marca_modelo"] or "S/D")} ({esc(primero["patente_identificador"] or "S/D")})</td></tr><tr><td><strong>Punto de Salida:</strong></td><td>{esc(primero["origen"])}</td><td><strong>Total Envíos:</strong></td><td>{len(fletes_rows)} Consolidados</td></tr><tr><td style="color: #4a5568; font-weight: bold; border-top: 2px solid #cbd5e0;">Hora de Inicio:</td><td style="border-top: 2px solid #cbd5e0;">______ : ______ hs</td><td style="color: #4a5568; font-weight: bold; border-top: 2px solid #cbd5e0;">Hora de Finalización:</td><td style="border-top: 2px solid #cbd5e0;">______ : ______ hs</td></tr></table><div class="section-title">Secuencia de Entrega Optimizada</div><table class="route-table"><thead><tr><th style="width: 4%; text-align:center;">Sec.</th><th style="width: 15%;">Referencia / Doc.</th><th style="width: 15%;">Origen</th><th style="width: 8%; text-align:center;">Bultos</th>{col_vol_header}<th style="width: 28%;">Dirección de Entrega</th><th style="width: 10%; text-align:center;">Hora Entrega</th><th style="width: 10%; text-align:center;">Hora Salida</th><th style="width: 14%;">Recibió / Firma</th></tr></thead><tbody>{tabla_filas}</tbody></table><table class="signature-table"><tr><td class="signature-box"><div class="signature-space"></div><div>Firma del Transportista</div></td><td style="width: 10%;"></td><td class="signature-box"><div class="signature-space"></div><div>Control de Despacho Central</div></td></tr></table><div class="footer-brand">Powered by <a href="https://jz-tech.mywire.org" target="_blank">JZ Tech Solutions</a></div></body></html>'

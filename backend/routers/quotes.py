@@ -5,7 +5,7 @@ ajusta km, peajes y otros gastos, y la app calcula el desglose (calculos.costo_c
 ('enviada'); el cliente (o el admin por el) la acepta -> se crea el flete externo, o la rechaza.
 """
 import json
-from datetime import date
+from datetime import date, time
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -13,6 +13,7 @@ import asyncpg
 
 import calculos
 from database import get_db, require_role
+from routers.shipments import nuevo_token
 
 router = APIRouter(prefix="/api", tags=["Cotizaciones"])
 
@@ -33,6 +34,8 @@ class Punto(BaseModel):
 class Parada(Punto):
     bultos: int = 1
     volumen_m3: float = 0.0
+    desde: Optional[time] = None   # ventana horaria de entrega
+    hasta: Optional[time] = None
 
 
 class CotizacionCreate(BaseModel):
@@ -127,7 +130,7 @@ async def crear_cotizacion(data: CotizacionCreate, db: asyncpg.Connection = Depe
     c_id = await db.fetchval(
         "INSERT INTO cotizaciones (cliente_id, solicitante_id, descripcion, fecha_viaje, origen, paradas) VALUES ($1, $2::uuid, $3, $4, $5::jsonb, $6::jsonb) RETURNING id",
         cliente_id, user['id'], data.descripcion, data.fecha_viaje,
-        json.dumps(data.origen.model_dump()), json.dumps([p.model_dump() for p in data.paradas]))
+        json.dumps(data.origen.model_dump()), json.dumps([p.model_dump(mode="json") for p in data.paradas]))
     return {"status": "success", "id": c_id}
 
 
@@ -191,17 +194,19 @@ async def aceptar_cotizacion(cotizacion_id: int, db: asyncpg.Connection = Depend
         o = c['origen'] or {}
         flete_id = await db.fetchval("""
             INSERT INTO fletes (solicitante_id, vehiculo_id, origen_id, prioridad, distancia_total_km, tipo, cliente_id, precio,
-                                origen_alias, origen_calle, origen_altura, origen_ciudad, origen_provincia, origen_lat, origen_lon)
-            VALUES ($1::uuid, $2, NULL, 'normal', $3, 'externo', $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id
+                                origen_alias, origen_calle, origen_altura, origen_ciudad, origen_provincia, origen_lat, origen_lon, token_seguimiento)
+            VALUES ($1::uuid, $2, NULL, 'normal', $3, 'externo', $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id
         """, fila['solicitante_id'] or user['id'], fila['vehiculo_id'], fila['km_estimados'], fila['cliente_id'], fila['total'],
             o.get('alias') or 'Retiro', o.get('calle', ''), o.get('altura', ''), o.get('ciudad', ''), o.get('provincia', ''),
-            o.get('lat'), o.get('lon'))
+            o.get('lat'), o.get('lon'), nuevo_token())
         for idx, p in enumerate(c['paradas']):
             await db.execute("""
                 INSERT INTO documentos_flete (flete_id, tipo_documento, numero, destino_tipo, destino_id, destino_alias, destino_calle,
-                    destino_altura, destino_ciudad, destino_provincia, orden_ruta, bultos, volumen_m3, destino_lat, destino_lon)
-                VALUES ($1, 'cotizacion', $2, 'cliente', 0, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                    destino_altura, destino_ciudad, destino_provincia, orden_ruta, bultos, volumen_m3, destino_lat, destino_lon,
+                    ventana_desde, ventana_hasta)
+                VALUES ($1, 'cotizacion', $2, 'cliente', 0, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
             """, flete_id, str(cotizacion_id), p.get('alias', ''), p.get('calle', ''), p.get('altura', ''), p.get('ciudad', ''),
-                p.get('provincia', ''), idx + 1, p.get('bultos') or 1, p.get('volumen_m3') or 0, p.get('lat'), p.get('lon'))
+                p.get('provincia', ''), idx + 1, p.get('bultos') or 1, p.get('volumen_m3') or 0, p.get('lat'), p.get('lon'),
+                time.fromisoformat(p['desde']) if p.get('desde') else None, time.fromisoformat(p['hasta']) if p.get('hasta') else None)
         await db.execute("UPDATE cotizaciones SET estado='aceptada', flete_id=$1, actualizado_en=NOW() WHERE id=$2", flete_id, cotizacion_id)
     return {"status": "success", "flete_id": flete_id}

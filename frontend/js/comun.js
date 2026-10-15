@@ -93,7 +93,8 @@ function htmlPunto(fuentes, conCarga) {
             <div style="display:flex; gap:12px;"><div class="form-group" style="flex:1;"><label>Ciudad</label><input type="text" class="form-control pt-ciudad"></div><div class="form-group" style="flex:1;"><label>Provincia</label><input type="text" class="form-control pt-provincia"></div></div>
             <div class="form-group"><label>Ubicación (link de Google Maps o "lat, lon")</label><input type="text" class="form-control pt-ubicacion" placeholder="https://www.google.com/maps/@-34.60,-58.38,15z"></div>
         </div>
-        ${conCarga ? `<div style="display:flex; gap:12px;"><div class="form-group" style="flex:1;"><label>Bultos</label><input type="number" class="form-control pt-bultos" value="1" min="1"></div><div class="form-group" style="flex:1;"><label>Volumen (m³)</label><input type="number" class="form-control pt-volumen" value="0" min="0" step="0.01"></div></div>` : ''}`;
+        ${conCarga ? `<div style="display:flex; gap:12px;"><div class="form-group" style="flex:1;"><label>Bultos</label><input type="number" class="form-control pt-bultos" value="1" min="1"></div><div class="form-group" style="flex:1;"><label>Volumen (m³)</label><input type="number" class="form-control pt-volumen" value="0" min="0" step="0.01"></div></div>
+            <div style="display:flex; gap:12px;"><div class="form-group" style="flex:1;"><label>Entregar desde (opcional)</label><input type="time" class="form-control pt-desde"></div><div class="form-group" style="flex:1;"><label>Entregar hasta (opcional)</label><input type="time" class="form-control pt-hasta"></div></div>` : ''}`;
 }
 function cambioPunto(sel) { sel.closest('.punto').querySelector('.pt-manual').style.display = sel.value === 'm' ? 'block' : 'none'; }
 function leerPunto(box, indice) {
@@ -111,9 +112,49 @@ function leerPunto(box, indice) {
         p = { alias: i.alias, calle: i.calle, altura: i.altura || '', ciudad: i.ciudad || '', provincia: i.provincia || '', lat: i.lat, lon: i.lon };
     }
     const bultos = box.querySelector('.pt-bultos');
-    if (bultos) { p.bultos = parseInt(bultos.value) || 1; p.volumen_m3 = parseFloat(box.querySelector('.pt-volumen').value) || 0; }
+    if (bultos) {
+        p.bultos = parseInt(bultos.value) || 1; p.volumen_m3 = parseFloat(box.querySelector('.pt-volumen').value) || 0;
+        p.desde = box.querySelector('.pt-desde').value || null; p.hasta = box.querySelector('.pt-hasta').value || null;
+        if (p.desde && p.hasta && p.desde > p.hasta) { box.querySelector('.pt-hasta').classList.add('is-invalid'); throw new Error('El horario de entrega termina antes de empezar.'); }
+    }
     return p;
 }
 // Direcciones de un cliente y sucursales en el formato de htmlPunto.
 function itemsDirecciones(dirs) { return dirs.map(d => ({ id: 'd:' + d.id, alias: d.alias, calle: d.calle, altura: d.altura, ciudad: d.ciudad, provincia: d.provincia, lat: d.latitud, lon: d.longitud })); }
 function itemsSucursales(sucs) { return sucs.map(s => ({ id: 's:' + s.id, alias: s.nombre, calle: s.calle, altura: s.altura, ciudad: s.ciudad, provincia: s.provincia, lat: s.latitud, lon: s.longitud })); }
+
+// --- 1.3.0 ---
+function hhmm(t) { return t ? String(t).slice(0, 5) : ''; }
+function textoVentana(desde, hasta) { return (desde || hasta) ? `${desde ? 'desde ' + hhmm(desde) : ''}${desde && hasta ? ' ' : ''}${hasta ? 'hasta ' + hhmm(hasta) : ''}` : ''; }
+const MOTIVOS = { ausente: 'Nadie para recibir', rechazo: 'Rechazado por el destinatario', direccion_erronea: 'Dirección errónea', danado: 'Mercadería dañada', cerrado: 'Cerrado', otro: 'Otro' };
+function linkSeguimiento(token) { return window.location.origin + '/seguimiento.html?t=' + encodeURIComponent(token); }
+async function copiarSeguimiento(token) {
+    const link = linkSeguimiento(token);
+    try { await navigator.clipboard.writeText(link); alert('Link de seguimiento copiado: ' + link); }
+    catch (e) { prompt('Copie el link de seguimiento:', link); }
+}
+// Achica una foto del celular (JPEG, lado mayor 1280 px) para mandarla liviana. Devuelve un data URL.
+function comprimirImagen(archivo, lado = 1280, calidad = 0.7) {
+    return new Promise((ok, mal) => {
+        const lector = new FileReader();
+        lector.onerror = () => mal(new Error('No se pudo leer la foto.'));
+        lector.onload = () => {
+            const img = new Image();
+            img.onerror = () => mal(new Error('El archivo no es una imagen.'));
+            img.onload = () => {
+                const escala = Math.min(1, lado / Math.max(img.width, img.height));
+                const c = document.createElement('canvas'); c.width = Math.round(img.width * escala); c.height = Math.round(img.height * escala);
+                c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+                ok(c.toDataURL('image/jpeg', calidad));
+            };
+            img.src = lector.result;
+        };
+        lector.readAsDataURL(archivo);
+    });
+}
+// Estado de la entrega de una parada (badge).
+function badgeEntrega(p) {
+    if (p.entrega_estado === 'entregada') return '<span class="badge badge-success">Entregada</span>';
+    if (p.entrega_estado === 'no_entregada') return `<span class="badge badge-danger" title="${esc(p.entrega_obs || '')}">No entregada: ${esc(MOTIVOS[p.motivo] || p.motivo)}</span>`;
+    return '<span class="badge badge-pending">Pendiente</span>';
+}

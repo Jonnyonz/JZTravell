@@ -298,9 +298,12 @@
                         <div class="card-header"><span class="font-mono" style="font-weight:600;">${numFlete(f.id)}</span>${f.precio != null ? `<span class="badge badge-primary">${dinero(f.precio)}</span>` : ''}</div>
                         <div style="font-size:0.85rem; color:var(--text-secondary); line-height:1.5;">
                             <strong>Retiro:</strong> ${esc(f.origen)}<br>
-                            <strong>Entrega:</strong> ${f.paradas.map(p => esc(p.destino_alias)).join(', ')}<br>
+                            ${f.paradas.map(p => `<div style="margin:4px 0;">${esc(p.destino_alias)} ${badgeEntrega(p)}</div>`).join('')}
                             ${f.chofer ? `<strong>Chofer:</strong> ${esc(f.chofer)}<br>` : ''}
-                            ${f.estado === 'completado' ? `<a href="/api/fletes/imprimir?ids=${f.id}" target="_blank">Ver comprobante</a>` : ''}
+                            <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
+                                ${f.token_seguimiento ? `<button class="btn btn-secondary btn-sm" onclick="copiarSeguimiento(${jsArg(f.token_seguimiento)})">Link de seguimiento</button>` : ''}
+                                ${['completado', 'problema'].includes(f.estado) ? `<a class="btn btn-secondary btn-sm" href="/api/fletes/imprimir?ids=${f.id}" target="_blank">Comprobante</a>` : ''}
+                            </div>
                         </div>
                     </div>`).join('')}</div>`;
                 tablero.appendChild(div);

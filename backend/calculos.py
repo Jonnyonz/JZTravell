@@ -29,18 +29,61 @@ def ubicado(p):
 
 
 def ordenar_paradas(origen, paradas):
-    """Vecino mas cercano desde el origen. Las paradas sin coordenadas van al final, en su orden."""
-    con = [p for p in paradas if ubicado(p)]
-    sin = [p for p in paradas if not ubicado(p)]
-    if not ubicado(origen):
-        return con + sin
+    """Orden de entrega. Primero las paradas con horario limite ("hasta"), de la mas temprana a la mas tarde;
+    despues las sin horario. Dentro de cada grupo, vecino mas cercano desde donde quedo el vehiculo. Las paradas
+    sin coordenadas van al final de su grupo, en el orden en que vinieron."""
+    grupos = {}
+    for p in paradas:
+        grupos.setdefault(p.get("hasta"), []).append(p)
+    claves = sorted(k for k in grupos if k is not None) + ([None] if None in grupos else [])
     orden, actual = [], origen
-    while con:
-        proxima = min(con, key=lambda p: haversine_km(actual["lat"], actual["lon"], p["lat"], p["lon"]))
-        con.remove(proxima)
-        orden.append(proxima)
-        actual = proxima
-    return orden + sin
+    for k in claves:
+        con = [p for p in grupos[k] if ubicado(p)]
+        sin = [p for p in grupos[k] if not ubicado(p)]
+        while con:
+            if ubicado(actual):
+                proxima = min(con, key=lambda p: haversine_km(actual["lat"], actual["lon"], p["lat"], p["lon"]))
+            else:
+                proxima = con[0]
+            con.remove(proxima)
+            orden.append(proxima)
+            actual = proxima
+        orden.extend(sin)
+    return orden
+
+
+def estado_vencimiento(fecha, hoy, aviso_dias=30):
+    """'vencido', 'por_vencer' (dentro de aviso_dias) o None (vigente o sin fecha)."""
+    if fecha is None:
+        return None
+    if fecha < hoy:
+        return "vencido"
+    if (fecha - hoy).days <= aviso_dias:
+        return "por_vencer"
+    return None
+
+
+def a_tiempo(hora_entrega, desde, hasta):
+    """True/False si la entrega cayo dentro de la ventana horaria; None si la parada no tenia ventana."""
+    if desde is None and hasta is None:
+        return None
+    return (desde is None or hora_entrega >= desde) and (hasta is None or hora_entrega <= hasta)
+
+
+def costo_real_ruta(km, horas, vehiculo, cfg, gasto_combustible=0.0, gasto_peajes=0.0, gasto_otros=0.0):
+    """Costo real de una ruta cerrada: el combustible que cargo el chofer (o el estimado por consumo si no lo
+    cargo), desgaste por km, chofer por las horas que duro, peajes y otros gastos."""
+    km = max(float(km or 0), 0.0)
+    if gasto_combustible:
+        energia = gasto_combustible
+    else:
+        precio = cfg["precio_kwh"] if vehiculo.get("tipo") == "electrico" else cfg["precio_litro"]
+        energia = km * (vehiculo.get("consumo_100km") or 0) / 100 * (precio or 0)
+    desgaste = km * (vehiculo.get("costo_km") or 0)
+    chofer = max(float(horas or 0), 0.0) * (cfg["costo_chofer_hora"] or 0)
+    total = energia + desgaste + chofer + (gasto_peajes or 0) + (gasto_otros or 0)
+    return {"energia": round(energia, 2), "desgaste": round(desgaste, 2), "chofer": round(chofer, 2),
+            "peajes": round(gasto_peajes or 0, 2), "otros": round(gasto_otros or 0, 2), "total": round(total, 2)}
 
 
 def km_linea_recta(origen, paradas):
@@ -128,4 +171,21 @@ if __name__ == "__main__":
     o = ordenar_paradas(obelisco, [{"alias": "lejos", "lat": -34.9, "lon": -57.9}, {"alias": "sin"},
                                    {"alias": "cerca", "lat": -34.59, "lon": -58.37}])
     assert [p["alias"] for p in o] == ["cerca", "lejos", "sin"]
+    from datetime import date, time
+    # Ventanas: "lejos" tiene que estar antes de las 10, asi que va primero aunque "cerca" este mas cerca.
+    o = ordenar_paradas(obelisco, [{"alias": "cerca", "lat": -34.59, "lon": -58.37},
+                                   {"alias": "lejos", "lat": -34.9, "lon": -57.9, "hasta": time(10, 0)},
+                                   {"alias": "tarde", "lat": -34.6, "lon": -58.38, "hasta": time(18, 0)}])
+    assert [p["alias"] for p in o] == ["lejos", "tarde", "cerca"], [p["alias"] for p in o]
+    assert ordenar_paradas({}, [{"alias": "a"}, {"alias": "b", "lat": 1, "lon": 1}])[0]["alias"] == "b"
+    hoy = date(2026, 10, 15)
+    assert estado_vencimiento(date(2026, 10, 14), hoy) == "vencido"
+    assert estado_vencimiento(date(2026, 11, 1), hoy) == "por_vencer"
+    assert estado_vencimiento(date(2027, 1, 1), hoy) is None and estado_vencimiento(None, hoy) is None
+    assert a_tiempo(time(9, 30), time(9, 0), time(12, 0)) is True and a_tiempo(time(13, 0), None, time(12, 0)) is False
+    assert a_tiempo(time(13, 0), None, None) is None
+    r = costo_real_ruta(10, 2, {"tipo": "combustion", "consumo_100km": 10, "costo_km": 50},
+                        {"precio_litro": 1000, "precio_kwh": 0, "costo_chofer_hora": 5000}, 0, 300, 0)
+    assert r == {"energia": 1000, "desgaste": 500, "chofer": 10000, "peajes": 300, "otros": 0, "total": 11800}
+    assert costo_real_ruta(10, 0, {"tipo": "combustion"}, {"precio_litro": 1, "precio_kwh": 0, "costo_chofer_hora": 0}, 2500)["energia"] == 2500
     print("ok")

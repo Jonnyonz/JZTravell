@@ -8,7 +8,7 @@ from jztech_core.security_headers import SecurityHeadersMiddleware
 configure_logging()
 
 from database import init_db_schema, close_db_pool
-from routers import auth, users, config, fleet, branches, clients, shipments, quotes
+from routers import auth, users, config, fleet, branches, clients, shipments, quotes, deliveries, reports
 
 
 @asynccontextmanager
@@ -32,6 +32,8 @@ app.include_router(branches.router)
 app.include_router(clients.router)
 app.include_router(shipments.router)
 app.include_router(quotes.router)
+app.include_router(deliveries.router)
+app.include_router(reports.router)
 
 
 # CSRF: lo valida get_current_user (database.py) en cada POST/PUT/DELETE con sesion, con un token
@@ -46,7 +48,7 @@ app.add_middleware(
     SecurityHeadersMiddleware,
     csp=(
         "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
-        "object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+        "img-src 'self' data: blob:; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
     ),
     permissions_policy="geolocation=(self), microphone=(), camera=()",
 )

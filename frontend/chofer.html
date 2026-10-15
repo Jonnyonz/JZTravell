@@ -186,6 +186,25 @@
         .btn-chico.peligro { color: var(--danger); border-color: var(--danger); }
         .etiqueta { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; background: rgba(103, 58, 183, 0.15); color: #7e57c2; }
         .ruta-datos { display: flex; gap: 12px; flex-wrap: wrap; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; }
+        .badge-success { background: rgba(0, 200, 83, 0.15); color: var(--success); }
+        .badge-danger { background: rgba(213, 0, 0, 0.15); color: var(--danger); }
+        .badge-pending { background: rgba(255, 193, 7, 0.15); color: #b8860b; }
+        .acciones-parada { display: flex; gap: 8px; margin-top: 8px; }
+        .acciones-parada button { flex: 1; padding: 8px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--text-primary); font-family: inherit; }
+        .acciones-parada .ok { background: var(--success); color: #fff; border-color: var(--success); }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; align-items: flex-start; justify-content: center; overflow-y: auto; padding: 16px; }
+        .modal.active { display: flex; }
+        .modal-content { background: var(--bg-surface); color: var(--text-primary); border-radius: 12px; padding: 20px; width: 100%; max-width: 480px; border: 1px solid var(--border); }
+        .modal-content h3 { margin: 0 0 16px; }
+        .campo { margin-bottom: 14px; }
+        .campo label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
+        .campo input, .campo select, .campo textarea { width: 100%; box-sizing: border-box; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-page); color: var(--text-primary); font-size: 1rem; font-family: inherit; }
+        #firma { width: 100%; height: 160px; background: #fff; border: 1px dashed var(--border); border-radius: 8px; touch-action: none; display: block; }
+        .fila-botones { display: flex; gap: 8px; margin-top: 16px; }
+        .fila-botones button { flex: 1; padding: 12px; border-radius: 8px; font-weight: 700; cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--text-primary); font-family: inherit; }
+        .fila-botones .primario { background: var(--accent); color: #fff; border-color: var(--accent); }
+        #foto-previa { max-width: 100%; max-height: 160px; margin-top: 8px; border-radius: 8px; display: none; }
     </style>
     <script src="/js/comun.js"></script>
 </head>
@@ -222,8 +241,33 @@
         </svg>
         Powered by JZ Tech Solutions
     </div>
+    <div id="modal-entrega" class="modal"><div class="modal-content">
+        <h3 id="ent-titulo">Entrega</h3>
+        <input type="hidden" id="ent-doc"><input type="hidden" id="ent-estado">
+        <div id="ent-entregada">
+            <div class="campo"><label>Quién recibe</label><input type="text" id="ent-recibe" placeholder="Nombre y apellido"></div>
+            <div class="campo"><label>Firma (con el dedo)</label><canvas id="firma"></canvas><button type="button" class="btn-chico" style="margin-top:6px;" onclick="limpiarFirma()">Borrar firma</button></div>
+        </div>
+        <div id="ent-no-entregada" style="display:none;">
+            <div class="campo"><label>Motivo</label><select id="ent-motivo"></select></div>
+        </div>
+        <div class="campo"><label>Foto (opcional)</label><input type="file" id="ent-foto" accept="image/*" capture="environment" onchange="previsualizarFoto(this)"><img id="foto-previa" alt="foto"></div>
+        <div class="campo"><label>Observaciones</label><textarea id="ent-obs" rows="2"></textarea></div>
+        <div class="fila-botones"><button onclick="cerrarModal('modal-entrega')">Cancelar</button><button class="primario" id="ent-guardar" onclick="guardarEntrega()">Guardar</button></div>
+    </div></div>
+
+    <div id="modal-cierre" class="modal"><div class="modal-content">
+        <h3>Cerrar Ruta</h3>
+        <div class="campo"><label>Odómetro al llegar (km, opcional)</label><input type="number" id="cie-odometro" min="0" step="0.1" inputmode="decimal"></div>
+        <div class="campo"><label>Combustible cargado en el viaje ($, opcional)</label><input type="number" id="cie-combustible" min="0" step="0.01" inputmode="decimal"></div>
+        <div class="campo"><label>Peajes ($)</label><input type="number" id="cie-peajes" min="0" step="0.01" inputmode="decimal"></div>
+        <div class="campo"><label>Otros gastos ($)</label><input type="number" id="cie-otros" min="0" step="0.01" inputmode="decimal"></div>
+        <p id="cie-aviso" style="font-size:0.85rem; color:var(--text-secondary);"></p>
+        <div class="fila-botones"><button onclick="cerrarModal('modal-cierre')">Cancelar</button><button class="primario" onclick="confirmarCierre()">Cerrar Ruta</button></div>
+    </div></div>
+
     <script>
-        var DB = { fletes: [], vehiculos: [] }; var YO = null; var RUTA = null;
+        var DB = { fletes: [], vehiculos: [] }; var YO = null; var RUTA = null; var FOTO = null; var FIRMA_USADA = false;
 
         async function initApp() {
             try { YO = await quienSoy(); } catch (e) { return; }
@@ -241,12 +285,18 @@
         }
 
         function lineaParada(p, i) {
+            const ventana = textoVentana(p.ventana_desde, p.ventana_hasta);
+            const acciones = !p.entrega_estado
+                ? `<div class="acciones-parada"><button class="ok" onclick="abrirEntrega(${p.id}, 'entregada', ${jsArg(p.destino_alias)})">Entregar</button><button onclick="abrirEntrega(${p.id}, 'no_entregada', ${jsArg(p.destino_alias)})">No entregada</button></div>`
+                : `<div style="margin-top:6px;">${badgeEntrega(p)} <button class="btn-chico" onclick="abrirEntrega(${p.id}, ${jsArg(p.entrega_estado)}, ${jsArg(p.destino_alias)})">Corregir</button></div>`;
             return `<div class="parada-item">
                 <div style="font-weight:600; margin-bottom:4px; display:flex; justify-content:space-between;"><span>${i + 1}. ${esc(p.destino_alias)}</span><span style="color:var(--accent);">${esc(p.bultos)} Bultos</span></div>
                 <div style="color:var(--text-secondary); font-size:0.85rem; display:flex; gap:6px; align-items:flex-start;">
                     <svg class="icon" style="width:14px; height:14px; flex-shrink:0; margin-top:2px;" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
                     <span>${esc(p.destino_calle)} ${esc(p.destino_altura)}${p.destino_ciudad ? ', ' + esc(p.destino_ciudad) : ''}</span>
-                </div></div>`;
+                </div>
+                ${ventana ? `<div style="font-size:0.8rem; color:var(--warning); margin-top:4px;">Horario: ${esc(ventana)}</div>` : ''}
+                ${acciones}</div>`;
         }
 
         function renderUI() {
@@ -320,18 +370,84 @@
             } catch (e) { alert(e.message); }
         }
 
-        async function cerrarRuta() {
+        function abrirModal(id) { document.getElementById(id).classList.add('active'); }
+        function cerrarModal(id) { document.getElementById(id).classList.remove('active'); }
+
+        function cerrarRuta() {
             if (!RUTA) return;
-            const odometro = pedirOdometro('Odómetro del vehículo al llegar (km):', RUTA.odometro_salida);
-            if (odometro === undefined) return;
+            ['cie-odometro', 'cie-combustible', 'cie-peajes', 'cie-otros'].forEach(id => document.getElementById(id).value = '');
+            let pendientes = 0; DB.fletes.filter(f => f.ruta_id === RUTA.id && f.estado === 'camino').forEach(f => f.paradas.forEach(p => { if (!p.entrega_estado) pendientes++; }));
+            document.getElementById('cie-aviso').innerText = pendientes ? `Atención: ${pendientes} parada(s) sin registrar la entrega. Si cierra igual, se dan por entregadas.` : '';
+            if (RUTA.odometro_salida != null) document.getElementById('cie-odometro').placeholder = 'Salió con ' + RUTA.odometro_salida;
+            abrirModal('modal-cierre');
+        }
+        async function confirmarCierre() {
+            const num = id => { const v = document.getElementById(id).value; return v === '' ? null : parseFloat(v); };
+            const datos = { odometro_llegada: num('cie-odometro'), gasto_combustible: num('cie-combustible') || 0, gasto_peajes: num('cie-peajes') || 0, gasto_otros: num('cie-otros') || 0 };
             try {
-                const r = await api(`/api/rutas/${RUTA.id}/finalizar`, 'POST', { odometro_llegada: odometro });
+                const r = await api(`/api/rutas/${RUTA.id}/finalizar`, 'POST', datos);
+                cerrarModal('modal-cierre');
                 const partes = [`Ruta cerrada. Estimado: ${km(r.km_estimados)}`];
                 if (r.km_odometro != null) partes.push(`Odómetro: ${km(r.km_odometro)}`);
                 if (r.km_gps != null) partes.push(`GPS: ${km(r.km_gps)}`);
+                if (r.con_incidencia && r.con_incidencia.length) partes.push(`${r.con_incidencia.length} envío(s) quedan con incidencia para reprogramar`);
                 alert(partes.join(' · '));
                 loadData();
             } catch (e) { alert(e.message); }
+        }
+
+        // --- PRUEBA DE ENTREGA ---
+        function abrirEntrega(docId, estado, destino) {
+            document.getElementById('ent-doc').value = docId; document.getElementById('ent-estado').value = estado;
+            document.getElementById('ent-titulo').innerText = (estado === 'entregada' ? 'Entrega en ' : 'No se pudo entregar en ') + destino;
+            document.getElementById('ent-entregada').style.display = estado === 'entregada' ? 'block' : 'none';
+            document.getElementById('ent-no-entregada').style.display = estado === 'no_entregada' ? 'block' : 'none';
+            document.getElementById('ent-motivo').innerHTML = '<option value="">Elija el motivo...</option>' + Object.entries(MOTIVOS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
+            ['ent-recibe', 'ent-obs', 'ent-foto'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('foto-previa').style.display = 'none'; FOTO = null;
+            abrirModal('modal-entrega'); prepararFirma();
+        }
+        function prepararFirma() {
+            const c = document.getElementById('firma');
+            c.width = c.clientWidth; c.height = c.clientHeight;
+            const ctx = c.getContext('2d'); ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.strokeStyle = '#111';
+            ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height); FIRMA_USADA = false;
+            let dibujando = false;
+            const punto = e => { const r = c.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+            c.onpointerdown = e => { dibujando = true; FIRMA_USADA = true; c.setPointerCapture(e.pointerId); const [x, y] = punto(e); ctx.beginPath(); ctx.moveTo(x, y); };
+            c.onpointermove = e => { if (!dibujando) return; const [x, y] = punto(e); ctx.lineTo(x, y); ctx.stroke(); };
+            c.onpointerup = c.onpointercancel = () => { dibujando = false; };
+        }
+        function limpiarFirma() { prepararFirma(); }
+        async function previsualizarFoto(input) {
+            FOTO = null; const previa = document.getElementById('foto-previa');
+            if (!input.files || !input.files[0]) { previa.style.display = 'none'; return; }
+            try { FOTO = await comprimirImagen(input.files[0]); previa.src = FOTO; previa.style.display = 'block'; }
+            catch (e) { alert(e.message); input.value = ''; }
+        }
+        function posicionActual() {
+            return new Promise(ok => {
+                if (!('geolocation' in navigator)) return ok(null);
+                navigator.geolocation.getCurrentPosition(p => ok(p.coords), () => ok(null), { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 });
+            });
+        }
+        async function guardarEntrega() {
+            const estado = document.getElementById('ent-estado').value, boton = document.getElementById('ent-guardar');
+            const datos = { estado, recibido_por: document.getElementById('ent-recibe').value.trim(), motivo: document.getElementById('ent-motivo').value,
+                            observaciones: document.getElementById('ent-obs').value.trim(), foto: FOTO };
+            if (estado === 'entregada' && !datos.recibido_por) return alert('Indique quién recibe.');
+            if (estado === 'no_entregada' && !datos.motivo) return alert('Elija el motivo.');
+            if (estado === 'entregada' && FIRMA_USADA) datos.firma = document.getElementById('firma').toDataURL('image/png');
+            boton.disabled = true; boton.innerText = 'Guardando...';
+            const pos = await posicionActual();
+            if (pos) { datos.lat = pos.latitude; datos.lon = pos.longitude; }
+            try {
+                const r = await api(`/api/paradas/${document.getElementById('ent-doc').value}/entrega`, 'POST', datos);
+                cerrarModal('modal-entrega');
+                if (r.ubicacion_guardada) alert('Entrega registrada. La dirección no tenía ubicación: se guardó la de su GPS.');
+                loadData();
+            } catch (e) { alert(e.message); }
+            finally { boton.disabled = false; boton.innerText = 'Guardar'; }
         }
 
         async function iniciarMotorGPS() {

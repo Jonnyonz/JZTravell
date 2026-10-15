@@ -1,6 +1,7 @@
 import asyncio
 import secrets
 import re
+from datetime import date
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -20,6 +21,8 @@ class UsuarioRegister(BaseModel):
     rol: str
     # Empresa (tabla clientes) del usuario con rol cliente: ve los viajes y cotizaciones de esa empresa.
     cliente_id: Optional[int] = None
+    # Choferes: con la licencia vencida no pueden tomar fletes.
+    licencia_vence: Optional[date] = None
 
 
 class UsuarioEdit(BaseModel):
@@ -28,6 +31,7 @@ class UsuarioEdit(BaseModel):
     activo: bool
     password: Optional[str] = None
     cliente_id: Optional[int] = None
+    licencia_vence: Optional[date] = None
 
 
 class SolicitudProcesar(BaseModel):
@@ -58,7 +62,7 @@ async def quien_soy(user=Depends(get_current_user)):
 
 @router.get("/usuarios")
 async def get_usuarios(db: asyncpg.Connection = Depends(get_db), user=Depends(require_role(['admin']))):
-    return [dict(r) for r in await db.fetch("SELECT u.username, u.nombre_completo, u.rol, u.activo, u.cliente_id, c.razon_social AS empresa FROM usuarios u LEFT JOIN clientes c ON c.id = u.cliente_id ORDER BY u.username ASC")]
+    return [dict(r) for r in await db.fetch("SELECT u.username, u.nombre_completo, u.rol, u.activo, u.cliente_id, u.licencia_vence, c.razon_social AS empresa FROM usuarios u LEFT JOIN clientes c ON c.id = u.cliente_id ORDER BY u.username ASC")]
 
 
 @router.post("/usuarios")
@@ -68,7 +72,7 @@ async def register_usuario(data: UsuarioRegister, db: asyncpg.Connection = Depen
     if await db.fetchval("SELECT 1 FROM usuarios WHERE username = $1", data.username):
         raise HTTPException(400, "Ese nombre de usuario ya existe.")
     password_hash = await asyncio.to_thread(hash_password, data.password)
-    await db.execute("INSERT INTO usuarios (username, password_hash, nombre_completo, rol, activo, cliente_id) VALUES ($1, $2, $3, $4, TRUE, $5)", data.username, password_hash, data.nombre_completo, data.rol, cliente_id)
+    await db.execute("INSERT INTO usuarios (username, password_hash, nombre_completo, rol, activo, cliente_id, licencia_vence) VALUES ($1, $2, $3, $4, TRUE, $5, $6)", data.username, password_hash, data.nombre_completo, data.rol, cliente_id, data.licencia_vence)
     return {"status": "success"}
 
 
@@ -78,9 +82,9 @@ async def modificar_usuario(username: str, data: UsuarioEdit, db: asyncpg.Connec
     if data.password:
         if not re.match(r"^(?=.*[0-9])(?=.*[A-Z]).{8,}$", data.password): raise HTTPException(400, "Contraseña invalida.")
         pw_hash = await asyncio.to_thread(hash_password, data.password)
-        await db.execute("UPDATE usuarios SET password_hash=$1, nombre_completo=$2, rol=$3, activo=$4, cliente_id=$5 WHERE username=$6", pw_hash, data.nombre_completo, data.rol, data.activo, cliente_id, username)
+        await db.execute("UPDATE usuarios SET password_hash=$1, nombre_completo=$2, rol=$3, activo=$4, cliente_id=$5, licencia_vence=$6 WHERE username=$7", pw_hash, data.nombre_completo, data.rol, data.activo, cliente_id, data.licencia_vence, username)
     else:
-        await db.execute("UPDATE usuarios SET nombre_completo=$1, rol=$2, activo=$3, cliente_id=$4 WHERE username=$5", data.nombre_completo, data.rol, data.activo, cliente_id, username)
+        await db.execute("UPDATE usuarios SET nombre_completo=$1, rol=$2, activo=$3, cliente_id=$4, licencia_vence=$5 WHERE username=$6", data.nombre_completo, data.rol, data.activo, cliente_id, data.licencia_vence, username)
     # Clave nueva o usuario desactivado: se cierran sus sesiones abiertas (en todos los dispositivos).
     if data.password or not data.activo:
         user_id = await db.fetchval("SELECT id FROM usuarios WHERE username=$1", username)

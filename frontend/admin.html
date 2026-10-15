@@ -178,6 +178,15 @@
         .punto { border: 1px solid var(--border); padding: 16px; margin-bottom: 12px; border-radius: 10px; background: var(--bg-page); }
         .check { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); cursor: pointer; }
         .check input { width: 18px; height: 18px; accent-color: var(--accent); }
+        .alertas { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+        .alerta { padding: 8px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; border: 1px solid var(--border); background: var(--bg-surface); }
+        .alerta.vencido, .alerta.incidencia { border-color: var(--danger); color: var(--danger); }
+        .alerta.por_vencer { border-color: var(--warning); color: #b8860b; }
+        .tarjetas { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .tarjeta { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+        .tarjeta .numero { font-size: 1.5rem; font-weight: 700; margin-top: 6px; }
+        .tarjeta .rotulo { font-size: 0.8rem; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; }
+        .evidencia img { max-width: 220px; max-height: 140px; border: 1px solid var(--border); border-radius: 8px; margin: 6px 6px 0 0; background: #fff; }
     </style>
     <script src="/js/comun.js"></script>
 </head>
@@ -197,6 +206,9 @@
         </button>
         <button class="nav-item" title="Rutas y km recorridos" onclick="switchTab('rutas', this)">
             <svg class="icon" viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg>
+        </button>
+        <button class="nav-item" title="Reportes" onclick="switchTab('reportes', this)">
+            <svg class="icon" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
         </button>
         <button class="nav-item" title="Usuarios" onclick="switchTab('usuarios', this)">
             <svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
@@ -242,6 +254,7 @@
                 </div>
             </header>
             <div class="content-body">
+                <div class="alertas" id="alertas"></div>
                 <div class="kanban-board" id="kanban-board"></div>
             </div>
         </div>
@@ -270,11 +283,25 @@
                 <p class="ayuda" style="margin-top:0; margin-bottom:16px;">Km estimados: línea recta entre paradas por el factor de calle. Km reales: los del odómetro que carga el chofer; si no lo cargó, los medidos por GPS durante el viaje.</p>
                 <div class="table-container">
                     <table>
-                        <thead><tr><th>Ruta</th><th>Chofer</th><th>Vehículo</th><th>Inicio</th><th>Estado</th><th>Fletes</th><th>Km estimados</th><th>Km odómetro</th><th>Km GPS</th><th>Desvío</th></tr></thead>
+                        <thead><tr><th>Ruta</th><th>Chofer</th><th>Vehículo</th><th>Inicio</th><th>Estado</th><th>Fletes</th><th>Km estimados</th><th>Km odómetro</th><th>Km GPS</th><th>Desvío</th><th>Gastos cargados</th></tr></thead>
                         <tbody id="tabla-rutas"></tbody>
                     </table>
                 </div>
             </div>
+        </div>
+
+        <!-- REPORTES -->
+        <div id="tab-reportes" class="tab-content">
+            <header class="content-header">
+                <h1>Reportes</h1>
+                <div class="header-actions">
+                    <input type="date" class="form-control" id="rep-desde" style="width:auto;">
+                    <input type="date" class="form-control" id="rep-hasta" style="width:auto;">
+                    <button class="btn btn-primary" onclick="cargarReportes()">Ver</button>
+                    <button class="btn btn-secondary" onclick="descargarCSV()">Descargar CSV</button>
+                </div>
+            </header>
+            <div class="content-body" id="reportes-cuerpo"><p class="ayuda">Elija el período y toque Ver.</p></div>
         </div>
 
         <!-- USUARIOS -->
@@ -336,6 +363,7 @@
                                 <th class="sortable" onclick="setGridSort('vehiculos', 'consumo_100km')">Consumo /100 km<span id="s-vehiculos-consumo_100km"></span></th>
                                 <th class="sortable" onclick="setGridSort('vehiculos', 'costo_km')">Desgaste /km<span id="s-vehiculos-costo_km"></span></th>
                                 <th class="sortable" onclick="setGridSort('vehiculos', 'odometro_km')">Odómetro<span id="s-vehiculos-odometro_km"></span></th>
+                                <th>Documentación / Service</th>
                                 <th class="sortable" onclick="setGridSort('vehiculos', 'estado')">Estado<span id="s-vehiculos-estado"></span></th>
                                 <th>Acciones</th>
                             </tr>
@@ -451,6 +479,7 @@
             <div class="form-group"><label>Contraseña (mín. 8 caracteres, 1 mayúscula, 1 número) <span style="color:var(--danger);">*</span></label><input type="password" class="form-control" id="nu-password" required></div>
             <div class="form-group"><label>Nombre Completo <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" id="nu-nombre" required></div>
             <div class="form-group"><label>Rol de Acceso <span style="color:var(--danger);">*</span></label><select class="form-control" id="nu-rol" onchange="mostrarEmpresa('nu')"><option value="chofer">Transportista</option><option value="cliente">Cliente</option><option value="admin">Administrador</option></select></div>
+            <div class="form-group" id="nu-licencia-grupo"><label>Licencia de conducir vence</label><input type="date" class="form-control" id="nu-licencia"><div class="ayuda">Con la licencia vencida no puede tomar fletes.</div></div>
             <div class="form-group" id="nu-empresa-grupo" style="display:none;"><label>Empresa del cliente</label><select class="form-control sel-empresa" id="nu-empresa"></select><div class="ayuda">Verá los viajes y cotizaciones de esta empresa en su portal.</div></div>
             <button type="submit" class="btn btn-primary" style="width:100%">Dar de Alta</button>
         </form></div></div>
@@ -459,6 +488,7 @@
         <form id="form-editar-usuario" onsubmit="ejecutarEdicionUsuario(event)"><input type="hidden" id="eu-username">
             <div class="form-group"><label>Nombre Completo <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" id="eu-nombre" required></div>
             <div class="form-group"><label>Rol de Acceso <span style="color:var(--danger);">*</span></label><select class="form-control" id="eu-rol" onchange="mostrarEmpresa('eu')"><option value="chofer">Transportista</option><option value="cliente">Cliente</option><option value="admin">Administrador</option></select></div>
+            <div class="form-group" id="eu-licencia-grupo"><label>Licencia de conducir vence</label><input type="date" class="form-control" id="eu-licencia"></div>
             <div class="form-group" id="eu-empresa-grupo" style="display:none;"><label>Empresa del cliente</label><select class="form-control sel-empresa" id="eu-empresa"></select></div>
             <div class="form-group"><label>Estado de Cuenta <span style="color:var(--danger);">*</span></label><select class="form-control" id="eu-activo"><option value="true">Activo / Autorizado</option><option value="false">Bloqueado / Suspendido</option></select></div>
             <div class="form-group"><label>Blanquear Contraseña</label><input type="password" class="form-control" id="eu-password" placeholder="Dejar vacío para no cambiarla"></div>
@@ -474,8 +504,29 @@
             <h4 style="border-top:1px solid var(--border); padding-top:16px; margin:16px 0; font-size:1rem;">Costos para cotizar</h4>
             <div class="fila"><div class="form-group"><label id="veh-consumo-label">Consumo (litros cada 100 km)</label><input type="number" class="form-control" step="0.01" min="0" id="veh-consumo" value="0"></div><div class="form-group"><label>Desgaste por km ($)</label><input type="number" class="form-control" step="0.01" min="0" id="veh-costo-km" value="0"><div class="ayuda">Cubiertas, service, repuestos, amortización.</div></div></div>
             <div class="fila"><div class="form-group"><label>Odómetro actual (km)</label><input type="number" class="form-control" step="0.1" min="0" id="veh-odometro" value="0"></div><div class="form-group" id="veh-estado-grupo"><label>Estado Operativo</label><select class="form-control" id="veh-estado"><option value="activo">Activo / Disponible</option><option value="mantenimiento">En Taller (Mantenimiento)</option><option value="baja">Baja Operativa</option></select></div></div>
+            <h4 style="border-top:1px solid var(--border); padding-top:16px; margin:16px 0; font-size:1rem;">Vencimientos y service</h4>
+            <div class="fila"><div class="form-group"><label>VTV vence</label><input type="date" class="form-control" id="veh-vtv"></div><div class="form-group"><label>Seguro vence</label><input type="date" class="form-control" id="veh-seguro"></div><div class="form-group"><label>Habilitación vence</label><input type="date" class="form-control" id="veh-habilitacion"></div></div>
+            <div class="fila"><div class="form-group"><label>Service cada (km)</label><input type="number" class="form-control" min="0" step="1" id="veh-service-cada" value="0"><div class="ayuda">0 = sin aviso.</div></div><div class="form-group"><label>Último service (km)</label><input type="number" class="form-control" min="0" step="0.1" id="veh-service-ultimo" value="0"></div></div>
+            <p class="ayuda">Con la VTV, el seguro o la habilitación vencidos, el vehículo no puede salir.</p>
             <button type="submit" class="btn btn-primary" style="width:100%">Guardar Unidad</button>
         </form></div></div>
+
+    <div id="modal-mantenimiento" class="modal"><div class="modal-content modal-large"><button class="close-btn" onclick="closeModal('modal-mantenimiento')">&times;</button><h3 id="man-titulo">Mantenimiento</h3>
+        <div style="display:flex; gap:24px; flex-wrap:wrap;">
+            <div class="table-container" style="flex:1.5; min-width:300px; max-height:50vh; overflow-y:auto; margin-bottom:0;"><table style="margin-bottom:0;"><thead><tr><th>Fecha</th><th>Tipo</th><th>Km</th><th>Detalle</th><th>Costo</th></tr></thead><tbody id="tabla-mantenimiento"></tbody></table></div>
+            <div style="flex:1; min-width:240px; background:var(--bg-page); padding:20px; border-radius:10px; border:1px solid var(--border);">
+                <form onsubmit="guardarMantenimiento(event)"><input type="hidden" id="man-veh">
+                    <div class="form-group"><label>Tipo</label><select class="form-control" id="man-tipo"><option value="service">Service</option><option value="reparacion">Reparación</option><option value="cubiertas">Cubiertas</option><option value="otro">Otro</option></select></div>
+                    <div class="form-group"><label>Fecha</label><input type="date" class="form-control" id="man-fecha"></div>
+                    <div class="form-group"><label>Odómetro (km)</label><input type="number" class="form-control" min="0" step="0.1" id="man-km"></div>
+                    <div class="form-group"><label>Detalle</label><input type="text" class="form-control" id="man-desc"></div>
+                    <div class="form-group"><label>Costo ($)</label><input type="number" class="form-control" min="0" step="0.01" id="man-costo" value="0"></div>
+                    <button type="submit" class="btn btn-primary" style="width:100%;">Registrar</button>
+                </form>
+            </div>
+        </div></div></div>
+
+    <div id="modal-detalle-flete" class="modal"><div class="modal-content modal-large"><button class="close-btn" onclick="closeModal('modal-detalle-flete')">&times;</button><div id="detalle-flete"></div></div></div>
 
     <div id="modal-sucursal" class="modal"><div class="modal-content"><button class="close-btn" onclick="closeModal('modal-sucursal')">&times;</button><h3 id="suc-titulo">Sucursal</h3>
         <form id="form-sucursal" onsubmit="guardarSucursal(event)"><input type="hidden" id="suc-id">
@@ -592,6 +643,7 @@
                     seguro('/api/tipos_documentos', []), seguro('/api/fletes', []), seguro('/api/usuarios', []), seguro('/api/admin/solicitudes', []),
                     seguro('/api/cotizaciones', []), seguro('/api/rutas', []), seguro('/api/config/costos', {})]);
                 globalConfig = config; costos = cos;
+                seguro('/api/alertas', []).then(renderAlertas);
                 Object.assign(DB, { vehiculos, sucursales, clientes, tipos_docs: tipos, fletes, usuarios, solicitudes, cotizaciones, rutas });
                 llenarConfig(); llenarSelects();
                 [renderUsuarios, renderSolicitudes, renderVehiculos, renderSucursales, renderClientes, renderKanban, renderCotizaciones, renderRutas]
@@ -656,14 +708,18 @@
         function capital(s) { s = s || ''; return s.charAt(0).toUpperCase() + s.slice(1); }
 
         // --- USUARIOS ---
-        function mostrarEmpresa(pref) { document.getElementById(pref + '-empresa-grupo').style.display = valor(pref + '-rol') === 'cliente' ? 'block' : 'none'; }
+        function mostrarEmpresa(pref) {
+            const rol = valor(pref + '-rol');
+            document.getElementById(pref + '-empresa-grupo').style.display = rol === 'cliente' ? 'block' : 'none';
+            document.getElementById(pref + '-licencia-grupo').style.display = rol === 'cliente' ? 'none' : 'block';
+        }
         function renderUsuarios() {
             let res = [...DB.usuarios]; const st = GridState.usuarios;
             if (!st.showInactive) res = res.filter(u => esActivo(u.activo));
             if (st.query) res = res.filter(u => (u.username || '').toLowerCase().includes(st.query) || (u.nombre_completo || '').toLowerCase().includes(st.query));
             sortEngine(res, st.col, st.dir); updateArrows('usuarios');
             const nombres = { admin: 'Administrador', chofer: 'Transportista', cliente: 'Cliente' };
-            document.getElementById('tabla-usuarios').innerHTML = res.length === 0 ? filaVacia(6, 'No hay usuarios registrados.') : res.map(u => `<tr><td><strong class="font-mono">${esc(u.username)}</strong></td><td>${esc(u.nombre_completo)}</td><td><span class="badge badge-primary">${esc(nombres[u.rol] || u.rol)}</span></td><td>${u.rol === 'cliente' ? (u.empresa ? esc(u.empresa) : '<span class="badge badge-warning">Sin empresa</span>') : ''}</td><td><span class="badge ${esActivo(u.activo) ? 'badge-success' : 'badge-danger'}">${esActivo(u.activo) ? 'Activo' : 'Bloqueado'}</span></td><td><button class="btn btn-secondary btn-sm" onclick="abrirEditarUsuario(${jsArg(u.username)})">Editar</button></td></tr>`).join('');
+            document.getElementById('tabla-usuarios').innerHTML = res.length === 0 ? filaVacia(6, 'No hay usuarios registrados.') : res.map(u => `<tr><td><strong class="font-mono">${esc(u.username)}</strong></td><td>${esc(u.nombre_completo)}</td><td><span class="badge badge-primary">${esc(nombres[u.rol] || u.rol)}</span></td><td>${u.rol === 'cliente' ? (u.empresa ? esc(u.empresa) : '<span class="badge badge-warning">Sin empresa</span>') : badgeVence('Licencia', u.licencia_vence)}</td><td><span class="badge ${esActivo(u.activo) ? 'badge-success' : 'badge-danger'}">${esActivo(u.activo) ? 'Activo' : 'Bloqueado'}</span></td><td><button class="btn btn-secondary btn-sm" onclick="abrirEditarUsuario(${jsArg(u.username)})">Editar</button></td></tr>`).join('');
         }
         function renderSolicitudes() {
             document.getElementById('tabla-solicitudes').innerHTML = DB.solicitudes.length === 0 ? filaVacia(4, 'No hay solicitudes pendientes.') : DB.solicitudes.map((s, i) => `<tr><td class="font-mono">${esc(s.email)}</td><td>${esc(s.nombre_completo)}</td><td><select class="form-control" id="sol-rol-${i}"><option value="chofer">Transportista</option><option value="cliente">Cliente</option><option value="admin">Administrador</option></select></td><td style="display:flex; gap:8px;"><button class="btn btn-primary btn-sm" onclick="procesarSolicitud(${i}, true)">Aprobar</button><button class="btn btn-secondary btn-sm" onclick="procesarSolicitud(${i}, false)">Rechazar</button></td></tr>`).join('');
@@ -675,7 +731,7 @@
         async function crearUsuario(e) {
             e.preventDefault();
             const rol = valor('nu-rol');
-            const r = await enviar('/api/usuarios', 'POST', { username: valor('nu-username').trim(), password: valor('nu-password'), nombre_completo: valor('nu-nombre').trim(), rol, cliente_id: rol === 'cliente' && valor('nu-empresa') ? parseInt(valor('nu-empresa')) : null }, 'Usuario creado.');
+            const r = await enviar('/api/usuarios', 'POST', { username: valor('nu-username').trim(), password: valor('nu-password'), nombre_completo: valor('nu-nombre').trim(), rol, cliente_id: rol === 'cliente' && valor('nu-empresa') ? parseInt(valor('nu-empresa')) : null, licencia_vence: rol !== 'cliente' && valor('nu-licencia') ? valor('nu-licencia') : null }, 'Usuario creado.');
             if (r) { closeModal('modal-usuario'); document.getElementById('form-usuario').reset(); mostrarEmpresa('nu'); loadData(); }
         }
         function abrirEditarUsuario(username) {
@@ -683,12 +739,13 @@
             document.getElementById('eu-username').value = u.username; document.getElementById('eu-nombre').value = u.nombre_completo;
             document.getElementById('eu-rol').value = u.rol; document.getElementById('eu-activo').value = esActivo(u.activo) ? 'true' : 'false';
             document.getElementById('eu-empresa').value = u.cliente_id || ''; document.getElementById('eu-password').value = '';
+            document.getElementById('eu-licencia').value = u.licencia_vence || '';
             mostrarEmpresa('eu'); openModal('modal-editar-usuario');
         }
         async function ejecutarEdicionUsuario(e) {
             e.preventDefault();
             const rol = valor('eu-rol');
-            const r = await enviar('/api/usuarios/' + encodeURIComponent(valor('eu-username')), 'PUT', { nombre_completo: valor('eu-nombre'), rol, activo: valor('eu-activo') === 'true', password: valor('eu-password') || null, cliente_id: rol === 'cliente' && valor('eu-empresa') ? parseInt(valor('eu-empresa')) : null }, 'Usuario actualizado.');
+            const r = await enviar('/api/usuarios/' + encodeURIComponent(valor('eu-username')), 'PUT', { nombre_completo: valor('eu-nombre'), rol, activo: valor('eu-activo') === 'true', password: valor('eu-password') || null, cliente_id: rol === 'cliente' && valor('eu-empresa') ? parseInt(valor('eu-empresa')) : null, licencia_vence: rol !== 'cliente' && valor('eu-licencia') ? valor('eu-licencia') : null }, 'Usuario actualizado.');
             if (r) { closeModal('modal-editar-usuario'); loadData(); }
         }
 
@@ -698,7 +755,7 @@
             if (!st.showInactive) res = res.filter(v => v.estado === 'activo');
             if (st.query) res = res.filter(v => (v.patente_identificador || '').toLowerCase().includes(st.query) || (v.marca_modelo || '').toLowerCase().includes(st.query));
             sortEngine(res, st.col, st.dir); updateArrows('vehiculos');
-            document.getElementById('tabla-vehiculos').innerHTML = res.length === 0 ? filaVacia(9, 'No hay vehículos en la flota activa.') : res.map(v => `<tr><td><strong class="font-mono">${esc(v.patente_identificador)}</strong></td><td>${esc(v.marca_modelo)}</td><td>${v.tipo === 'electrico' ? 'Eléctrico' : 'Combustión'}</td><td>${v.usa_volumen ? esc(v.capacidad_volumen_m3) + ' m³' : '<span style="color:var(--text-muted);">No controla</span>'}</td><td>${esc(v.consumo_100km)} ${v.tipo === 'electrico' ? 'kWh' : 'L'}</td><td>${dinero(v.costo_km)}</td><td>${km(v.odometro_km)}</td><td><span class="badge badge-${v.estado === 'activo' ? 'success' : v.estado === 'mantenimiento' ? 'warning' : 'danger'}">${esc(capital(v.estado))}</span></td><td><button class="btn btn-secondary btn-sm" onclick="abrirVehiculo(${v.id})">Editar</button></td></tr>`).join('');
+            document.getElementById('tabla-vehiculos').innerHTML = res.length === 0 ? filaVacia(10, 'No hay vehículos en la flota activa.') : res.map(v => `<tr><td><strong class="font-mono">${esc(v.patente_identificador)}</strong></td><td>${esc(v.marca_modelo)}</td><td>${v.tipo === 'electrico' ? 'Eléctrico' : 'Combustión'}</td><td>${v.usa_volumen ? esc(v.capacidad_volumen_m3) + ' m³' : '<span style="color:var(--text-muted);">No controla</span>'}</td><td>${esc(v.consumo_100km)} ${v.tipo === 'electrico' ? 'kWh' : 'L'}</td><td>${dinero(v.costo_km)}</td><td>${km(v.odometro_km)}</td><td>${documentacion(v)}</td><td><span class="badge badge-${v.estado === 'activo' ? 'success' : v.estado === 'mantenimiento' ? 'warning' : 'danger'}">${esc(capital(v.estado))}</span></td><td style="display:flex; gap:6px;"><button class="btn btn-secondary btn-sm" onclick="abrirVehiculo(${v.id})">Editar</button><button class="btn btn-secondary btn-sm" onclick="abrirMantenimiento(${v.id})">Mantenimiento</button></td></tr>`).join('');
         }
         function etiquetaConsumo() { document.getElementById('veh-consumo-label').innerText = valor('veh-tipo') === 'electrico' ? 'Consumo (kWh cada 100 km)' : 'Consumo (litros cada 100 km)'; }
         function abrirVehiculo(id) {
@@ -711,6 +768,9 @@
             document.getElementById('veh-volumen-grupo').style.display = v.usa_volumen ? 'block' : 'none';
             document.getElementById('veh-consumo').value = v.consumo_100km; document.getElementById('veh-costo-km').value = v.costo_km;
             document.getElementById('veh-odometro').value = v.odometro_km; document.getElementById('veh-estado').value = v.estado;
+            document.getElementById('veh-vtv').value = v.vtv_vence || ''; document.getElementById('veh-seguro').value = v.seguro_vence || '';
+            document.getElementById('veh-habilitacion').value = v.habilitacion_vence || '';
+            document.getElementById('veh-service-cada').value = v.service_cada_km || 0; document.getElementById('veh-service-ultimo').value = v.ultimo_service_km || 0;
             document.getElementById('veh-estado-grupo').style.visibility = id ? 'visible' : 'hidden';
             etiquetaConsumo(); openModal('modal-vehiculo');
         }
@@ -719,7 +779,9 @@
             const id = valor('veh-id');
             const datos = { patente_identificador: valor('veh-patente').trim(), marca_modelo: valor('veh-marca').trim(), tipo: valor('veh-tipo'), autonomia_maxima_km: numero('veh-autonomia'),
                             usa_volumen: document.getElementById('veh-usa-volumen').checked, capacidad_volumen_m3: numero('veh-volumen'), consumo_100km: numero('veh-consumo'),
-                            costo_km: numero('veh-costo-km'), odometro_km: numero('veh-odometro'), estado: valor('veh-estado') };
+                            costo_km: numero('veh-costo-km'), odometro_km: numero('veh-odometro'), estado: valor('veh-estado'),
+                            vtv_vence: valor('veh-vtv') || null, seguro_vence: valor('veh-seguro') || null, habilitacion_vence: valor('veh-habilitacion') || null,
+                            service_cada_km: numero('veh-service-cada'), ultimo_service_km: numero('veh-service-ultimo') };
             const r = await enviar(id ? '/api/vehiculos/' + id : '/api/vehiculos', id ? 'PUT' : 'POST', datos, 'Vehículo guardado.');
             if (r) { closeModal('modal-vehiculo'); loadData(); }
         }
@@ -811,7 +873,7 @@
             columnas.forEach(col => {
                 const colHTML = document.createElement('div'); colHTML.className = 'kanban-column';
                 const fletes = DB.fletes.filter(f => f.estado === col.id);
-                const cards = fletes.slice(0, maxTarjetas).map(f => `<div class="kanban-card"><div class="card-header"><span class="font-mono" style="font-weight:600; font-size:1.05rem;">${numFlete(f.id)}</span><span style="display:flex; gap:6px;">${badgeTipo(f)}<span class="badge badge-${f.prioridad === 'alta' ? 'danger' : 'primary'}">${esc(capital(f.prioridad))}</span></span></div><div style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:12px; line-height:1.5;">${infoFlete(f)}</div><div class="card-actions">${getBotonesAccion(f)}</div></div>`).join('');
+                const cards = fletes.slice(0, maxTarjetas).map(f => `<div class="kanban-card"><div class="card-header"><span class="font-mono" style="font-weight:600; font-size:1.05rem;">${numFlete(f.id)}</span><span style="display:flex; gap:6px;">${badgeTipo(f)}<span class="badge badge-${f.prioridad === 'alta' ? 'danger' : 'primary'}">${esc(capital(f.prioridad))}</span></span></div><div style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:12px; line-height:1.5;">${infoFlete(f)}</div><div class="card-actions">${getBotonesAccion(f)}${botonesComunes(f)}</div></div>`).join('');
                 colHTML.innerHTML = `<h3><span>${col.titulo}</span><span class="kanban-column-count">${fletes.length}</span></h3><div class="kanban-cards-container">${cards}</div>`;
                 if (fletes.length > maxTarjetas) colHTML.innerHTML += `<button class="btn btn-secondary" style="width:100%; margin-top:12px; font-size:0.85rem;" onclick="abrirModalLista('${col.id}', '${col.titulo}')">Ver listado completo</button>`;
                 container.appendChild(colHTML);
@@ -821,7 +883,11 @@
             if (f.estado === 'pendiente') return `<button class="btn btn-primary btn-sm" style="flex:1;" onclick="cambiarEstadoFlete(${f.id}, 'camino')">Despachar</button>`;
             if (f.estado === 'camino') return `<button class="btn btn-primary btn-sm" style="flex:1; background-color:var(--success);" onclick="cambiarEstadoFlete(${f.id}, 'completado')">Finalizar</button><button class="btn btn-secondary btn-sm" style="flex:1; color:var(--danger); border-color:var(--danger);" onclick="cambiarEstadoFlete(${f.id}, 'problema')">Incidencia</button>`;
             if (f.estado === 'problema') return `<button class="btn btn-secondary btn-sm" style="flex:1;" onclick="cambiarEstadoFlete(${f.id}, 'pendiente')">Re-procesar</button>`;
-            return `<button class="btn btn-secondary btn-sm" style="flex:1;" onclick="window.open('/api/fletes/imprimir?ids=${f.id}', '_blank')">Hoja de ruta</button>`;
+            return `<button class="btn btn-secondary btn-sm" style="flex:1;" onclick="window.open('/api/fletes/imprimir?ids=${f.id}', '_blank')">Comprobante</button>`;
+        }
+        function botonesComunes(f) {
+            return `<button class="btn btn-secondary btn-sm" onclick="abrirDetalleFlete(${f.id})">Detalle</button>` +
+                   (f.token_seguimiento ? `<button class="btn btn-secondary btn-sm" title="Copiar el link de seguimiento para el destinatario" onclick="copiarSeguimiento(${jsArg(f.token_seguimiento)})">Seguimiento</button>` : '');
         }
         function abrirModalLista(estadoId, titulo) {
             document.getElementById('titulo-modal-estado').innerText = titulo;
@@ -846,6 +912,7 @@
                     <div class="form-group c-num" style="flex:1.5"><label>Número <span style="color:var(--danger);">*</span></label><input type="text" class="form-control font-mono p-num"></div>
                 </div>
                 <div class="fila"><div class="form-group"><label>Bultos <span style="color:var(--danger);">*</span></label><input type="number" class="form-control p-bultos" value="1" min="1"></div><div class="form-group p-vol-wrap" style="display:none;"><label>Volumen (m³)</label><input type="number" step="0.01" class="form-control p-volumen" value="0" min="0"></div></div>
+                <div class="fila"><div class="form-group"><label>Entregar desde (opcional)</label><input type="time" class="form-control p-desde"></div><div class="form-group"><label>Entregar hasta (opcional)</label><input type="time" class="form-control p-hasta"></div></div>
                 <div class="form-group"><label>Tipo de Destino <span style="color:var(--danger);">*</span></label><select class="form-control p-tipo-destino" onchange="conmutarTipoDestino(this)"><option value="">Seleccione tipo...</option><option value="sucursal">Sucursal Interna</option><option value="destinatario">Cliente / Destinatario Registrado</option><option value="esporadico">Dirección Manual (Esporádica)</option></select></div>
                 <div class="panel-sucursal" style="display:none;"><div class="form-group"><label>Sucursal <span style="color:var(--danger);">*</span></label><select class="form-control p-sucursal-select"></select></div></div>
                 <div class="panel-destinatario" style="display:none; position:relative;"><div class="form-group"><label>Buscar Cliente <span style="color:var(--danger);">*</span></label><input type="text" class="form-control p-dest-search" placeholder="Escriba Razón Social..." oninput="filtrarDestinatariosPredictivo(this)"><input type="hidden" class="p-dest-id"><div class="autocomplete-results"></div></div><div class="panel-punto-entrega" style="display:none; margin-bottom:12px;"><div class="form-group" style="margin-bottom:0;"><label style="color:var(--accent);">Punto de Entrega <span style="color:var(--danger);">*</span></label><select class="form-control p-punto-select"></select></div></div></div>
@@ -896,7 +963,8 @@
                 const tipoDocEl = caja.querySelector('.p-tipo'), bultosEl = caja.querySelector('.p-bultos'), destSel = caja.querySelector('.p-tipo-destino');
                 if (!tipoDocEl.value) marcar(tipoDocEl); if (!bultosEl.value || parseInt(bultosEl.value) < 1) marcar(bultosEl); if (!destSel.value) marcar(destSel);
                 if (!tipoDocEl.value || !destSel.value) continue;
-                const doc = { tipo_documento: tipoDocEl.value, doc_id: '', punto_venta: '', numero: '', destino_tipo: destSel.value, destino_id: 0, bultos: parseInt(bultosEl.value) || 1, volumen_m3: parseFloat(caja.querySelector('.p-volumen').value) || 0 };
+                const doc = { tipo_documento: tipoDocEl.value, doc_id: '', punto_venta: '', numero: '', destino_tipo: destSel.value, destino_id: 0, bultos: parseInt(bultosEl.value) || 1, volumen_m3: parseFloat(caja.querySelector('.p-volumen').value) || 0,
+                              ventana_desde: caja.querySelector('.p-desde').value || null, ventana_hasta: caja.querySelector('.p-hasta').value || null };
                 [['.c-id', '.p-id', 'doc_id'], ['.c-pv', '.p-pv', 'punto_venta'], ['.c-num', '.p-num', 'numero']].forEach(([grupo, campo, k]) => {
                     if (caja.querySelector(grupo).style.display !== 'none') { const el = caja.querySelector(campo); if (!el.value) marcar(el); doc[k] = el.value; }
                 });
@@ -962,7 +1030,8 @@
             if (r) { closeModal('modal-nueva-cot'); await loadData(); abrirCotizacion(r.id); }
         }
         function lineaPunto(p, i) {
-            const carga = p.bultos != null ? ` <small style="color:var(--text-muted);">· ${p.bultos} bulto(s)${p.volumen_m3 ? ' · ' + p.volumen_m3 + ' m³' : ''}</small>` : '';
+            const ventana = textoVentana(p.desde, p.hasta);
+            const carga = p.bultos != null ? ` <small style="color:var(--text-muted);">· ${p.bultos} bulto(s)${p.volumen_m3 ? ' · ' + p.volumen_m3 + ' m³' : ''}${ventana ? ' · ' + esc(ventana) : ''}</small>` : '';
             return `<li style="margin-bottom:6px;"><strong>${i == null ? 'Origen:' : (i + 1) + '.'}</strong> ${esc(p.alias)} - ${esc(p.calle)} ${esc(p.altura)}${p.ciudad ? ', ' + esc(p.ciudad) : ''} ${badgeUbicacion(p.lat, p.lon)}${carga}</li>`;
         }
         function abrirCotizacion(id) {
@@ -1011,12 +1080,95 @@
 
         // --- RUTAS ---
         function renderRutas() {
-            document.getElementById('tabla-rutas').innerHTML = DB.rutas.length === 0 ? filaVacia(10, 'Todavía no hay rutas: se crean cuando un chofer consolida fletes.') : DB.rutas.map(r => {
+            document.getElementById('tabla-rutas').innerHTML = DB.rutas.length === 0 ? filaVacia(11, 'Todavía no hay rutas: se crean cuando un chofer consolida fletes.') : DB.rutas.map(r => {
                 const reales = r.km_odometro != null ? r.km_odometro : r.km_gps;
                 let desvio = '-';
                 if (reales != null && r.km_estimados) { const d = (reales - r.km_estimados) / r.km_estimados * 100; desvio = `<span class="badge badge-${Math.abs(d) <= 15 ? 'success' : 'warning'}">${d > 0 ? '+' : ''}${d.toFixed(0)}%</span>`; }
-                return `<tr><td class="font-mono">#${r.id}</td><td>${esc(r.chofer)}</td><td class="font-mono">${esc(r.patente_identificador || '-')}</td><td>${new Date(r.iniciada_en).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short', hour12: false })}</td><td>${r.finalizada_en ? '<span class="badge badge-success">Cerrada</span>' : '<span class="badge badge-primary">En curso</span>'}</td><td>${r.fletes}</td><td>${km(r.km_estimados)}</td><td>${km(r.km_odometro)}</td><td>${km(r.km_gps)}</td><td>${desvio}</td></tr>`;
+                return `<tr><td class="font-mono">#${r.id}</td><td>${esc(r.chofer)}</td><td class="font-mono">${esc(r.patente_identificador || '-')}</td><td>${new Date(r.iniciada_en).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short', hour12: false })}</td><td>${r.finalizada_en ? '<span class="badge badge-success">Cerrada</span>' : '<span class="badge badge-primary">En curso</span>'}</td><td>${r.fletes}</td><td>${km(r.km_estimados)}</td><td>${km(r.km_odometro)}</td><td>${km(r.km_gps)}</td><td>${desvio}</td><td>${(r.gasto_combustible || r.gasto_peajes || r.gasto_otros) ? dinero((r.gasto_combustible || 0) + (r.gasto_peajes || 0) + (r.gasto_otros || 0)) : '-'}</td></tr>`;
             }).join('');
+        }
+
+        // --- 1.3.0: ALERTAS, DOCUMENTACION, MANTENIMIENTO, DETALLE DE FLETE, REPORTES ---
+        function renderAlertas(lista) {
+            document.getElementById('alertas').innerHTML = (lista || []).map(a => `<span class="alerta ${a.tipo}">${a.tipo === 'vencido' ? 'Vencido' : a.tipo === 'por_vencer' ? 'Por vencer' : 'Atención'}: ${esc(a.que)}${a.fecha ? ' (' + fecha(a.fecha + 'T12:00:00') + ')' : ''}${a.detalle ? ' - ' + esc(a.detalle) : ''}</span>`).join('');
+        }
+        function estadoFecha(f) {
+            if (!f) return null;
+            const dias = (new Date(f + 'T12:00:00') - new Date()) / 86400000;
+            return dias < 0 ? 'danger' : dias <= 30 ? 'warning' : null;
+        }
+        function badgeVence(nombre, f) { const e = estadoFecha(f); return e ? `<span class="badge badge-${e}">${nombre} ${e === 'danger' ? 'vencida' : 'vence'} ${fecha(f + 'T12:00:00')}</span>` : ''; }
+        function documentacion(v) {
+            const b = [badgeVence('VTV', v.vtv_vence), badgeVence('Seguro', v.seguro_vence), badgeVence('Habilitación', v.habilitacion_vence)].filter(Boolean);
+            if (v.service_cada_km > 0) {
+                const faltan = v.ultimo_service_km + v.service_cada_km - v.odometro_km;
+                if (faltan <= 500) b.push(`<span class="badge badge-${faltan <= 0 ? 'danger' : 'warning'}">Service ${faltan <= 0 ? 'pasado' : 'en ' + Math.round(faltan) + ' km'}</span>`);
+            }
+            return b.length ? b.join(' ') : '<span class="badge badge-success">Al día</span>';
+        }
+        async function abrirMantenimiento(id) {
+            const v = DB.vehiculos.find(x => x.id === id); if (!v) return;
+            document.getElementById('man-titulo').innerText = `Mantenimiento - ${v.marca_modelo} (${v.patente_identificador})`;
+            document.getElementById('man-veh').value = id; document.getElementById('man-km').value = v.odometro_km || '';
+            document.getElementById('man-fecha').value = new Date().toISOString().slice(0, 10); document.getElementById('man-desc').value = ''; document.getElementById('man-costo').value = 0;
+            const lista = await seguro(`/api/vehiculos/${id}/mantenimientos`, []);
+            const tipos = { service: 'Service', reparacion: 'Reparación', cubiertas: 'Cubiertas', otro: 'Otro' };
+            document.getElementById('tabla-mantenimiento').innerHTML = lista.length === 0 ? filaVacia(5, 'Sin registros.') : lista.map(m => `<tr><td>${fecha(m.fecha + 'T12:00:00')}</td><td>${tipos[m.tipo] || esc(m.tipo)}</td><td>${km(m.odometro_km)}</td><td>${esc(m.descripcion)}</td><td>${dinero(m.costo)}</td></tr>`).join('') + `<tr><td colspan="4"><strong>Total</strong></td><td><strong>${dinero(lista.reduce((t, m) => t + m.costo, 0))}</strong></td></tr>`;
+            openModal('modal-mantenimiento');
+        }
+        async function guardarMantenimiento(e) {
+            e.preventDefault();
+            const id = valor('man-veh');
+            const r = await enviar(`/api/vehiculos/${id}/mantenimientos`, 'POST', { tipo: valor('man-tipo'), fecha: valor('man-fecha') || null, odometro_km: valor('man-km') === '' ? null : numero('man-km'), descripcion: valor('man-desc'), costo: numero('man-costo') });
+            if (r) { await loadData(); abrirMantenimiento(parseInt(id)); }
+        }
+        function abrirDetalleFlete(id) {
+            const f = DB.fletes.find(x => x.id === id); if (!f) return;
+            const paradas = [...f.paradas].sort((a, b) => a.orden_ruta - b.orden_ruta).map((p, i) => {
+                const ventana = textoVentana(p.ventana_desde, p.ventana_hasta);
+                let ev = '';
+                if (p.entrega_estado) {
+                    ev = `<div class="evidencia" style="font-size:0.85rem; color:var(--text-secondary); margin-top:6px;">${p.entrega_estado === 'entregada' ? 'Recibió: <strong>' + esc(p.recibido_por) + '</strong> · ' : ''}${new Date(p.entregado_en).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short', hour12: false })}${p.entrega_obs ? '<br>' + esc(p.entrega_obs) : ''}<br>
+                        ${p.tiene_firma ? `<img src="/api/paradas/${p.id}/firma" alt="firma">` : ''}${p.tiene_foto ? `<a href="/api/paradas/${p.id}/foto" target="_blank"><img src="/api/paradas/${p.id}/foto" alt="foto"></a>` : ''}</div>`;
+                }
+                return `<li style="margin-bottom:14px;"><strong>${i + 1}. ${esc(p.destino_alias)}</strong> - ${esc(p.destino_calle)} ${esc(p.destino_altura)} ${badgeUbicacion(p.destino_lat, p.destino_lon)} ${badgeEntrega(p)}${ventana ? ` <small>(${esc(ventana)})</small>` : ''}${ev}</li>`;
+            }).join('');
+            document.getElementById('detalle-flete').innerHTML = `<h3 style="margin-bottom:4px;">Flete ${numFlete(f.id)} ${badgeTipo(f)}</h3>
+                <div style="color:var(--text-secondary); margin-bottom:16px;">${infoFlete(f)}</div>
+                <ul style="list-style:none; padding:0; margin:0;">${paradas}</ul>
+                <div style="display:flex; gap:12px; margin-top:16px;"><button class="btn btn-secondary" onclick="window.open('/api/fletes/imprimir?ids=${f.id}', '_blank')">Comprobante / Hoja de ruta</button>${f.token_seguimiento ? `<button class="btn btn-secondary" onclick="copiarSeguimiento(${jsArg(f.token_seguimiento)})">Copiar link de seguimiento</button>` : ''}</div>`;
+            openModal('modal-detalle-flete');
+        }
+
+        var REPORTE = null;
+        async function cargarReportes() {
+            const q = new URLSearchParams(); if (valor('rep-desde')) q.set('desde', valor('rep-desde')); if (valor('rep-hasta')) q.set('hasta', valor('rep-hasta'));
+            const r = await enviar('/api/reportes?' + q.toString(), 'GET');
+            if (!r) return;
+            REPORTE = r; document.getElementById('rep-desde').value = r.desde; document.getElementById('rep-hasta').value = r.hasta;
+            const t = (rotulo, n) => `<div class="tarjeta"><div class="rotulo">${rotulo}</div><div class="numero">${n}</div></div>`;
+            const e = r.entregas, tr = r.totales_rutas;
+            const tabla = (cab, filas, vacio) => `<div class="table-container"><table><thead><tr>${cab.map(c => `<th>${c}</th>`).join('')}</tr></thead><tbody>${filas.length ? filas.join('') : filaVacia(cab.length, vacio)}</tbody></table></div>`;
+            document.getElementById('reportes-cuerpo').innerHTML = `
+                <div class="tarjetas">${t('Fletes creados', r.fletes.creados)}${t('Completados', r.fletes.completados)}${t('Con incidencia', r.fletes.con_incidencia)}${t('Facturado (externos)', dinero(r.fletes.facturado))}${t('Entregas a tiempo', e.pct_a_tiempo == null ? '-' : e.pct_a_tiempo + '%')}${t('Km recorridos', km(tr.km_reales))}${t('Costo de las rutas', dinero(tr.costo))}${t('Resultado de las rutas', dinero(tr.resultado))}</div>
+                <h3 style="font-size:1.05rem;">Entregas</h3>
+                <p class="ayuda" style="margin-top:0;">${e.registradas} registradas: ${e.entregadas} entregadas, ${e.no_entregadas} no entregadas. A tiempo: ${e.a_tiempo} de ${e.con_ventana} con horario.</p>
+                ${tabla(['Motivo de incidencia', 'Cantidad'], Object.entries(e.motivos).map(([m, n]) => `<tr><td>${esc(MOTIVOS[m] || m)}</td><td>${n}</td></tr>`), 'Sin incidencias en el período.')}
+                <h3 style="font-size:1.05rem;">Facturación por cliente</h3>
+                ${tabla(['Cliente', 'Fletes', 'Completados', 'Facturado'], r.por_cliente.map(c => `<tr><td>${esc(c.cliente)}</td><td>${c.fletes}</td><td>${c.completados}</td><td>${dinero(c.facturado)}</td></tr>`), 'Sin fletes externos en el período.')}
+                <h3 style="font-size:1.05rem;">Vehículos</h3>
+                ${tabla(['Vehículo', 'Rutas', 'Km reales', 'Km estimados', 'Mantenimiento'], r.por_vehiculo.map(v => `<tr><td class="font-mono">${esc(v.vehiculo)}</td><td>${v.rutas}</td><td>${km(v.km_reales)}</td><td>${km(v.km_estimados)}</td><td>${dinero(v.mantenimiento)}</td></tr>`), 'Sin rutas en el período.')}
+                <h3 style="font-size:1.05rem;">Costo real contra ingresos, por ruta</h3>
+                ${tabla(['Ruta', 'Fecha', 'Chofer', 'Vehículo', 'Km', 'Horas', 'Combustible', 'Desgaste', 'Chofer', 'Peajes/otros', 'Costo', 'Ingresos', 'Resultado'], r.rutas.map(x => `<tr><td>#${x.id}</td><td>${fecha(x.fecha + 'T12:00:00')}</td><td>${esc(x.chofer)}</td><td class="font-mono">${esc(x.vehiculo || '-')}</td><td>${km(x.km_reales)}</td><td>${x.horas}</td><td>${dinero(x.costo.energia)}</td><td>${dinero(x.costo.desgaste)}</td><td>${dinero(x.costo.chofer)}</td><td>${dinero(x.costo.peajes + x.costo.otros)}</td><td>${dinero(x.costo.total)}</td><td>${dinero(x.ingresos)}</td><td><strong style="color:var(--${x.resultado >= 0 ? 'success' : 'danger'});">${dinero(x.resultado)}</strong></td></tr>`), 'Sin rutas cerradas en el período.')}`;
+        }
+        function descargarCSV() {
+            if (!REPORTE) return alert('Primero genere el reporte.');
+            const c = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+            const filas = [['Ruta', 'Fecha', 'Chofer', 'Vehiculo', 'Fletes', 'Km estimados', 'Km reales', 'Horas', 'Combustible', 'Desgaste', 'Chofer', 'Peajes', 'Otros', 'Costo', 'Ingresos', 'Resultado']];
+            REPORTE.rutas.forEach(x => filas.push([x.id, x.fecha, x.chofer, x.vehiculo, x.fletes, x.km_estimados, x.km_reales, x.horas, x.costo.energia, x.costo.desgaste, x.costo.chofer, x.costo.peajes, x.costo.otros, x.costo.total, x.ingresos, x.resultado]));
+            const blob = new Blob(['\ufeff' + filas.map(f => f.map(c).join(';')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `rutas_${REPORTE.desde}_${REPORTE.hasta}.csv`; a.click();
+            setTimeout(() => URL.revokeObjectURL(a.href), 1000);
         }
 
         // --- CONFIGURACION ---
