@@ -134,48 +134,43 @@
             .kanban-column { width: 100% !important; min-width: 100% !important; max-width: 100% !important; margin-bottom: 1.5rem; max-height: none;}
             .modal-content { padding: 24px; width: 95%;}
         }
+        .btn-secondary { background-color: transparent; color: var(--text-primary); border: 1px solid var(--border); }
+        .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+        .btn-panel { padding: 8px 12px; font-size: 0.85rem; text-decoration: none; }
+        a.badge { text-decoration: none; }
+        .tab-content { display: none; flex: 1; overflow-y: auto; flex-direction: column; }
+        .tab-content.active { display: flex; }
+        .table-container { background: var(--bg-surface); border-radius: 10px; overflow-x: auto; border: 1px solid var(--border); margin-bottom: 24px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+        th { background: var(--bg-page); font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; }
+        .fila { display: flex; gap: 12px; }
+        .fila > .form-group { flex: 1; }
+        .ayuda { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
+        .aviso { background: rgba(255, 193, 7, 0.12); border: 1px solid rgba(255, 193, 7, 0.5); border-radius: 8px; padding: 10px 14px; font-size: 0.85rem; margin-bottom: 16px; }
+        .punto { border: 1px solid var(--border); padding: 16px; margin-bottom: 12px; border-radius: 10px; background: var(--bg-page); }
+        .is-invalid { border-color: var(--danger) !important; }
+        .form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); }
+        @media (max-width: 768px) { .fila { flex-direction: column; gap: 0; } }
     </style>
+    <script src="/js/comun.js"></script>
 </head>
 <body>
-    <script>
-        // Lógica de seguridad original intacta
-        function getCookie(name) { let match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)')); return match ? match[2] : null; }
-        if (getCookie('user_rol') !== 'cliente' && getCookie('user_rol') !== 'admin') { window.location.href = "/index.html"; }
-        function cerrarSesion() {
-            document.cookie = "user_id=; path=/; max-age=0";
-            document.cookie = "user_rol=; path=/; max-age=0";
-            document.cookie = "session_id=; path=/; max-age=0";
-            window.location.href = "/index.html";
-        }
-        
-        // Manejo de Tema (Dark/Light)
-        document.addEventListener('DOMContentLoaded', () => {
-            const savedTheme = localStorage.getItem('jz_theme') || 'light';
-            document.documentElement.setAttribute('data-theme', savedTheme);
-        });
-        function toggleTheme() {
-            try {
-                const current = document.documentElement.getAttribute('data-theme');
-                const next = current === 'dark' ? 'light' : 'dark';
-                document.documentElement.setAttribute('data-theme', next);
-                localStorage.setItem('jz_theme', next);
-            } catch (e) {}
-        }
-    </script>
-
     <div class="top-accent-bar"></div>
-
     <nav class="nav-rail">
         <svg class="brand-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 203 281">
             <path d="M 73.0,261.5 L 62.0,261.5 L 49.0,256.5 L 45.5,253.0 L 43.5,247.0 L 45.5,237.0 L 51.0,232.5 L 61.0,231.5 L 68.5,236.0 L 78.0,252.5 L 86.0,252.5 L 92.5,240.0 L 94.5,219.0 L 47.0,218.5 L 44.5,216.0 L 44.5,212.0 L 89.0,146.5 L 89.5,188.0 L 74.5,210.0 L 94.5,210.0 L 94.5,83.0 L 74.0,86.5 L 63.0,92.5 L 54.5,103.0 L 50.5,114.0 L 46.0,114.5 L 44.5,113.0 L 44.5,80.0 L 52.0,73.5 L 94.5,73.0 L 93.5,33.0 L 91.5,29.0 L 87.0,26.5 L 70.0,24.5 L 70.0,19.5 L 140.0,19.5 L 141.0,24.5 L 127.0,27.5 L 123.5,34.0 L 123.5,73.0 L 158.0,73.5 L 161.5,76.0 L 161.5,80.0 L 129.0,128.5 L 128.5,88.0 L 132.5,81.0 L 123.5,81.0 L 122.5,208.0 L 137.0,206.5 L 148.0,200.5 L 158.5,183.0 L 160.5,175.0 L 166.0,173.5 L 166.5,214.0 L 163.0,218.5 L 121.0,218.5 L 113.5,238.0 L 101.0,251.5 L 88.0,258.5 L 73.0,261.5 Z" fill="#ffffff" stroke="#000000" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
         </svg>
-
-        <button class="nav-item active" title="Estado de Envíos">
+        <button class="nav-item active" title="Mis viajes" onclick="cambiarTab('viajes', this)">
             <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
         </button>
-        
+        <button class="nav-item" title="Cotizaciones" onclick="cambiarTab('cotizaciones', this)">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+        </button>
+        <button class="nav-item" title="Mis direcciones" onclick="cambiarTab('direcciones', this)">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+        </button>
         <div class="spacer"></div>
-
         <button class="nav-item" title="Alternar Tema" onclick="toggleTheme()">
             <svg class="icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
         </button>
@@ -183,25 +178,53 @@
             <svg class="icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
         </button>
     </nav>
-    
     <div class="content">
         <header class="content-header">
             <div>
                 <h1>JZTravell</h1>
-                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 4px;">Portal Comercial</div>
+                <div style="font-size:0.85rem; color:var(--text-secondary); margin-top:4px;" id="subtitulo">Portal de Clientes</div>
             </div>
             <div class="header-actions">
-                <button class="btn btn-primary" onclick="openModal('panel-flete')">
-                    <svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
-                    Solicitar Unidad
+                <span id="barra-paneles" style="display:flex; gap:8px;"></span>
+                <select class="form-control" id="empresa-admin" style="display:none; max-width:220px;" onchange="cargarDirecciones()" title="Empresa (vista de administrador)"></select>
+                <button class="btn btn-primary" onclick="abrirPedido()">
+                    <svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    Pedir Cotización
                 </button>
             </div>
         </header>
-        
         <div class="content-body">
-            <div class="kanban-board" id="kanban-board"></div>
-        </div>
+            <div class="aviso" id="aviso-empresa" style="display:none;">Su usuario todavía no está vinculado a una empresa: pida al administrador que lo vincule para poder pedir cotizaciones.</div>
+            <div class="aviso" id="aviso-admin" style="display:none;">Está viendo el portal como administrador: ve los viajes y cotizaciones de todos los clientes. Elija arriba la empresa para pedir cotizaciones o cargar direcciones en su nombre.</div>
 
+            <div id="tab-viajes" class="tab-content active"><div class="kanban-board" id="kanban-board"></div></div>
+
+            <div id="tab-cotizaciones" class="tab-content">
+                <div class="table-container"><table>
+                    <thead><tr><th>N°</th><th>Pedida</th><th>Detalle</th><th>Estado</th><th>Km</th><th>IVA</th><th>Total</th><th></th></tr></thead>
+                    <tbody id="tabla-cotizaciones"></tbody>
+                </table></div>
+            </div>
+
+            <div id="tab-direcciones" class="tab-content">
+                <div style="display:flex; gap:24px; flex-wrap:wrap;">
+                    <div class="table-container" style="flex:1.5; min-width:300px;"><table>
+                        <thead><tr><th>Alias</th><th>Dirección</th><th>Ubicación</th><th></th></tr></thead>
+                        <tbody id="tabla-direcciones"></tbody>
+                    </table></div>
+                    <div style="flex:1; min-width:260px; background:var(--bg-surface); padding:24px; border-radius:10px; border:1px solid var(--border); align-self:flex-start;">
+                        <h3 style="margin-top:0; font-size:1.05rem;">Nueva Dirección</h3>
+                        <form id="form-direccion" onsubmit="agregarDireccion(event)">
+                            <div class="form-group"><label>Alias (ej: Depósito, Local Centro)</label><input type="text" class="form-control" id="d-alias" required></div>
+                            <div class="fila"><div class="form-group" style="flex:2;"><label>Calle</label><input type="text" class="form-control" id="d-calle" required></div><div class="form-group"><label>Altura</label><input type="text" class="form-control" id="d-altura" required></div></div>
+                            <div class="fila"><div class="form-group"><label>Ciudad</label><input type="text" class="form-control" id="d-ciudad"></div><div class="form-group"><label>Provincia</label><input type="text" class="form-control" id="d-provincia"></div></div>
+                            <div class="form-group"><label>Ubicación (link de Google Maps o "lat, lon")</label><input type="text" class="form-control" id="d-ubicacion" placeholder="https://www.google.com/maps/@-34.60,-58.38,15z"><div class="ayuda">En Google Maps: clic derecho sobre el lugar y copiar las coordenadas. Con la ubicación, la cotización calcula los km sola.</div></div>
+                            <button type="submit" class="btn btn-primary" style="width:100%;">Agregar</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
         <footer class="site-footer">
             <svg class="watermark-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 203 281">
                 <path d="M 73.0,261.5 L 62.0,261.5 L 49.0,256.5 L 45.5,253.0 L 43.5,247.0 L 45.5,237.0 L 51.0,232.5 L 61.0,231.5 L 68.5,236.0 L 78.0,252.5 L 86.0,252.5 L 92.5,240.0 L 94.5,219.0 L 47.0,218.5 L 44.5,216.0 L 44.5,212.0 L 89.0,146.5 L 89.5,188.0 L 74.5,210.0 L 94.5,210.0 L 94.5,83.0 L 74.0,86.5 L 63.0,92.5 L 54.5,103.0 L 50.5,114.0 L 46.0,114.5 L 44.5,113.0 L 44.5,80.0 L 52.0,73.5 L 94.5,73.0 L 93.5,33.0 L 91.5,29.0 L 87.0,26.5 L 70.0,24.5 L 70.0,19.5 L 140.0,19.5 L 141.0,24.5 L 127.0,27.5 L 123.5,34.0 L 123.5,73.0 L 158.0,73.5 L 161.5,76.0 L 161.5,80.0 L 129.0,128.5 L 128.5,88.0 L 132.5,81.0 L 123.5,81.0 L 122.5,208.0 L 137.0,206.5 L 148.0,200.5 L 158.5,183.0 L 160.5,175.0 L 166.0,173.5 L 166.5,214.0 L 163.0,218.5 L 121.0,218.5 L 113.5,238.0 L 101.0,251.5 L 88.0,258.5 L 73.0,261.5 Z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
@@ -210,86 +233,165 @@
         </footer>
     </div>
 
-    <div id="panel-flete" class="modal">
-        <div class="modal-content">
-            <button class="close-btn" onclick="closeModal('panel-flete')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-            <h3>Solicitar Unidad</h3>
-            <div class="form-group">
-                <label>Prioridad</label>
-                <select id="flete-prioridad" class="form-control">
-                    <option value="normal">Normal</option>
-                    <option value="alta">Urgente</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Documento</label>
-                <select id="flete-tipo" class="form-control">
-                    <option value="odt">ODT</option>
-                    <option value="remito">Remito</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Referencia (ID)</label>
-                <input type="text" id="flete-ref" class="form-control font-mono" placeholder="Ej: 0001-000456">
-            </div>
-            <div class="form-group">
-                <label>Instrucciones</label>
-                <input type="text" id="flete-alias" class="form-control" placeholder="Instrucciones para la entrega">
-            </div>
-            <button class="btn btn-primary" style="width:100%; margin-top:16px;" onclick="enviarSolicitud()">Enviar Solicitud</button>
-        </div>
-    </div>
+    <div id="modal-pedido" class="modal"><div class="modal-content" style="max-width:620px;">
+        <button class="close-btn" onclick="cerrarModal('modal-pedido')">&times;</button>
+        <h3>Pedir Cotización</h3>
+        <div class="fila"><div class="form-group" style="flex:2;"><label>Qué hay que transportar</label><input type="text" class="form-control" id="p-descripcion" placeholder="Ej: 2 sillones y 10 cajas"></div><div class="form-group"><label>Fecha deseada</label><input type="date" class="form-control" id="p-fecha"></div></div>
+        <h4 style="margin:12px 0 8px; font-size:1rem;">Dónde retiramos</h4>
+        <div class="punto" id="p-origen"></div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin:16px 0 8px;"><h4 style="margin:0; font-size:1rem;">Dónde entregamos</h4><button class="btn btn-secondary btn-sm" onclick="agregarDestino()">+ Destino</button></div>
+        <div id="p-destinos"></div>
+        <button class="btn btn-primary" style="width:100%; margin-top:16px; padding:12px;" onclick="enviarPedido()">Enviar Pedido</button>
+    </div></div>
 
     <script>
-        // Escapa datos de la DB antes de innerHTML (defensa en profundidad contra XSS almacenado).
-        function esc(v){ return v==null ? '' : String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
-        var DB = { fletes: [] };
-        function openModal(id) { document.getElementById(id).classList.add('active'); }
-        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+        var DB = { fletes: [], cotizaciones: [], direcciones: [], clientes: [] }; var YO = null; var PUNTOS = {}; var FUENTES = [];
 
-        async function loadData() {
-            try {
-                DB.fletes = await (await fetch('/api/fletes')).json();
-                renderKanban();
-            } catch (error) { console.error("Error al cargar fletes"); }
+        function toggleTheme() {
+            const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            try { localStorage.setItem('jz_theme', next); } catch (e) {}
+        }
+        document.addEventListener('DOMContentLoaded', () => { try { document.documentElement.setAttribute('data-theme', localStorage.getItem('jz_theme') || 'light'); } catch (e) {} });
+        function abrirModal(id) { document.getElementById(id).classList.add('active'); }
+        function cerrarModal(id) { document.getElementById(id).classList.remove('active'); }
+        document.addEventListener('input', (e) => { if (e.target.classList && e.target.classList.contains('is-invalid')) e.target.classList.remove('is-invalid'); });
+        document.addEventListener('change', (e) => { if (e.target.classList && e.target.classList.contains('is-invalid')) e.target.classList.remove('is-invalid'); });
+        function cambiarTab(id, boton) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById('tab-' + id).classList.add('active');
+            if (boton) boton.classList.add('active');
+        }
+        function empresaActual() { return YO.rol === 'admin' ? (parseInt(document.getElementById('empresa-admin').value) || null) : YO.cliente_id; }
+
+        async function iniciar() {
+            try { YO = await quienSoy(); } catch (e) { return; }
+            if (YO.rol !== 'cliente' && YO.rol !== 'admin') { window.location.href = '/' + YO.rol + '.html'; return; }
+            document.getElementById('barra-paneles').innerHTML = barraPaneles('cliente', YO.rol);
+            document.getElementById('subtitulo').innerText = 'Portal de Clientes · ' + (YO.nombre_completo || YO.username);
+            if (YO.rol === 'admin') {
+                document.getElementById('aviso-admin').style.display = 'block';
+                const sel = document.getElementById('empresa-admin'); sel.style.display = 'block';
+                DB.clientes = await api('/api/clientes').catch(() => []);
+                sel.innerHTML = '<option value="">Empresa...</option>' + DB.clientes.map(c => `<option value="${c.id}">${esc(c.razon_social)}</option>`).join('');
+            } else if (!YO.cliente_id) {
+                document.getElementById('aviso-empresa').style.display = 'block';
+            }
+            await cargar();
+            setInterval(cargar, 60000);
         }
 
+        async function cargar() {
+            [DB.fletes, DB.cotizaciones] = await Promise.all([api('/api/fletes').catch(() => []), api('/api/cotizaciones').catch(() => [])]);
+            renderKanban(); renderCotizaciones(); await cargarDirecciones();
+        }
+
+        // --- VIAJES ---
         function renderKanban() {
-            const container = document.getElementById('kanban-board'); container.innerHTML = '';
-            const columnas = [
-                { id: 'pendiente', titulo: 'Procesando Solicitud' }, 
-                { id: 'camino', titulo: 'En Tránsito' }, 
-                { id: 'completado', titulo: 'Entregado' }
-            ];
-            
-            columnas.forEach(col => {
-                const colHTML = document.createElement('div'); 
-                colHTML.className = 'kanban-column';
-                const fletesFiltrados = DB.fletes.filter(f => f.estado === col.id).slice(0, 15);
-                
-                const cardsHTML = fletesFiltrados.map(f => `
+            const tablero = document.getElementById('kanban-board'); tablero.innerHTML = '';
+            [{ id: 'pendiente', titulo: 'Programado' }, { id: 'camino', titulo: 'En Tránsito' }, { id: 'completado', titulo: 'Entregado' }, { id: 'problema', titulo: 'Con Incidencia' }].forEach(col => {
+                const fletes = DB.fletes.filter(f => f.estado === col.id).slice(0, 20);
+                const div = document.createElement('div'); div.className = 'kanban-column';
+                div.innerHTML = `<h3><span>${col.titulo}</span><span class="kanban-column-count">${fletes.length}</span></h3><div class="kanban-cards-container">${fletes.map(f => `
                     <div class="kanban-card">
-                        <div class="card-header">
-                            <span class="font-mono" style="font-weight:600; font-size:1.05rem;">#FLT-${String(f.id).padStart(6, '0')}</span>
-                            <span class="badge badge-${f.prioridad === 'alta' ? 'danger' : 'primary'}">${esc((f.prioridad || 'Normal').charAt(0).toUpperCase() + (f.prioridad || 'normal').slice(1))}</span>
+                        <div class="card-header"><span class="font-mono" style="font-weight:600;">${numFlete(f.id)}</span>${f.precio != null ? `<span class="badge badge-primary">${dinero(f.precio)}</span>` : ''}</div>
+                        <div style="font-size:0.85rem; color:var(--text-secondary); line-height:1.5;">
+                            <strong>Retiro:</strong> ${esc(f.origen)}<br>
+                            <strong>Entrega:</strong> ${f.paradas.map(p => esc(p.destino_alias)).join(', ')}<br>
+                            ${f.chofer ? `<strong>Chofer:</strong> ${esc(f.chofer)}<br>` : ''}
+                            ${f.estado === 'completado' ? `<a href="/api/fletes/imprimir?ids=${f.id}" target="_blank">Ver comprobante</a>` : ''}
                         </div>
-                        <div style="font-size: 0.85rem; color: var(--text-secondary); line-height:1.5;">
-                            <strong>Origen:</strong> ${esc(f.origen || 'S/D')}<br>
-                            <strong>Unidad:</strong> <span class="font-mono">${esc(f.marca_modelo || 'Asignando...')}</span>
-                        </div>
-                    </div>`).join('');
-                
-                colHTML.innerHTML = `<h3><span>${col.titulo}</span><span class="kanban-column-count">${fletesFiltrados.length}</span></h3><div class="kanban-cards-container">${cardsHTML}</div>`;
-                container.appendChild(colHTML);
+                    </div>`).join('')}</div>`;
+                tablero.appendChild(div);
             });
         }
-        
-        function enviarSolicitud() { 
-            alert("Solicitud recibida."); 
-            closeModal('panel-flete'); 
+
+        // --- COTIZACIONES ---
+        const ESTADOS = { solicitada: ['En preparación', 'pending'], enviada: ['Lista para aceptar', 'primary'], aceptada: ['Aceptada', 'success'], rechazada: ['Rechazada', 'danger'] };
+        function renderCotizaciones() {
+            const tbody = document.getElementById('tabla-cotizaciones');
+            if (!DB.cotizaciones.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:20px;">Todavía no pidió cotizaciones.</td></tr>'; return; }
+            tbody.innerHTML = DB.cotizaciones.map(c => {
+                const e = ESTADOS[c.estado] || [c.estado, 'primary'];
+                const acciones = c.estado === 'enviada'
+                    ? `<div style="display:flex; gap:8px;"><button class="btn btn-primary btn-sm" onclick="responder(${c.id}, 'aceptar')">Aceptar</button><button class="btn btn-secondary btn-sm" onclick="responder(${c.id}, 'rechazar')">Rechazar</button></div>`
+                    : (c.flete_id ? `<span class="font-mono">${numFlete(c.flete_id)}</span>` : '');
+                const destinos = (c.paradas || []).map(p => esc(p.alias)).join(', ');
+                return `<tr><td class="font-mono"><strong>COT-${String(c.id).padStart(5, '0')}</strong></td><td>${new Date(c.creado_en).toLocaleDateString('es-AR')}</td><td>${esc(c.descripcion || '')}<br><small style="color:var(--text-muted);">${esc((c.origen || {}).alias || '')} → ${destinos}</small></td><td><span class="badge badge-${e[1]}">${e[0]}</span></td><td>${c.km_estimados ? km(c.km_estimados) : '-'}</td><td>${c.iva != null ? dinero(c.iva) : '-'}</td><td><strong>${c.total != null ? dinero(c.total) : '-'}</strong></td><td>${acciones}</td></tr>`;
+            }).join('');
         }
-        
-        window.onload = loadData;
+        async function responder(id, accion) {
+            if (accion === 'aceptar' && !confirm('¿Acepta la cotización? Se programa el viaje.')) return;
+            if (accion === 'rechazar' && !confirm('¿Rechaza la cotización?')) return;
+            try {
+                await api(`/api/cotizaciones/${id}/${accion}`, 'POST');
+                alert(accion === 'aceptar' ? 'Cotización aceptada: el viaje quedó programado.' : 'Cotización rechazada.');
+                cargar();
+            } catch (e) { alert(e.message); }
+        }
+
+        // --- DIRECCIONES ---
+        async function cargarDirecciones() {
+            const empresa = empresaActual();
+            DB.direcciones = empresa ? await api(`/api/clientes/${empresa}/direcciones`).catch(() => []) : [];
+            const tbody = document.getElementById('tabla-direcciones');
+            tbody.innerHTML = !empresa ? '<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:20px;">Sin empresa.</td></tr>'
+                : DB.direcciones.length === 0 ? '<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:20px;">Todavía no cargó direcciones.</td></tr>'
+                : DB.direcciones.map(d => `<tr><td><strong>${esc(d.alias)}</strong></td><td>${esc(d.calle)} ${esc(d.altura)}${d.ciudad ? ', ' + esc(d.ciudad) : ''}</td><td>${badgeUbicacion(d.latitud, d.longitud)}</td><td><button class="btn btn-secondary btn-sm" onclick="ubicar(${d.id})">Ubicar</button></td></tr>`).join('');
+        }
+        async function ubicar(id) {
+            const d = DB.direcciones.find(x => x.id === id); if (!d) return;
+            const texto = prompt('Pegue el link de Google Maps o las coordenadas ("lat, lon") de ' + d.alias + ':', textoCoords(d.latitud, d.longitud));
+            if (texto === null) return;
+            const c = texto.trim() ? parseCoords(texto) : { lat: null, lon: null };
+            if (!c) return alert('No se entiende la ubicación: pegue el link de Google Maps o "latitud, longitud".');
+            try { await api(`/api/clientes/${empresaActual()}/direcciones/${id}`, 'PUT', { alias: d.alias, calle: d.calle, altura: d.altura, ciudad: d.ciudad, codigo_postal: d.codigo_postal, provincia: d.provincia, latitud: c.lat, longitud: c.lon }); cargarDirecciones(); }
+            catch (e) { alert(e.message); }
+        }
+        async function agregarDireccion(e) {
+            e.preventDefault();
+            const empresa = empresaActual(); if (!empresa) return alert('No hay una empresa elegida.');
+            let u; try { u = leerUbicacion(document.getElementById('d-ubicacion')); } catch (x) { return alert(x.message); }
+            const v = id => document.getElementById(id).value.trim();
+            try {
+                await api(`/api/clientes/${empresa}/direcciones`, 'POST', { alias: v('d-alias'), calle: v('d-calle'), altura: v('d-altura'), ciudad: v('d-ciudad'), provincia: v('d-provincia'), latitud: u.lat, longitud: u.lon });
+                document.getElementById('form-direccion').reset(); cargarDirecciones();
+            } catch (x) { alert(x.message); }
+        }
+
+        // --- PEDIDO DE COTIZACION ---
+        async function abrirPedido() {
+            const empresa = empresaActual();
+            if (!empresa) return alert(YO.rol === 'admin' ? 'Elija arriba la empresa para la que pide la cotización.' : 'Su usuario no está vinculado a una empresa.');
+            await cargarDirecciones();
+            FUENTES = [{ grupo: 'Mis direcciones', items: itemsDirecciones(DB.direcciones) }];
+            PUNTOS = {}; FUENTES.forEach(f => f.items.forEach(i => PUNTOS[i.id] = i));
+            document.getElementById('p-descripcion').value = ''; document.getElementById('p-fecha').value = '';
+            document.getElementById('p-origen').innerHTML = htmlPunto(FUENTES, false);
+            document.getElementById('p-destinos').innerHTML = ''; agregarDestino();
+            abrirModal('modal-pedido');
+        }
+        function agregarDestino() {
+            const div = document.createElement('div'); div.className = 'punto p-destino';
+            div.innerHTML = `<div style="text-align:right; margin-bottom:8px;"><button class="btn btn-secondary btn-sm" onclick="this.closest('.punto').remove()">Quitar</button></div>` + htmlPunto(FUENTES, true);
+            document.getElementById('p-destinos').appendChild(div);
+        }
+        async function enviarPedido() {
+            document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+            let origen, paradas;
+            try { origen = leerPunto(document.getElementById('p-origen'), PUNTOS); paradas = [...document.querySelectorAll('.p-destino')].map(b => leerPunto(b, PUNTOS)); }
+            catch (x) { return alert(x.message); }
+            if (!paradas.length) return alert('Agregue al menos un destino.');
+            try {
+                await api('/api/cotizaciones', 'POST', { cliente_id: empresaActual(), descripcion: document.getElementById('p-descripcion').value.trim(), fecha_viaje: document.getElementById('p-fecha').value || null, origen, paradas });
+                cerrarModal('modal-pedido');
+                alert('Pedido enviado: le avisamos el precio en la pestaña Cotizaciones.');
+                cambiarTab('cotizaciones', document.querySelectorAll('.nav-item')[1]); cargar();
+            } catch (x) { alert(x.message); }
+        }
+
+        window.onload = iniciar;
     </script>
 </body>
 </html>

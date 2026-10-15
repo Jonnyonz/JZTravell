@@ -2,6 +2,50 @@
 
 Cambios de JZTravell, del más nuevo al más viejo. Cada entrada corresponde a un push a `main`.
 
+## 1.2.0 — 2026-10-15
+
+Funciones nuevas para la prueba piloto. Migración `0002` (se aplica sola al arrancar).
+
+### Agregado
+- **Clientes externos:** además de las entregas propias, viajes para terceros. Un usuario con rol cliente queda
+  vinculado a su empresa (Usuarios > Empresa) y desde su portal pide cotizaciones con el retiro y las entregas en
+  cualquier dirección, las acepta o rechaza, sigue sus viajes y carga sus direcciones. Los fletes externos llevan
+  cliente y precio; el admin también puede cargar uno directo, sin cotización.
+- **Cotizaciones** (pestaña nueva): el precio sale de los km y de los costos (combustible o energía según el consumo
+  de cada vehículo, desgaste por km, chofer por hora, peajes y otros gastos), más margen e IVA. El admin elige el
+  vehículo, ajusta y la envía; el cliente ve km, IVA y total, sin el desglose. Al aceptarla se crea el flete.
+- **Volumen por vehículo:** cada vehículo indica si trabaja por volumen y su capacidad. Reemplaza al ajuste global
+  "Manejar volúmenes" (se copia a los vehículos existentes al actualizar).
+- **Cambio de panel:** el admin pasa a ver el panel del chofer o del cliente y vuelve con "Volver al admin". El
+  servidor sigue validando el rol real (`GET /api/me`).
+- **Km recorridos sin OSRM:** al tomar fletes el chofer arma una ruta con el odómetro de salida y al cerrarla carga
+  el de llegada; mientras tanto se guarda su rastro GPS y se miden los km (sin puntos imprecisos ni saltos
+  imposibles). Los km estimados son línea recta x factor de calle, y el sistema sugiere el factor según los viajes
+  medidos. Pestaña **Rutas** con estimado, odómetro, GPS y desvío.
+- **Ubicación de sucursales y direcciones:** se pega el link de Google Maps o "latitud, longitud". Las que estaban
+  en el centro de CABA por defecto pasan a "sin ubicar" (no se usan para calcular km).
+- Costos en Configuración: precio del litro y del kWh, chofer por hora, velocidad promedio, minutos por parada,
+  margen, IVA y factor de calle. Consumo, desgaste por km y odómetro en cada vehículo.
+
+### Corregido
+- El chofer no veía su ruta en curso: después de consolidar, sus envíos desaparecían de la pantalla.
+- Agregar direcciones a un cliente desde el panel fallaba siempre (faltaba la ruta en el backend y el campo
+  altura no se leía).
+- Crear un flete con destino a un cliente registrado o a una dirección manual fallaba (la base solo aceptaba
+  `sucursal`/`cliente` como tipo de destino).
+- "Re-procesar" una incidencia dejaba el flete con el chofer anterior y nadie lo podía volver a tomar.
+- Guardar la Configuración borraba el Client Secret de Google (el panel no lo puede reenviar): ahora vacío = se
+  conserva.
+- Las altas pedidas por Google no se mostraban en el panel (la tabla quedaba vacía).
+- El portal del cliente no enviaba las solicitudes ("Solicitar Unidad" no hacía nada) y "Cerrar sesión" no cerraba
+  la sesión en el servidor. El chofer no tenía botón para salir.
+- Alta de usuario con un nombre repetido o un rol inválido: ahora 400 con el motivo (antes 500).
+- La base en Docker usa la hora de Argentina (`TZ` en el `.env` la cambia): antes las fechas quedaban en UTC.
+
+### Cambiado
+- `POST /api/fletes` y `POST /api/clientes` quedan solo para el admin (los clientes piden por cotización).
+- Frontend: funciones comunes en `frontend/js/comun.js` (pedidos con CSRF, `/api/me`, ubicación, cambio de panel).
+
 ## 1.1.1 — 2026-10-15
 
 ### Cambiado (dependencias alineadas en las cuatro apps)

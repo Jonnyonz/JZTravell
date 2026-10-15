@@ -2,6 +2,8 @@ services:
   db:
     image: postgres:15-alpine
     container_name: jztravel_db
+    # Hora local en la base (NOW() de rutas, cotizaciones y fletes): por defecto Argentina; TZ en el .env la cambia.
+    command: ["postgres", "-c", "timezone=${TZ:-America/Argentina/Buenos_Aires}"]
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}

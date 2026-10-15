@@ -1,3 +1,4 @@
+from typing import Optional
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 import asyncpg
@@ -7,6 +8,7 @@ from database import get_db, get_current_user, require_role
 router = APIRouter(prefix="/api", tags=["Sucursales"])
 
 
+# Coordenadas opcionales: sin ellas la sucursal queda "sin ubicar" (no entra en el calculo de km).
 class SucursalCreate(BaseModel):
     nombre: str
     calle: str = ""
@@ -14,8 +16,8 @@ class SucursalCreate(BaseModel):
     ciudad: str = ""
     codigo_postal: str = ""
     provincia: str = ""
-    latitud: float = -34.6037
-    longitud: float = -58.3816
+    latitud: Optional[float] = None
+    longitud: Optional[float] = None
 
 
 class SucursalEdit(BaseModel):
@@ -25,8 +27,8 @@ class SucursalEdit(BaseModel):
     ciudad: str
     codigo_postal: str
     provincia: str
-    latitud: float
-    longitud: float
+    latitud: Optional[float] = None
+    longitud: Optional[float] = None
     activa: bool
 
 
@@ -43,5 +45,5 @@ async def create_sucursal(data: SucursalCreate, db: asyncpg.Connection = Depends
 
 @router.put("/sucursales/{sucursal_id}")
 async def update_sucursal(sucursal_id: int, data: SucursalEdit, db: asyncpg.Connection = Depends(get_db), user=Depends(require_role(['admin']))):
-    await db.execute("UPDATE sucursales SET nombre=$1, calle=$2, altura=$3, ciudad=$4, codigo_postal=$5, provincia=$6, activa=$7 WHERE id=$8", data.nombre, data.calle, data.altura, data.ciudad, data.codigo_postal, data.provincia, data.activa, sucursal_id)
+    await db.execute("UPDATE sucursales SET nombre=$1, calle=$2, altura=$3, ciudad=$4, codigo_postal=$5, provincia=$6, activa=$7, latitud=$8, longitud=$9 WHERE id=$10", data.nombre, data.calle, data.altura, data.ciudad, data.codigo_postal, data.provincia, data.activa, data.latitud, data.longitud, sucursal_id)
     return {"status": "success"}

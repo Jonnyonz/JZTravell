@@ -147,7 +147,7 @@ async def get_current_user(request: Request, db: asyncpg.Connection = Depends(ge
         uid = uuid.UUID(user_id) if user_id else None
     except ValueError:
         uid = None
-    registro = await db.fetchrow("SELECT id, username, rol FROM usuarios WHERE id = $1 AND activo = TRUE", uid) if uid else None
+    registro = await db.fetchrow("SELECT id, username, rol, nombre_completo, cliente_id FROM usuarios WHERE id = $1 AND activo = TRUE", uid) if uid else None
     if not registro: raise HTTPException(401, "Sesion invalida.")
     # CSRF despues de autenticar: 403 si un POST/PUT/DELETE no trae el token de esta sesion.
     await enforce_csrf(request, token_sesion, _CSRF_SUJETO)

@@ -24,9 +24,29 @@ Tres roles, cada uno con su propia pantalla (el login redirige a la que correspo
 
 | Rol | Pantalla | Qué puede hacer |
 |---|---|---|
-| `admin` | `admin.html` | Tablero de fletes por estado; alta y edición de usuarios, vehículos, sucursales y clientes; despacho de fletes; aprobación de altas pedidas por Google; configuración del sistema. |
-| `chofer` | `chofer.html` | Ver los envíos pendientes, consolidarlos en una ruta optimizada, cambiar su estado y enviar su posición GPS mientras trabaja. Abre la ruta en Google Maps. |
-| `cliente` | `cliente.html` | Pedir fletes y seguir el estado de los propios. |
+| `admin` | `admin.html` | Tablero de fletes por estado (internos y externos); cotizaciones; rutas con km estimados y reales; alta y edición de usuarios, vehículos, sucursales y clientes; despacho de fletes; aprobación de altas pedidas por Google; configuración y costos. Puede pasar a ver el panel del chofer o del cliente y volver. |
+| `chofer` | `chofer.html` | Ver los envíos pendientes, tomarlos y consolidarlos en una ruta (con el odómetro de salida), seguir la ruta en Google Maps, cerrarla (odómetro de llegada) y enviar su posición GPS mientras trabaja. |
+| `cliente` | `cliente.html` | Portal de una empresa cliente: pedir cotizaciones de viajes, aceptarlas o rechazarlas, seguir sus viajes y cargar sus direcciones con su ubicación. |
+
+**Clientes externos.** Además de las entregas propias (fletes internos, que salen de una sucursal), la empresa
+puede ofrecer el transporte a terceros: un usuario con rol cliente pertenece a una empresa (tabla `clientes`),
+pide una cotización con el retiro y las entregas en cualquier dirección, y al aceptarla se crea un flete externo
+con su precio.
+
+**Cotizaciones.** El precio sale de los km del viaje y de los costos: combustible o energía (consumo de cada
+vehículo cada 100 km por el precio del litro o del kWh), desgaste por km de cada vehículo, chofer (horas = km /
+velocidad promedio + minutos por parada), peajes y otros gastos; sobre eso, el margen y el IVA. El admin elige
+el vehículo, ajusta lo que haga falta y la envía; el cliente ve los km, el IVA y el total (no el desglose ni el
+margen).
+
+**Volumen por vehículo.** Cada vehículo indica si trabaja por volumen y su capacidad en m³: en esos, un flete o
+una cotización no puede pasar la capacidad. Los demás no controlan volumen.
+
+**Kilómetros sin servicios externos.** Los km estimados son la distancia en línea recta entre las paradas (en el
+orden de entrega) por un *factor de calle* (1,3 por defecto). Los km reales salen del odómetro que carga el chofer
+al salir y al cerrar la ruta y, como respaldo, del rastro GPS del viaje (sin puntos imprecisos ni saltos
+imposibles). Con los viajes cerrados el sistema sugiere un factor de calle más preciso. Para todo esto, sucursales
+y direcciones necesitan su ubicación: se pega el link de Google Maps o "latitud, longitud".
 
 Otras funciones: hoja de ruta imprimible (`/api/fletes/imprimir`), tipos de documento por flete
 (remito, factura, etc.) e ingreso opcional con cuenta de Google.
@@ -56,19 +76,21 @@ JZTravell/
 ├── backend/
 │   ├── main.py            # App FastAPI: lifespan, middlewares, routers, estáticos
 │   ├── database.py        # Pool de Postgres, esquema, sesiones, roles, claves, rate limit
+│   ├── calculos.py        # distancias, km por GPS, factor de calle y costo de cotizaciones (sin base)
 │   ├── routers/           # Un archivo por dominio (todas las rutas bajo /api)
 │   │   ├── auth.py        # login, logout, configuración inicial, Google SSO
 │   │   ├── users.py       # usuarios y solicitudes de alta
-│   │   ├── config.py      # configuración del sistema
+│   │   ├── config.py      # configuración del sistema y costos para cotizar
 │   │   ├── fleet.py       # vehículos
 │   │   ├── branches.py    # sucursales
 │   │   ├── clients.py     # clientes y sus direcciones
-│   │   └── shipments.py   # fletes, consolidación, estados, GPS, impresión
+│   │   ├── shipments.py   # fletes, rutas (consolidación, odómetro, rastro GPS), estados, impresión
+│   │   └── quotes.py      # cotizaciones
 │   ├── migrations/        # esquema de la base, versionado (0001_esquema_base.sql, ...)
 │   ├── requirements.in    # dependencias directas
 │   ├── requirements.txt   # lockfile con hashes (generado, no editar a mano)
 │   └── Dockerfile
-├── frontend/              # index.html (login), admin.html, chofer.html, cliente.html
+├── frontend/              # index.html (login), admin.html, chofer.html, cliente.html, js/comun.js
 ├── docker-compose.yml
 ├── install.sh             # instalador con Docker
 └── .env.example
@@ -88,9 +110,11 @@ migración falla, la app no arranca. Tablas principales:
 | `jztech_sessions` | Sesiones abiertas (solo el hash del token) |
 | `solicitudes_registro` | Altas pedidas desde Google, pendientes de aprobación |
 | `configuracion_sistema` | Una sola fila (`id=1`) con la configuración editable desde el panel |
-| `sucursales`, `flota_vehiculos` | Sucursales (con coordenadas) y vehículos |
-| `clientes`, `direcciones_cliente` | Clientes y sus direcciones de entrega |
-| `fletes`, `documentos_flete`, `tipos_documentos` | Fletes, documentos asociados y sus tipos |
+| `sucursales`, `flota_vehiculos` | Sucursales (con coordenadas) y vehículos (volumen, consumo, desgaste por km, odómetro) |
+| `clientes`, `direcciones_cliente` | Clientes (destinatarios o empresas que contratan el servicio) y sus direcciones |
+| `fletes`, `documentos_flete`, `tipos_documentos` | Fletes (internos o externos, con cliente y precio), paradas con coordenadas y tipos de documento |
+| `rutas`, `ruta_gps` | Lo que un chofer consolida y recorre de una vez: odómetro, km estimados, rastro GPS y km medidos |
+| `cotizaciones` | Pedidos de cotización de los clientes: origen y paradas, vehículo, desglose de costos y total |
 | `login_rate_limit` | Intentos de login fallidos por IP (la crea la app al arrancar) |
 
 ### Seguridad
@@ -268,6 +292,7 @@ servidor, que recibe el dominio y lo reenvía a `http://<IP del servidor>:8010`.
 | `PROJECT_NAME` | No | `JZ_Travel` | Informativa, la app no la usa. |
 | `TRUSTED_PROXIES` | No | `127.0.0.1/32,::1/128,172.16.0.0/12` | Proxies de confianza (IPs o redes, separadas por coma). Solo de ellos se acepta `X-Forwarded-For` para saber la IP real del cliente (rate limit del login). |
 | `POSTGRES_HOST` | No | `db` | Host de Postgres. En Docker lo fija el compose; en instalación local, `127.0.0.1`. |
+| `TZ` | No | `America/Argentina/Buenos_Aires` | Zona horaria de la base en Docker (fechas de rutas, cotizaciones y fletes). Sin Docker rige la del servidor. |
 
 > El default cubre un proxy en el mismo servidor. Si el proxy está en otro equipo, sumar su IP
 > (`install.sh` lo hace con `JZTRAVELL_PROXY_IP=<IP>`).
@@ -281,7 +306,7 @@ En **Configuración** del panel de admin (se guarda en la tabla `configuracion_s
 | Nombre de la empresa | Encabezado de la hoja de ruta impresa (si está vacío: "Mi Empresa"). |
 | Frecuencia de GPS (segundos) | Cada cuánto `chofer.html` envía la posición del chofer (10 si no se configura). |
 | Ciudad, provincia y país por defecto | Valores precargados en las altas de direcciones. |
-| Manejar volúmenes | Agrega el campo "Volumen requerido (m³)" al alta de fletes. |
+| Costos para cotizar | Precio del litro y del kWh, costo del chofer por hora, velocidad promedio, minutos por parada, margen, IVA y factor de calle (con el sugerido según los viajes medidos). |
 | Google SSO | Activación, Client ID, Client Secret y URL de redirección. |
 
 ### Ingreso con Google (opcional)

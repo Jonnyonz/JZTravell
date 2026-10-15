@@ -163,7 +163,23 @@
             .kanban-column { width: 100% !important; min-width: 100% !important; max-width: 100% !important; margin-bottom: 1.5rem; max-height: none;}
             .modal-content { padding: 24px; width: 95%;}
         }
+        .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+        .btn-panel { padding: 8px 12px; font-size: 0.85rem; text-decoration: none; }
+        .badge-externo { background-color: #ede7f6; color: #4527a0; }
+        [data-theme="dark"] .badge-externo { background-color: rgba(149, 117, 205, 0.18); color: #b39ddb; }
+        a.badge { text-decoration: none; }
+        .fila { display: flex; gap: 16px; }
+        .fila > .form-group { flex: 1; }
+        .ayuda { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
+        .aviso { background: rgba(255, 193, 7, 0.12); border: 1px solid rgba(255, 193, 7, 0.5); color: var(--text-primary); border-radius: 8px; padding: 10px 14px; font-size: 0.85rem; margin-bottom: 16px; }
+        .seccion { background: var(--bg-surface); padding: 32px; border-radius: 10px; max-width: 640px; border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.02); margin-bottom: 24px; }
+        .desglose td { padding: 8px 12px; }
+        .desglose tr.total td { font-weight: 700; font-size: 1rem; border-top: 2px solid var(--border); }
+        .punto { border: 1px solid var(--border); padding: 16px; margin-bottom: 12px; border-radius: 10px; background: var(--bg-page); }
+        .check { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); cursor: pointer; }
+        .check input { width: 18px; height: 18px; accent-color: var(--accent); }
     </style>
+    <script src="/js/comun.js"></script>
 </head>
 <body>
     <div class="top-accent-bar"></div>
@@ -176,6 +192,12 @@
         <button class="nav-item active" title="Tablero Kanban" onclick="switchTab('kanban', this)">
             <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
         </button>
+        <button class="nav-item" title="Cotizaciones" onclick="switchTab('cotizaciones', this)">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+        </button>
+        <button class="nav-item" title="Rutas y km recorridos" onclick="switchTab('rutas', this)">
+            <svg class="icon" viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg>
+        </button>
         <button class="nav-item" title="Usuarios" onclick="switchTab('usuarios', this)">
             <svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
         </button>
@@ -185,10 +207,10 @@
         <button class="nav-item" title="Sucursales" onclick="switchTab('sucursales', this)">
             <svg class="icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
         </button>
-        <button class="nav-item" title="Destinatarios" onclick="switchTab('clientes', this)">
+        <button class="nav-item" title="Clientes y destinatarios" onclick="switchTab('clientes', this)">
             <svg class="icon" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
         </button>
-        
+
         <div class="spacer"></div>
 
         <button class="nav-item" title="Alternar Tema" onclick="toggleTheme()">
@@ -201,13 +223,14 @@
             <svg class="icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
         </button>
     </nav>
-    
+
     <div class="content">
-        <!-- VISTA KANBAN -->
+        <!-- TABLERO -->
         <div id="tab-kanban" class="tab-content active">
             <header class="content-header">
                 <h1>JZTravell - Tablero de Control</h1>
                 <div class="header-actions">
+                    <span id="barra-paneles" style="display:flex; gap:8px;"></span>
                     <button class="btn btn-secondary" onclick="loadData()">
                         <svg class="icon" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
                         Actualizar
@@ -222,14 +245,43 @@
                 <div class="kanban-board" id="kanban-board"></div>
             </div>
         </div>
-        
-        <!-- VISTA USUARIOS -->
+
+        <!-- COTIZACIONES -->
+        <div id="tab-cotizaciones" class="tab-content">
+            <header class="content-header">
+                <h1>Cotizaciones</h1>
+                <div class="header-actions"><button class="btn btn-primary" onclick="abrirNuevaCotizacion()">Nueva Cotización</button></div>
+            </header>
+            <div class="content-body">
+                <div class="aviso" id="aviso-costos" style="display:none;">Todavía no cargó los costos (combustible, chofer, margen). Complételos en <a href="#" onclick="switchTab('config', null); return false;">Configuración</a> y en cada vehículo (consumo y costo por km) para que las cotizaciones salgan bien.</div>
+                <div class="table-container">
+                    <table>
+                        <thead><tr><th>N°</th><th>Pedida</th><th>Cliente</th><th>Detalle</th><th>Estado</th><th>Km</th><th>Total</th><th>Acciones</th></tr></thead>
+                        <tbody id="tabla-cotizaciones"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- RUTAS -->
+        <div id="tab-rutas" class="tab-content">
+            <header class="content-header"><h1>Rutas y Kilómetros Recorridos</h1></header>
+            <div class="content-body">
+                <p class="ayuda" style="margin-top:0; margin-bottom:16px;">Km estimados: línea recta entre paradas por el factor de calle. Km reales: los del odómetro que carga el chofer; si no lo cargó, los medidos por GPS durante el viaje.</p>
+                <div class="table-container">
+                    <table>
+                        <thead><tr><th>Ruta</th><th>Chofer</th><th>Vehículo</th><th>Inicio</th><th>Estado</th><th>Fletes</th><th>Km estimados</th><th>Km odómetro</th><th>Km GPS</th><th>Desvío</th></tr></thead>
+                        <tbody id="tabla-rutas"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- USUARIOS -->
         <div id="tab-usuarios" class="tab-content">
             <header class="content-header">
                 <h1>Usuarios del Sistema</h1>
-                <div class="header-actions">
-                    <button class="btn btn-primary" onclick="openModal('modal-usuario')">Registrar Usuario</button>
-                </div>
+                <div class="header-actions"><button class="btn btn-primary" onclick="openModal('modal-usuario')">Registrar Usuario</button></div>
             </header>
             <div class="content-body">
                 <div class="grid-filters">
@@ -243,6 +295,7 @@
                                 <th class="sortable" onclick="setGridSort('usuarios', 'username')">Usuario<span id="s-usuarios-username"></span></th>
                                 <th class="sortable" onclick="setGridSort('usuarios', 'nombre_completo')">Nombre Completo<span id="s-usuarios-nombre_completo"></span></th>
                                 <th class="sortable" onclick="setGridSort('usuarios', 'rol')">Rol de Acceso<span id="s-usuarios-rol"></span></th>
+                                <th class="sortable" onclick="setGridSort('usuarios', 'empresa')">Empresa<span id="s-usuarios-empresa"></span></th>
                                 <th class="sortable" onclick="setGridSort('usuarios', 'activo')">Estado<span id="s-usuarios-activo"></span></th>
                                 <th>Acciones</th>
                             </tr>
@@ -250,24 +303,22 @@
                         <tbody id="tabla-usuarios"></tbody>
                     </table>
                 </div>
-                
-                <h3 style="margin-top: 10px; margin-bottom: 15px; font-size: 1.1rem;">Solicitudes de Registro Pendientes (Google Auth)</h3>
+
+                <h3 style="margin-top: 10px; margin-bottom: 15px; font-size: 1.1rem;">Solicitudes de Registro Pendientes (Google)</h3>
                 <div class="table-container">
                     <table>
-                        <thead><tr><th>Correo Electrónico</th><th>Nombre Completo</th><th>Asignar Rol Obligatorio</th><th>Acción</th></tr></thead>
+                        <thead><tr><th>Correo Electrónico</th><th>Nombre Completo</th><th>Asignar Rol</th><th>Acción</th></tr></thead>
                         <tbody id="tabla-solicitudes"></tbody>
                     </table>
                 </div>
             </div>
         </div>
-        
-        <!-- VISTA FLOTA -->
+
+        <!-- FLOTA -->
         <div id="tab-vehiculos" class="tab-content">
             <header class="content-header">
                 <h1>Flota Activa</h1>
-                <div class="header-actions">
-                    <button class="btn btn-primary" onclick="openModal('modal-vehiculo')">Añadir Vehículo</button>
-                </div>
+                <div class="header-actions"><button class="btn btn-primary" onclick="abrirVehiculo(null)">Añadir Vehículo</button></div>
             </header>
             <div class="content-body">
                 <div class="grid-filters">
@@ -281,8 +332,10 @@
                                 <th class="sortable" onclick="setGridSort('vehiculos', 'patente_identificador')">Patente<span id="s-vehiculos-patente_identificador"></span></th>
                                 <th class="sortable" onclick="setGridSort('vehiculos', 'marca_modelo')">Marca / Modelo<span id="s-vehiculos-marca_modelo"></span></th>
                                 <th class="sortable" onclick="setGridSort('vehiculos', 'tipo')">Motor<span id="s-vehiculos-tipo"></span></th>
-                                <th class="sortable" onclick="setGridSort('vehiculos', 'autonomia_maxima_km')">Autonomía<span id="s-vehiculos-autonomia_maxima_km"></span></th>
-                                <th class="sortable" onclick="setGridSort('vehiculos', 'capacidad_volumen_m3')">Capacidad (m³)<span id="s-vehiculos-capacidad_volumen_m3"></span></th>
+                                <th class="sortable" onclick="setGridSort('vehiculos', 'capacidad_volumen_m3')">Volumen<span id="s-vehiculos-capacidad_volumen_m3"></span></th>
+                                <th class="sortable" onclick="setGridSort('vehiculos', 'consumo_100km')">Consumo /100 km<span id="s-vehiculos-consumo_100km"></span></th>
+                                <th class="sortable" onclick="setGridSort('vehiculos', 'costo_km')">Desgaste /km<span id="s-vehiculos-costo_km"></span></th>
+                                <th class="sortable" onclick="setGridSort('vehiculos', 'odometro_km')">Odómetro<span id="s-vehiculos-odometro_km"></span></th>
                                 <th class="sortable" onclick="setGridSort('vehiculos', 'estado')">Estado<span id="s-vehiculos-estado"></span></th>
                                 <th>Acciones</th>
                             </tr>
@@ -292,14 +345,12 @@
                 </div>
             </div>
         </div>
-        
-        <!-- VISTA SUCURSALES -->
+
+        <!-- SUCURSALES -->
         <div id="tab-sucursales" class="tab-content">
             <header class="content-header">
                 <h1>Bases y Sucursales</h1>
-                <div class="header-actions">
-                    <button class="btn btn-primary" onclick="openModal('modal-sucursal')">Crear Sucursal</button>
-                </div>
+                <div class="header-actions"><button class="btn btn-primary" onclick="abrirSucursal(null)">Crear Sucursal</button></div>
             </header>
             <div class="content-body">
                 <div class="grid-filters">
@@ -313,7 +364,7 @@
                                 <th class="sortable" onclick="setGridSort('sucursales', 'nombre')">Nombre<span id="s-sucursales-nombre"></span></th>
                                 <th class="sortable" onclick="setGridSort('sucursales', 'calle')">Dirección<span id="s-sucursales-calle"></span></th>
                                 <th class="sortable" onclick="setGridSort('sucursales', 'ciudad')">Ciudad<span id="s-sucursales-ciudad"></span></th>
-                                <th class="sortable" onclick="setGridSort('sucursales', 'codigo_postal')">CP<span id="s-sucursales-codigo_postal"></span></th>
+                                <th>Ubicación</th>
                                 <th class="sortable" onclick="setGridSort('sucursales', 'activa')">Estado<span id="s-sucursales-activa"></span></th>
                                 <th>Acciones</th>
                             </tr>
@@ -323,16 +374,15 @@
                 </div>
             </div>
         </div>
-        
-        <!-- VISTA CLIENTES -->
+
+        <!-- CLIENTES -->
         <div id="tab-clientes" class="tab-content">
             <header class="content-header">
-                <h1>Catálogo de Destinatarios</h1>
-                <div class="header-actions">
-                    <button class="btn btn-primary" onclick="openModal('modal-cliente')">Crear Destinatario</button>
-                </div>
+                <h1>Clientes y Destinatarios</h1>
+                <div class="header-actions"><button class="btn btn-primary" onclick="openModal('modal-cliente')">Crear Cliente</button></div>
             </header>
             <div class="content-body">
+                <p class="ayuda" style="margin-top:0; margin-bottom:16px;">Un cliente puede ser un destinatario de sus entregas o una empresa a la que le presta el servicio de transporte. Para que una empresa pida cotizaciones desde su portal, cree un usuario con rol Cliente y vincúlelo a ella.</p>
                 <div class="grid-filters">
                     <input type="text" placeholder="Filtrar por razón social o CUIT..." oninput="updateGridFilter('clientes', this.value)">
                     <label><input type="checkbox" onchange="toggleGridInactive('clientes', this.checked)"> Mostrar cuentas inactivas</label>
@@ -342,7 +392,8 @@
                         <thead>
                             <tr>
                                 <th class="sortable" onclick="setGridSort('clientes', 'razon_social')">Razón Social<span id="s-clientes-razon_social"></span></th>
-                                <th class="sortable" onclick="setGridSort('clientes', 'cuit_rut')">Identificación Comercial (CUIT)<span id="s-clientes-cuit_rut"></span></th>
+                                <th class="sortable" onclick="setGridSort('clientes', 'cuit_rut')">CUIT<span id="s-clientes-cuit_rut"></span></th>
+                                <th>Usuarios del portal</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -352,33 +403,33 @@
             </div>
         </div>
 
-        <!-- VISTA CONFIGURACION -->
+        <!-- CONFIGURACION -->
         <div id="tab-config" class="tab-content">
-            <header class="content-header">
-                <h1>Configuración Global</h1>
-            </header>
+            <header class="content-header"><h1>Configuración Global</h1></header>
             <div class="content-body">
-                <div style="background:var(--bg-surface); padding:32px; border-radius:10px; max-width:600px; border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+                <div class="seccion">
+                    <h3 style="margin-top:0; font-size:1.1rem;">Costos para Cotizar</h3>
+                    <form id="form-costos" onsubmit="guardarCostos(event)">
+                        <div class="fila"><div class="form-group"><label>Precio del litro de combustible ($)</label><input type="number" step="0.01" min="0" id="cos-litro" class="form-control" required></div><div class="form-group"><label>Precio del kWh ($, vehículos eléctricos)</label><input type="number" step="0.01" min="0" id="cos-kwh" class="form-control" required></div></div>
+                        <div class="fila"><div class="form-group"><label>Costo del chofer por hora ($)</label><input type="number" step="0.01" min="0" id="cos-chofer" class="form-control" required></div><div class="form-group"><label>Velocidad promedio (km/h)</label><input type="number" step="0.1" min="1" id="cos-velocidad" class="form-control" required></div></div>
+                        <div class="fila"><div class="form-group"><label>Minutos por parada</label><input type="number" step="1" min="0" id="cos-parada" class="form-control" required></div><div class="form-group"><label>Margen de ganancia (%)</label><input type="number" step="0.1" min="0" id="cos-margen" class="form-control" required></div></div>
+                        <div class="fila"><div class="form-group"><label>IVA (%)</label><input type="number" step="0.1" min="0" id="cos-iva" class="form-control" required></div><div class="form-group"><label>Factor de calle</label><input type="number" step="0.01" min="1" max="3" id="cos-factor" class="form-control" required><div class="ayuda" id="cos-factor-sugerido"></div></div></div>
+                        <p class="ayuda">Los km por calle se estiman como la distancia en línea recta entre paradas por el factor de calle (1,3 es lo habitual en ciudad). Con cada viaje cerrado con odómetro, el sistema sugiere un factor más preciso.</p>
+                        <button type="submit" class="btn btn-primary" style="width:100%;">Guardar Costos</button>
+                    </form>
+                </div>
+                <div class="seccion">
                     <form id="form-config" onsubmit="guardarConfig(event)">
                         <div class="form-group"><label>Nombre Comercial <span style="color:var(--danger);">*</span></label><input type="text" id="conf-nombre" class="form-control" required></div>
                         <div class="form-group"><label>Frecuencia de Actualización Ubicación (Segundos) <span style="color:var(--danger);">*</span></label><input type="number" id="conf-gps" class="form-control" min="5" max="60" required></div>
-                        
-                        <h3 style="border-top:1px solid var(--border); padding-top:20px; margin-top:20px; font-size:1.1rem;">Localización por Defecto PyME</h3>
-                        <div style="display:flex; gap:16px;">
-                            <div class="form-group" style="flex:1;"><label>Ciudad</label><input type="text" id="conf-ciudad" class="form-control"></div>
-                            <div class="form-group" style="flex:1;"><label>Provincia</label><input type="text" id="conf-provincia" class="form-control"></div>
-                        </div>
+                        <h3 style="border-top:1px solid var(--border); padding-top:20px; margin-top:20px; font-size:1.1rem;">Localización por Defecto</h3>
+                        <div class="fila"><div class="form-group"><label>Ciudad</label><input type="text" id="conf-ciudad" class="form-control"></div><div class="form-group"><label>Provincia</label><input type="text" id="conf-provincia" class="form-control"></div></div>
                         <div class="form-group"><label>País</label><input type="text" id="conf-pais" class="form-control"></div>
-
-                        <h3 style="border-top:1px solid var(--border); padding-top:20px; margin-top:20px; font-size:1.1rem;">Restricciones y Controles</h3>
-                        <div class="form-group"><label>Habilitar Control Volumétrico Colectivo (m³)</label><select id="conf-volumenes" class="form-control"><option value="true">Activado</option><option value="false">Desactivado</option></select></div>
-
-                        <h3 style="border-top:1px solid var(--border); padding-top:20px; margin-top:20px; font-size:1.1rem;">Integrador de Autenticación Google</h3>
+                        <h3 style="border-top:1px solid var(--border); padding-top:20px; margin-top:20px; font-size:1.1rem;">Acceso con Cuentas Google</h3>
                         <div class="form-group"><label>Habilitar Acceso con Cuentas Google</label><select id="conf-oauth-enabled" class="form-control"><option value="true">Activado</option><option value="false">Desactivado</option></select></div>
                         <div class="form-group"><label>Google Client ID</label><input type="text" id="conf-client-id" class="form-control"></div>
-                        <div class="form-group"><label>Google Client Secret</label><input type="password" id="conf-client-secret" class="form-control"></div>
+                        <div class="form-group"><label>Google Client Secret</label><input type="password" id="conf-client-secret" class="form-control" placeholder="Dejar vacío para conservar el guardado"></div>
                         <div class="form-group"><label>Google Redirect URI (Callback)</label><input type="text" id="conf-redirect-url" class="form-control" readonly style="background:var(--bg-page); color:var(--text-muted); cursor:not-allowed;"></div>
-                        
                         <button type="submit" class="btn btn-primary" style="width:100%; margin-top:16px;">Guardar Parámetros</button>
                     </form>
                 </div>
@@ -393,31 +444,104 @@
         </footer>
     </div>
 
-    <!-- MODALES (Adaptados a UI corporativa con .form-control) -->
-    <div id="modal-usuario" class="modal"><div class="modal-content"><button class="close-btn" onclick="closeModal('modal-usuario')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button><h3>Registrar Usuario</h3><form onsubmit="validarYEnviarForm(event, '/api/usuarios', 'modal-usuario', loadData)"><div class="form-group"><label>Nombre de Usuario <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" name="username"></div><div class="form-group"><label>Contraseña (Min 8 caracteres, 1 Mayúscula, 1 Número) <span style="color:var(--danger);">*</span></label><input type="password" class="form-control" name="password"></div><div class="form-group"><label>Nombre Completo <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" name="nombre_completo"></div><div class="form-group"><label>Rol de Acceso <span style="color:var(--danger);">*</span></label><select class="form-control" name="role_select" onchange="this.form.rol.value=this.value;"><option value="chofer">Transportista</option><option value="cliente">Cliente Comercial</option><option value="admin">Administrador</option></select><input type="hidden" name="rol" value="chofer"></div><button type="submit" class="btn btn-primary" style="width:100%">Dar de Alta</button></form></div></div>
-    
-    <div id="modal-editar-usuario" class="modal"><div class="modal-content"><button class="close-btn" onclick="closeModal('modal-editar-usuario')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button><h3>Modificar Usuario</h3><form id="form-editar-usuario" onsubmit="ejecutarEdicionUsuario(event)"><input type="hidden" id="edit-user-username" readonly><div class="form-group"><label>Nombre Completo <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" id="edit-user-nombre" required></div><div class="form-group"><label>Rol de Acceso <span style="color:var(--danger);">*</span></label><select class="form-control" id="edit-user-rol"><option value="chofer">Transportista</option><option value="cliente">Cliente Comercial</option><option value="admin">Administrador</option></select></div><div class="form-group"><label>Estado de Cuenta <span style="color:var(--danger);">*</span></label><select class="form-control" id="edit-user-activo"><option value="true">Activo / Autorizado</option><option value="false">Bloqueado / Suspendido</option></select></div><div class="form-group"><label>Blanquear Contraseña</label><input type="password" class="form-control" id="edit-user-password" placeholder="Nueva contraseña normativa"></div><button type="submit" class="btn btn-primary" style="width:100%;">Guardar Cambios</button></form></div></div>
-    
-    <div id="modal-vehiculo" class="modal"><div class="modal-content"><button class="close-btn" onclick="closeModal('modal-vehiculo')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button><h3>Añadir Vehículo</h3><form onsubmit="validarYEnviarForm(event, '/api/vehiculos', 'modal-vehiculo', loadData)"><div class="form-group"><label>Patente <span style="color:var(--danger);">*</span></label><input type="text" class="form-control font-mono" name="patente_identificador"></div><div class="form-group"><label>Marca y Modelo <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" name="marca_modelo"></div><div class="form-group"><label>Motor <span style="color:var(--danger);">*</span></label><select class="form-control" name="tipo"><option value="electrico">Eléctrico</option><option value="combustion">Combustión</option></select></div><div class="form-group"><label>Autonomía (KM) <span style="color:var(--danger);">*</span></label><input type="number" class="form-control" step="0.1" name="autonomia_maxima_km"></div><div class="form-group f-vol-input"><label>Capacidad Carga (m³) <span style="color:var(--danger);">*</span></label><input type="number" class="form-control" step="0.01" name="capacidad_volumen_m3" value="0.00"></div><button type="submit" class="btn btn-primary" style="width:100%">Guardar Unidad</button></form></div></div>
-    
-    <div id="modal-editar-vehiculo" class="modal"><div class="modal-content"><button class="close-btn" onclick="closeModal('modal-editar-vehiculo')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button><h3>Modificar Vehículo</h3><form id="form-editar-vehiculo" onsubmit="ejecutarEdicionVehiculo(event)"><input type="hidden" id="edit-veh-id"><div class="form-group"><label>Patente <span style="color:var(--danger);">*</span></label><input type="text" class="form-control font-mono" id="edit-veh-patente" required></div><div class="form-group"><label>Marca y Modelo <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" id="edit-veh-marca" required></div><div class="form-group"><label>Motor <span style="color:var(--danger);">*</span></label><select class="form-control" id="edit-veh-tipo"><option value="electrico">Eléctrico</option><option value="combustion">Combustión</option></select></div><div class="form-group"><label>Autonomía (KM) <span style="color:var(--danger);">*</span></label><input type="number" class="form-control" step="0.1" id="edit-veh-autonomia" required></div><div class="form-group f-vol-input"><label>Capacidad Caja (m³) <span style="color:var(--danger);">*</span></label><input type="number" class="form-control" step="0.01" id="edit-veh-volumen" required></div><div class="form-group"><label>Estado Operativo <span style="color:var(--danger);">*</span></label><select class="form-control" id="edit-veh-estado"><option value="activo">Activo / Disponible</option><option value="mantenimiento">En Taller (Mantenimiento)</option><option value="baja">Baja Operativa (Soft Delete)</option></select></div><button type="submit" class="btn btn-primary" style="width:100%;">Guardar Parámetros</button></form></div></div>
-    
-    <div id="modal-sucursal" class="modal"><div class="modal-content"><button class="close-btn" onclick="closeModal('modal-sucursal')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button><h3>Crear Sucursal</h3><form onsubmit="validarYEnviarForm(event, '/api/sucursales', 'modal-sucursal', loadData)"><div class="form-group"><label>Nombre <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" name="nombre"></div><div class="form-group"><label>Calle <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" name="calle"></div><div class="form-group"><label>Altura <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" name="altura"></div><div class="form-group"><label>CP <span style="color:var(--danger);">*</span></label><input type="text" class="form-control font-mono" name="codigo_postal"></div><button type="submit" class="btn btn-primary" style="width:100%">Guardar Base</button></form></div></div>
-    
-    <div id="modal-cliente" class="modal"><div class="modal-content" style="max-width:550px;"><button class="close-btn" onclick="closeModal('modal-cliente')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button><h3>Crear Destinatario Base</h3><form onsubmit="validarYEnviarForm(event, '/api/clientes', 'modal-cliente', loadData)"><div class="form-group"><label>Razón Social <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" name="razon_social"></div><div class="form-group"><label>Identificación Comercial (CUIT) <span style="color:var(--danger);">*</span></label><input type="text" class="form-control font-mono" name="cuit_rut"></div><h4 style="border-top:1px solid var(--border); padding-top:16px; margin-top:24px; color:var(--text-primary); font-size:1.05rem;">Dirección Principal de Entrega</h4><div class="form-group"><label>Alias de Sucursal <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" name="alias" value="Sede Principal"></div><div style="display:flex; gap:16px;"><div class="form-group" style="flex:2;"><label>Calle <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" name="calle"></div><div class="form-group" style="flex:1;"><label>Altura <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" name="altura"></div></div><div class="form-group"><label>CP <span style="color:var(--danger);">*</span></label><input type="text" class="form-control font-mono" name="codigo_postal"></div><button type="submit" class="btn btn-primary" style="width:100%">Guardar Registro</button></form></div></div>
-    
-    <div id="modal-editar-sucursal" class="modal"><div class="modal-content"><button class="close-btn" onclick="closeModal('modal-editar-sucursal')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button><h3>Modificar Sucursal</h3><form id="form-editar-sucursal" onsubmit="ejecutarEdicionSucursal(event)"><input type="hidden" id="edit-suc-id"><div class="form-group"><label>Nombre Comercial <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" id="edit-suc-nombre" required></div><div class="form-group"><label>Calle <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" id="edit-suc-calle" required></div><div class="form-group"><label>Altura <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" id="edit-suc-altura" required></div><div class="form-group"><label>Ciudad</label><input type="text" class="form-control" id="edit-suc-ciudad"></div><div class="form-group"><label>Código Postal <span style="color:var(--danger);">*</span></label><input type="text" class="form-control font-mono" id="edit-suc-cp" required></div><div class="form-group"><label>Provincia <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" id="edit-suc-provincia"></div><div class="form-group"><label>Estado Operativo <span style="color:var(--danger);">*</span></label><select class="form-control" id="edit-suc-activa"><option value="true">Activa / Disponible</option><option value="false">Inactiva / Mantenimiento</option></select></div><button type="submit" class="btn btn-primary" style="width:100%;">Guardar Cambios</button></form></div></div>
-    
-    <div id="modal-lista-estado" class="modal"><div class="modal-content modal-large"><button class="close-btn" onclick="closeModal('modal-lista-estado')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button><h3 id="titulo-modal-estado">Vista Extendida</h3><div class="table-container" style="max-height:60vh; overflow-y:auto;"><table style="margin-bottom:0;"><thead><tr><th>Número de Control</th><th>Prioridad</th><th>Origen</th><th>Vehículo</th><th>Acciones</th></tr></thead><tbody id="tabla-estado-mas"></tbody></table></div></div></div>
-    
-    <div id="modal-direcciones-cliente" class="modal"><div class="modal-content modal-large"><button class="close-btn" onclick="closeModal('modal-direcciones-cliente')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button><h3 style="margin-bottom:8px;">Libreta de Direcciones</h3><div style="color:var(--text-secondary); font-size:0.95rem; margin-bottom:24px;" id="nombre-cliente-modal"></div><div style="display: flex; gap: 24px; flex-wrap: wrap;"><div class="table-container" style="flex: 1.5; min-width: 300px; max-height: 50vh; overflow-y: auto; margin-bottom:0;"><table style="margin-bottom:0;"><thead><tr><th>Alias Sucursal</th><th>Dirección</th><th>Ciudad</th></tr></thead><tbody id="tabla-direcciones-cliente"></tbody></table></div><div style="flex: 1; min-width: 250px; background: var(--bg-page); padding: 24px; border-radius: 10px; border: 1px solid var(--border);"><h4 style="margin-top:0; margin-bottom:16px; color:var(--text-primary);">Nueva Dirección</h4><form id="form-nueva-direccion" onsubmit="validarYEnviarForm(event, '', 'modal-direcciones-cliente', null, true)"><input type="hidden" id="dir-cliente-id"><div class="form-group"><label>Alias <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" id="dir-alias"></div><div class="form-group"><label>Calle <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" id="dir-calle"></div><div class="form-group"><label>Altura <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" name="altura"></div><div class="form-group"><label>Ciudad</label><input type="text" class="form-control" id="dir-ciudad"></div><div class="form-group"><label>CP <span style="color:var(--danger);">*</span></label><input type="text" class="form-control font-mono" id="dir-cp"></div><div class="form-group"><label>Provincia</label><input type="text" class="form-control" id="dir-provincia"></div><button type="submit" class="btn btn-primary" style="width:100%;">Agregar</button></form></div></div></div></div>
-    
-    <div id="panel-flete" class="modal"><div class="modal-content" style="max-width: 600px;"><button class="close-btn" onclick="closeModal('panel-flete')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button><h3>Armar Solicitud de Flete</h3><div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;"><div class="form-group"><label>Vehículo <span style="color:var(--danger);">*</span></label><select class="form-control" id="flete-vehiculo"><option value="">Seleccione...</option></select></div><div class="form-group"><label>Origen <span style="color:var(--danger);">*</span></label><select class="form-control" id="flete-origen"><option value="">Seleccione...</option></select></div></div><div class="form-group"><label>Prioridad <span style="color:var(--danger);">*</span></label><select class="form-control" id="flete-prioridad"><option value="normal">Normal</option><option value="alta">Alta</option></select></div><div style="display:flex; justify-content:space-between; align-items:center; margin:24px 0 16px 0; border-top:1px solid var(--border); padding-top:24px;"><strong style="font-size:1.05rem; color:var(--text-primary);">Paradas de Ruta</strong><button class="btn btn-secondary" style="padding:6px 12px; font-size:0.85rem;" onclick="addParada()"><svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Añadir Parada</button></div><div id="paradas-container" style="max-height:45vh; overflow-y:auto; padding-right:8px;"></div><button class="btn btn-primary" style="width:100%; margin-top:24px; padding:12px;" onclick="confirmarFlete()">Lanzar Flete</button></div></div>
+    <!-- MODALES -->
+    <div id="modal-usuario" class="modal"><div class="modal-content"><button class="close-btn" onclick="closeModal('modal-usuario')">&times;</button><h3>Registrar Usuario</h3>
+        <form id="form-usuario" onsubmit="crearUsuario(event)">
+            <div class="form-group"><label>Nombre de Usuario <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" id="nu-username" required></div>
+            <div class="form-group"><label>Contraseña (mín. 8 caracteres, 1 mayúscula, 1 número) <span style="color:var(--danger);">*</span></label><input type="password" class="form-control" id="nu-password" required></div>
+            <div class="form-group"><label>Nombre Completo <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" id="nu-nombre" required></div>
+            <div class="form-group"><label>Rol de Acceso <span style="color:var(--danger);">*</span></label><select class="form-control" id="nu-rol" onchange="mostrarEmpresa('nu')"><option value="chofer">Transportista</option><option value="cliente">Cliente</option><option value="admin">Administrador</option></select></div>
+            <div class="form-group" id="nu-empresa-grupo" style="display:none;"><label>Empresa del cliente</label><select class="form-control sel-empresa" id="nu-empresa"></select><div class="ayuda">Verá los viajes y cotizaciones de esta empresa en su portal.</div></div>
+            <button type="submit" class="btn btn-primary" style="width:100%">Dar de Alta</button>
+        </form></div></div>
+
+    <div id="modal-editar-usuario" class="modal"><div class="modal-content"><button class="close-btn" onclick="closeModal('modal-editar-usuario')">&times;</button><h3>Modificar Usuario</h3>
+        <form id="form-editar-usuario" onsubmit="ejecutarEdicionUsuario(event)"><input type="hidden" id="eu-username">
+            <div class="form-group"><label>Nombre Completo <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" id="eu-nombre" required></div>
+            <div class="form-group"><label>Rol de Acceso <span style="color:var(--danger);">*</span></label><select class="form-control" id="eu-rol" onchange="mostrarEmpresa('eu')"><option value="chofer">Transportista</option><option value="cliente">Cliente</option><option value="admin">Administrador</option></select></div>
+            <div class="form-group" id="eu-empresa-grupo" style="display:none;"><label>Empresa del cliente</label><select class="form-control sel-empresa" id="eu-empresa"></select></div>
+            <div class="form-group"><label>Estado de Cuenta <span style="color:var(--danger);">*</span></label><select class="form-control" id="eu-activo"><option value="true">Activo / Autorizado</option><option value="false">Bloqueado / Suspendido</option></select></div>
+            <div class="form-group"><label>Blanquear Contraseña</label><input type="password" class="form-control" id="eu-password" placeholder="Dejar vacío para no cambiarla"></div>
+            <button type="submit" class="btn btn-primary" style="width:100%;">Guardar Cambios</button>
+        </form></div></div>
+
+    <div id="modal-vehiculo" class="modal"><div class="modal-content"><button class="close-btn" onclick="closeModal('modal-vehiculo')">&times;</button><h3 id="veh-titulo">Vehículo</h3>
+        <form id="form-vehiculo" onsubmit="guardarVehiculo(event)"><input type="hidden" id="veh-id">
+            <div class="fila"><div class="form-group"><label>Patente <span style="color:var(--danger);">*</span></label><input type="text" class="form-control font-mono" id="veh-patente" required></div><div class="form-group"><label>Marca y Modelo <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" id="veh-marca" required></div></div>
+            <div class="fila"><div class="form-group"><label>Motor</label><select class="form-control" id="veh-tipo" onchange="etiquetaConsumo()"><option value="combustion">Combustión</option><option value="electrico">Eléctrico</option></select></div><div class="form-group"><label>Autonomía (km)</label><input type="number" class="form-control" step="0.1" min="0" id="veh-autonomia" value="0"></div></div>
+            <label class="check" style="margin-bottom:12px;"><input type="checkbox" id="veh-usa-volumen" onchange="document.getElementById('veh-volumen-grupo').style.display = this.checked ? 'block' : 'none'"> Trabaja por volumen (controla los m³ de carga)</label>
+            <div class="form-group" id="veh-volumen-grupo" style="display:none;"><label>Capacidad de carga (m³)</label><input type="number" class="form-control" step="0.01" min="0" id="veh-volumen" value="0"></div>
+            <h4 style="border-top:1px solid var(--border); padding-top:16px; margin:16px 0; font-size:1rem;">Costos para cotizar</h4>
+            <div class="fila"><div class="form-group"><label id="veh-consumo-label">Consumo (litros cada 100 km)</label><input type="number" class="form-control" step="0.01" min="0" id="veh-consumo" value="0"></div><div class="form-group"><label>Desgaste por km ($)</label><input type="number" class="form-control" step="0.01" min="0" id="veh-costo-km" value="0"><div class="ayuda">Cubiertas, service, repuestos, amortización.</div></div></div>
+            <div class="fila"><div class="form-group"><label>Odómetro actual (km)</label><input type="number" class="form-control" step="0.1" min="0" id="veh-odometro" value="0"></div><div class="form-group" id="veh-estado-grupo"><label>Estado Operativo</label><select class="form-control" id="veh-estado"><option value="activo">Activo / Disponible</option><option value="mantenimiento">En Taller (Mantenimiento)</option><option value="baja">Baja Operativa</option></select></div></div>
+            <button type="submit" class="btn btn-primary" style="width:100%">Guardar Unidad</button>
+        </form></div></div>
+
+    <div id="modal-sucursal" class="modal"><div class="modal-content"><button class="close-btn" onclick="closeModal('modal-sucursal')">&times;</button><h3 id="suc-titulo">Sucursal</h3>
+        <form id="form-sucursal" onsubmit="guardarSucursal(event)"><input type="hidden" id="suc-id">
+            <div class="form-group"><label>Nombre <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" id="suc-nombre" required></div>
+            <div class="fila"><div class="form-group" style="flex:2;"><label>Calle <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" id="suc-calle" required></div><div class="form-group"><label>Altura</label><input type="text" class="form-control" id="suc-altura"></div></div>
+            <div class="fila"><div class="form-group"><label>Ciudad</label><input type="text" class="form-control" id="suc-ciudad"></div><div class="form-group"><label>Provincia</label><input type="text" class="form-control" id="suc-provincia"></div><div class="form-group"><label>CP</label><input type="text" class="form-control font-mono" id="suc-cp"></div></div>
+            <div class="form-group"><label>Ubicación (link de Google Maps o "lat, lon")</label><input type="text" class="form-control" id="suc-ubicacion" placeholder="https://www.google.com/maps/@-34.60,-58.38,15z"><div class="ayuda">En Google Maps: clic derecho sobre el lugar y copiar las coordenadas, o copiar el link de la barra del navegador. Sin ubicación no entra en el cálculo de km.</div></div>
+            <div class="form-group" id="suc-activa-grupo"><label>Estado Operativo</label><select class="form-control" id="suc-activa"><option value="true">Activa / Disponible</option><option value="false">Inactiva</option></select></div>
+            <button type="submit" class="btn btn-primary" style="width:100%">Guardar Base</button>
+        </form></div></div>
+
+    <div id="modal-cliente" class="modal"><div class="modal-content" style="max-width:550px;"><button class="close-btn" onclick="closeModal('modal-cliente')">&times;</button><h3>Crear Cliente</h3>
+        <form id="form-cliente" onsubmit="crearCliente(event)">
+            <div class="form-group"><label>Razón Social <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" id="cli-razon" required></div>
+            <div class="form-group"><label>CUIT <span style="color:var(--danger);">*</span></label><input type="text" class="form-control font-mono" id="cli-cuit" required></div>
+            <h4 style="border-top:1px solid var(--border); padding-top:16px; margin-top:24px; font-size:1.05rem;">Dirección Principal</h4>
+            <div class="form-group"><label>Alias <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" id="cli-alias" value="Sede Principal" required></div>
+            <div class="fila"><div class="form-group" style="flex:2;"><label>Calle <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" id="cli-calle" required></div><div class="form-group"><label>Altura <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" id="cli-altura" required></div></div>
+            <div class="form-group"><label>CP <span style="color:var(--danger);">*</span></label><input type="text" class="form-control font-mono" id="cli-cp" required></div>
+            <div class="form-group"><label>Ubicación (link de Google Maps o "lat, lon")</label><input type="text" class="form-control" id="cli-ubicacion"></div>
+            <button type="submit" class="btn btn-primary" style="width:100%">Guardar Cliente</button>
+        </form></div></div>
+
+    <div id="modal-direcciones-cliente" class="modal"><div class="modal-content modal-large"><button class="close-btn" onclick="closeModal('modal-direcciones-cliente')">&times;</button><h3 style="margin-bottom:8px;">Libreta de Direcciones</h3><div style="color:var(--text-secondary); font-size:0.95rem; margin-bottom:24px;" id="nombre-cliente-modal"></div>
+        <div style="display:flex; gap:24px; flex-wrap:wrap;">
+            <div class="table-container" style="flex:1.5; min-width:300px; max-height:50vh; overflow-y:auto; margin-bottom:0;"><table style="margin-bottom:0;"><thead><tr><th>Alias</th><th>Dirección</th><th>Ubicación</th><th></th></tr></thead><tbody id="tabla-direcciones-cliente"></tbody></table></div>
+            <div style="flex:1; min-width:250px; background:var(--bg-page); padding:24px; border-radius:10px; border:1px solid var(--border);">
+                <h4 style="margin-top:0; margin-bottom:16px;">Nueva Dirección</h4>
+                <form id="form-nueva-direccion" onsubmit="guardarDireccionCliente(event)"><input type="hidden" id="dir-cliente-id">
+                    <div class="form-group"><label>Alias <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" id="dir-alias" required></div>
+                    <div class="form-group"><label>Calle <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" id="dir-calle" required></div>
+                    <div class="form-group"><label>Altura <span style="color:var(--danger);">*</span></label><input type="text" class="form-control" id="dir-altura" required></div>
+                    <div class="form-group"><label>Ciudad</label><input type="text" class="form-control" id="dir-ciudad"></div>
+                    <div class="form-group"><label>CP</label><input type="text" class="form-control font-mono" id="dir-cp"></div>
+                    <div class="form-group"><label>Provincia</label><input type="text" class="form-control" id="dir-provincia"></div>
+                    <div class="form-group"><label>Ubicación (link de Google Maps o "lat, lon")</label><input type="text" class="form-control" id="dir-ubicacion"></div>
+                    <button type="submit" class="btn btn-primary" style="width:100%;">Agregar</button>
+                </form>
+            </div>
+        </div></div></div>
+
+    <div id="modal-lista-estado" class="modal"><div class="modal-content modal-large"><button class="close-btn" onclick="closeModal('modal-lista-estado')">&times;</button><h3 id="titulo-modal-estado">Vista Extendida</h3><div class="table-container" style="max-height:60vh; overflow-y:auto;"><table style="margin-bottom:0;"><thead><tr><th>Número</th><th>Tipo</th><th>Origen</th><th>Vehículo</th><th>Acciones</th></tr></thead><tbody id="tabla-estado-mas"></tbody></table></div></div></div>
+
+    <div id="panel-flete" class="modal"><div class="modal-content" style="max-width:640px;"><button class="close-btn" onclick="closeModal('panel-flete')">&times;</button><h3>Armar Flete</h3>
+        <div class="fila"><div class="form-group"><label>Tipo de flete</label><select class="form-control" id="flete-tipo" onchange="document.getElementById('flete-externo').style.display = this.value === 'externo' ? 'flex' : 'none'"><option value="interno">Interno (entrega propia)</option><option value="externo">Externo (servicio a un cliente)</option></select></div><div class="form-group"><label>Prioridad</label><select class="form-control" id="flete-prioridad"><option value="normal">Normal</option><option value="alta">Alta</option></select></div></div>
+        <div class="fila" id="flete-externo" style="display:none;"><div class="form-group"><label>Cliente que contrata <span style="color:var(--danger);">*</span></label><select class="form-control sel-empresa" id="flete-cliente"></select></div><div class="form-group"><label>Precio acordado ($)</label><input type="number" min="0" step="0.01" class="form-control" id="flete-precio"></div></div>
+        <div class="fila"><div class="form-group"><label>Vehículo <span style="color:var(--danger);">*</span></label><select class="form-control" id="flete-vehiculo" onchange="mostrarVolumenFlete()"><option value="">Seleccione...</option></select></div><div class="form-group"><label>Origen <span style="color:var(--danger);">*</span></label><select class="form-control" id="flete-origen"><option value="">Seleccione...</option></select></div></div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin:24px 0 16px 0; border-top:1px solid var(--border); padding-top:24px;"><strong style="font-size:1.05rem;">Paradas de Ruta</strong><button class="btn btn-secondary btn-sm" onclick="addParada()">+ Añadir Parada</button></div>
+        <div id="paradas-container" style="max-height:45vh; overflow-y:auto; padding-right:8px;"></div>
+        <button class="btn btn-primary" style="width:100%; margin-top:24px; padding:12px;" onclick="confirmarFlete()">Lanzar Flete</button>
+    </div></div>
+
+    <div id="modal-nueva-cot" class="modal"><div class="modal-content" style="max-width:640px;"><button class="close-btn" onclick="closeModal('modal-nueva-cot')">&times;</button><h3>Nueva Cotización</h3>
+        <div class="form-group"><label>Cliente <span style="color:var(--danger);">*</span></label><select class="form-control sel-empresa" id="nc-cliente" onchange="cargarPuntosCotizacion()"></select></div>
+        <div class="fila"><div class="form-group" style="flex:2;"><label>Qué se transporta</label><input type="text" class="form-control" id="nc-descripcion" placeholder="Ej: 2 sillones y 10 cajas"></div><div class="form-group"><label>Fecha del viaje</label><input type="date" class="form-control" id="nc-fecha"></div></div>
+        <div id="nc-puntos"></div>
+        <button class="btn btn-primary" style="width:100%; margin-top:16px; padding:12px;" onclick="crearCotizacion()">Crear Cotización</button>
+    </div></div>
+
+    <div id="modal-cot" class="modal"><div class="modal-content modal-large"><button class="close-btn" onclick="closeModal('modal-cot')">&times;</button><div id="cot-detalle"></div></div></div>
 
     <script>
-        var DB = { vehiculos: [], sucursales: [], clientes: [], tipos_docs: [], fletes: [], usuarios: [], solicitudes: [] };
-        var globalConfig = {}; var paradaCount = 0; var direccionesCache = {}; 
-        
+        var DB = { vehiculos: [], sucursales: [], clientes: [], tipos_docs: [], fletes: [], usuarios: [], solicitudes: [], cotizaciones: [], rutas: [] };
+        var globalConfig = {}; var costos = {}; var paradaCount = 0; var direccionesCache = {}; var YO = null;
+        var PUNTOS_COT = {}; var FUENTES_COT = [];   // opciones de origen/destino al armar una cotizacion
+
         var GridState = {
             usuarios: { query: '', showInactive: false, col: 'username', dir: 'asc' },
             vehiculos: { query: '', showInactive: false, col: 'patente_identificador', dir: 'asc' },
@@ -425,389 +549,490 @@
             clientes: { query: '', showInactive: false, col: 'razon_social', dir: 'asc' }
         };
 
-        // Utilidades Core
-        function getCookie(name) { let match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)')); return match ? match[2] : null; }
-        function cerrarSesion() { fetch('/api/logout', {method:'POST', headers:{'X-CSRF-Token':getCookie('csrf_token')}}).then(()=>{ window.location.href = "/index.html"; }); }
-
         function switchTab(tabId, element) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             document.getElementById('tab-' + tabId).classList.add('active');
-            if(element) element.classList.add('active');
+            if (element) element.classList.add('active');
             loadData();
         }
 
-        // Modo Oscuro
         function toggleTheme() {
-            try {
-                const current = document.documentElement.getAttribute('data-theme');
-                const next = current === 'dark' ? 'light' : 'dark';
-                document.documentElement.setAttribute('data-theme', next);
-                localStorage.setItem('jz_theme', next);
-            } catch (e) { console.error("Fallo al alternar tema"); }
+            const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            try { localStorage.setItem('jz_theme', next); } catch (e) {}
         }
-
         document.addEventListener('DOMContentLoaded', () => {
-            const savedTheme = localStorage.getItem('jz_theme') || 'light';
-            document.documentElement.setAttribute('data-theme', savedTheme);
+            let tema = 'light'; try { tema = localStorage.getItem('jz_theme') || 'light'; } catch (e) {}
+            document.documentElement.setAttribute('data-theme', tema);
         });
 
         function openModal(id) { document.getElementById(id).classList.add('active'); }
-        function closeModal(id) { 
-            document.getElementById(id).classList.remove('active'); 
-            document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
-        }
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid')); }
+        document.addEventListener('input', (e) => { if (e.target.classList && e.target.classList.contains('is-invalid')) e.target.classList.remove('is-invalid'); });
+        document.addEventListener('change', (e) => { if (e.target.classList && e.target.classList.contains('is-invalid')) e.target.classList.remove('is-invalid'); });
 
-        document.addEventListener('input', (e) => { if (e.target.classList.contains('is-invalid')) e.target.classList.remove('is-invalid'); });
-        document.addEventListener('change', (e) => { if (e.target.classList.contains('is-invalid')) e.target.classList.remove('is-invalid'); });
-
-        async function validarYEnviarForm(e, url, modalId, reloadCb, esDireccionCliente = false) {
-            e.preventDefault(); const form = e.target; let errores = 0;
-            form.querySelectorAll('input, select').forEach(el => {
-                if (el.type !== 'hidden' && el.name !== 'role_select' && el.style.display !== 'none' && !el.value && !el.closest('.f-vol-input')) { el.classList.add('is-invalid'); errores++; }
-            });
-            if (errores > 0) { alert("Operación rechazada: Complete todos los casilleros obligatorios marcados en rojo."); return; }
-            if (esDireccionCliente) { await guardarDireccionCliente(); return; }
-            
-            try {
-                const data = Object.fromEntries(new FormData(form));
-                const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCookie('csrf_token') }, body: JSON.stringify(data) });
-                if(res.ok) { 
-                    alert("¡Excelente! El nuevo registro ha sido guardado exitosamente en el sistema.");
-                    closeModal(modalId); form.reset(); reloadCb(); 
-                } else { 
-                    const err = await res.json();
-                    alert("No se pudo completar el alta: " + (err.detail || "Verifique los datos o restricciones de duplicación.")); 
-                }
-            } catch (err) { alert("Error de red: No hay conexión con el servidor local."); }
+        // Pedido con aviso: devuelve la respuesta (o {}) o null si fallo (el error ya se mostro).
+        async function enviar(url, metodo, datos, mensajeOk) {
+            try { const r = await api(url, metodo, datos); if (mensajeOk) alert(mensajeOk); return r || {}; }
+            catch (e) { alert(e.message); return null; }
         }
-
-        async function safeFetch(url, isArray = true) {
-            try {
-                let res = await fetch(url);
-                if (res.status === 401) { forzarReautenticacion(); return isArray ? [] : {}; }
-                if (!res.ok) { return isArray ? [] : {}; }
-                let data = await res.json();
-                return isArray ? (Array.isArray(data) ? data : []) : (data && typeof data === 'object' ? data : {});
-            } catch (e) {
-                return isArray ? [] : {};
-            }
-        }
-
-        function esActivo(val) {
-            if (val === true || val === 1 || val === '1' || val === 't' || val === 'true') return true;
-            if (typeof val === 'string') {
-                let s = val.toLowerCase().trim();
-                return s === 't' || s === 'true' || s === 'activo' || s === 'activa';
-            }
-            return false;
-        }
+        async function seguro(url, porDefecto) { try { return await api(url); } catch (e) { return porDefecto; } }
+        function esActivo(val) { return val === true || val === 't' || val === 'true' || val === 1; }
+        function valor(id) { return document.getElementById(id).value; }
+        function numero(id) { return parseFloat(document.getElementById(id).value) || 0; }
 
         async function loadData() {
             try {
-                let confRes = await fetch('/api/config').catch(() => null);
-                if (confRes && confRes.status === 401) return forzarReautenticacion();
-                globalConfig = (confRes && confRes.ok) ? await confRes.json().catch(() => ({})) : {};
-
-                DB.vehiculos = await safeFetch('/api/vehiculos', true);
-                DB.sucursales = await safeFetch('/api/sucursales', true);
-                DB.clientes = await safeFetch('/api/clientes', true);
-                DB.tipos_docs = await safeFetch('/api/tipos_documentos', true);
-                DB.fletes = await safeFetch('/api/fletes', true);
-                DB.usuarios = await safeFetch('/api/usuarios', true);
-                DB.solicitudes = await safeFetch('/api/admin/solicitudes', true);
-                
-                if(globalConfig.nombre_empresa) document.getElementById('conf-nombre').value = globalConfig.nombre_empresa;
-                if(globalConfig.gps_polling_sec) document.getElementById('conf-gps').value = globalConfig.gps_polling_sec;
-                document.getElementById('conf-ciudad').value = globalConfig.ciudad_defecto || "";
-                document.getElementById('conf-provincia').value = globalConfig.provincia_defecto || "";
-                document.getElementById('conf-pais').value = globalConfig.pais_defecto || "";
-                document.getElementById('conf-volumenes').value = globalConfig.manejar_volumenes ? "true" : "false";
-
-                document.getElementById('conf-oauth-enabled').value = globalConfig.google_oauth_enabled ? "true" : "false";
-                document.getElementById('conf-client-id').value = globalConfig.google_client_id || "";
-                document.getElementById('conf-redirect-url').value = window.location.origin + "/api/auth/google/callback";
-
-                document.querySelectorAll('.f-vol-input').forEach(el => el.style.display = globalConfig.manejar_volumenes ? 'block' : 'none');
-
-                const fleteOrigenEl = document.getElementById('flete-origen');
-                if (fleteOrigenEl) {
-                    fleteOrigenEl.innerHTML = '<option value="">Seleccione...</option>' + DB.sucursales.filter(s=>esActivo(s.activa)).map(s=>`<option value="${s.id}">${esc(s.nombre)}</option>`).join('');
-                }
-                const fleteVehiculoEl = document.getElementById('flete-vehiculo');
-                if (fleteVehiculoEl) {
-                    fleteVehiculoEl.innerHTML = '<option value="">Seleccione...</option>' + DB.vehiculos.filter(v=>v.estado==='activo').map(v=>`<option value="${v.id}">${esc(v.marca_modelo)} (${esc(v.patente_identificador)})</option>`).join('');
-                }
-                
-                try { renderUsuarios(); } catch(e){ console.error(e); }
-                try { renderVehiculos(); } catch(e){ console.error(e); }
-                try { renderSucursales(); } catch(e){ console.error(e); }
-                try { renderClientes(); } catch(e){ console.error(e); }
-                try { renderKanban(); } catch(e){ console.error(e); }
-            } catch (error) { console.error("Error crítico general:", error); }
+                YO = await quienSoy();
+                if (YO.rol !== 'admin') { window.location.href = '/' + YO.rol + '.html'; return; }
+                document.getElementById('barra-paneles').innerHTML = barraPaneles('admin', YO.rol);
+                const [config, vehiculos, sucursales, clientes, tipos, fletes, usuarios, solicitudes, cotizaciones, rutas, cos] = await Promise.all([
+                    seguro('/api/config', {}), seguro('/api/vehiculos', []), seguro('/api/sucursales', []), seguro('/api/clientes', []),
+                    seguro('/api/tipos_documentos', []), seguro('/api/fletes', []), seguro('/api/usuarios', []), seguro('/api/admin/solicitudes', []),
+                    seguro('/api/cotizaciones', []), seguro('/api/rutas', []), seguro('/api/config/costos', {})]);
+                globalConfig = config; costos = cos;
+                Object.assign(DB, { vehiculos, sucursales, clientes, tipos_docs: tipos, fletes, usuarios, solicitudes, cotizaciones, rutas });
+                llenarConfig(); llenarSelects();
+                [renderUsuarios, renderSolicitudes, renderVehiculos, renderSucursales, renderClientes, renderKanban, renderCotizaciones, renderRutas]
+                    .forEach(f => { try { f(); } catch (e) { console.error(e); } });
+            } catch (error) { console.error('Error general:', error); }
         }
 
-        function forzarReautenticacion() { window.location.href = "/index.html"; }
+        function llenarConfig() {
+            document.getElementById('conf-nombre').value = globalConfig.nombre_empresa || '';
+            document.getElementById('conf-gps').value = globalConfig.gps_polling_sec || 10;
+            document.getElementById('conf-ciudad').value = globalConfig.ciudad_defecto || '';
+            document.getElementById('conf-provincia').value = globalConfig.provincia_defecto || '';
+            document.getElementById('conf-pais').value = globalConfig.pais_defecto || '';
+            document.getElementById('conf-oauth-enabled').value = globalConfig.google_oauth_enabled ? 'true' : 'false';
+            document.getElementById('conf-client-id').value = globalConfig.google_client_id || '';
+            document.getElementById('conf-redirect-url').value = window.location.origin + '/api/auth/google/callback';
+            const campos = { 'cos-litro': 'precio_litro', 'cos-kwh': 'precio_kwh', 'cos-chofer': 'costo_chofer_hora', 'cos-velocidad': 'velocidad_promedio_kmh',
+                             'cos-parada': 'minutos_por_parada', 'cos-margen': 'margen_pct', 'cos-iva': 'iva_pct', 'cos-factor': 'factor_calle' };
+            Object.entries(campos).forEach(([id, k]) => { if (costos[k] != null) document.getElementById(id).value = costos[k]; });
+            const sug = document.getElementById('cos-factor-sugerido');
+            sug.innerHTML = costos.factor_sugerido
+                ? `Sugerido según ${costos.viajes_medidos} viaje(s) medido(s): <strong>${costos.factor_sugerido}</strong> <a href="#" onclick="document.getElementById('cos-factor').value=${costos.factor_sugerido}; return false;">usar</a>`
+                : 'Todavía no hay viajes cerrados con odómetro para sugerir un factor.';
+            document.getElementById('aviso-costos').style.display = (!costos.precio_litro && !costos.precio_kwh && !costos.costo_chofer_hora) ? 'block' : 'none';
+        }
+
+        function llenarSelects() {
+            const empresas = '<option value="">Seleccione...</option>' + DB.clientes.filter(c => esActivo(c.activo)).map(c => `<option value="${c.id}">${esc(c.razon_social)}</option>`).join('');
+            document.querySelectorAll('.sel-empresa').forEach(s => { const v = s.value; s.innerHTML = empresas; s.value = v; });
+            const origen = document.getElementById('flete-origen'), vo = origen.value;
+            origen.innerHTML = '<option value="">Seleccione...</option>' + DB.sucursales.filter(s => esActivo(s.activa)).map(s => `<option value="${s.id}">${esc(s.nombre)}</option>`).join('');
+            origen.value = vo;
+            const veh = document.getElementById('flete-vehiculo'), vv = veh.value;
+            veh.innerHTML = '<option value="">Seleccione...</option>' + DB.vehiculos.filter(v => v.estado === 'activo').map(v => `<option value="${v.id}">${esc(v.marca_modelo)} (${esc(v.patente_identificador)})${v.usa_volumen ? ' - ' + v.capacidad_volumen_m3 + ' m³' : ''}</option>`).join('');
+            veh.value = vv;
+        }
 
         function sortEngine(array, col, dir) {
             return array.sort((a, b) => {
                 let vA = a[col], vB = b[col];
                 if (typeof vA === 'boolean') { vA = vA ? 1 : 0; vB = vB ? 1 : 0; }
-                if (vA === null || vA === undefined) vA = '';
-                if (vB === null || vB === undefined) vB = '';
-                if (!isNaN(vA) && !isNaN(vB) && typeof vA !== 'string' && typeof vB !== 'string') return dir === 'asc' ? vA - vB : vB - vA;
+                if (vA == null) vA = ''; if (vB == null) vB = '';
+                if (typeof vA === 'number' && typeof vB === 'number') return dir === 'asc' ? vA - vB : vB - vA;
                 vA = vA.toString().toLowerCase(); vB = vB.toString().toLowerCase();
-                if (vA < vB) return dir === 'asc' ? -1 : 1;
-                if (vA > vB) return dir === 'asc' ? 1 : -1;
-                return 0;
+                return vA < vB ? (dir === 'asc' ? -1 : 1) : vA > vB ? (dir === 'asc' ? 1 : -1) : 0;
             });
         }
-        
         function updateArrows(tab) {
-            const state = GridState[tab];
+            const st = GridState[tab];
             document.querySelectorAll(`[id^="s-${tab}-"]`).forEach(el => el.innerText = '');
-            const activeHeader = document.getElementById(`s-${tab}-${state.col}`);
-            if (activeHeader) activeHeader.innerText = state.dir === 'asc' ? ' ▲' : ' ▼';
+            const h = document.getElementById(`s-${tab}-${st.col}`); if (h) h.innerText = st.dir === 'asc' ? ' ▲' : ' ▼';
         }
-
-        function updateGridFilter(tab, query) { GridState[tab].query = query.toLowerCase().trim(); window['render' + tab.charAt(0).toUpperCase() + tab.slice(1)](); }
-        function toggleGridInactive(tab, checked) { GridState[tab].showInactive = checked; window['render' + tab.charAt(0).toUpperCase() + tab.slice(1)](); }
+        function renderGrid(tab) { window['render' + tab.charAt(0).toUpperCase() + tab.slice(1)](); }
+        function updateGridFilter(tab, q) { GridState[tab].query = q.toLowerCase().trim(); renderGrid(tab); }
+        function toggleGridInactive(tab, checked) { GridState[tab].showInactive = checked; renderGrid(tab); }
         function setGridSort(tab, col) {
-            if (GridState[tab].col === col) { GridState[tab].dir = GridState[tab].dir === 'asc' ? 'desc' : 'asc'; } 
-            else { GridState[tab].col = col; GridState[tab].dir = 'asc'; }
-            window['render' + tab.charAt(0).toUpperCase() + tab.slice(1)]();
+            const st = GridState[tab];
+            if (st.col === col) st.dir = st.dir === 'asc' ? 'desc' : 'asc'; else { st.col = col; st.dir = 'asc'; }
+            renderGrid(tab);
         }
+        function filaVacia(cols, texto) { return `<tr><td colspan="${cols}" style="text-align:center; color:var(--text-muted); font-style:italic; padding:20px;">${texto}</td></tr>`; }
+        function capital(s) { s = s || ''; return s.charAt(0).toUpperCase() + s.slice(1); }
 
-        // Escapa datos de la DB antes de meterlos en innerHTML. Sin esto, un cliente podia
-        // guardar <script> en su razon social o direccion y ejecutarlo en el panel admin.
-        function esc(v){ return v==null ? '' : String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
-        // Argumento de texto para handlers inline: onclick="fn(${jsArg(x)})".
-        function jsArg(v){ return esc(JSON.stringify(v==null ? '' : String(v))); }
-
+        // --- USUARIOS ---
+        function mostrarEmpresa(pref) { document.getElementById(pref + '-empresa-grupo').style.display = valor(pref + '-rol') === 'cliente' ? 'block' : 'none'; }
         function renderUsuarios() {
             let res = [...DB.usuarios]; const st = GridState.usuarios;
             if (!st.showInactive) res = res.filter(u => esActivo(u.activo));
             if (st.query) res = res.filter(u => (u.username || '').toLowerCase().includes(st.query) || (u.nombre_completo || '').toLowerCase().includes(st.query));
             sortEngine(res, st.col, st.dir); updateArrows('usuarios');
-            if (res.length === 0) { document.getElementById('tabla-usuarios').innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted); font-style:italic; padding:20px;">No hay usuarios registrados.</td></tr>`; return; }
-            document.getElementById('tabla-usuarios').innerHTML = res.map(u=>`<tr><td><strong class="font-mono">${esc(u.username)}</strong></td><td>${esc(u.nombre_completo || '')}</td><td><span class="badge badge-primary">${esc((u.rol || '').charAt(0).toUpperCase() + (u.rol || '').slice(1))}</span></td><td><span class="badge ${esActivo(u.activo) ? 'badge-success':'badge-danger'}">${esActivo(u.activo) ? 'Activo':'Bloqueado'}</span></td><td><button class="btn btn-secondary" style="padding:6px 12px; font-size:0.8rem;" onclick="abrirEditarUsuario(${jsArg(u.username)})">Editar</button></td></tr>`).join('');
+            const nombres = { admin: 'Administrador', chofer: 'Transportista', cliente: 'Cliente' };
+            document.getElementById('tabla-usuarios').innerHTML = res.length === 0 ? filaVacia(6, 'No hay usuarios registrados.') : res.map(u => `<tr><td><strong class="font-mono">${esc(u.username)}</strong></td><td>${esc(u.nombre_completo)}</td><td><span class="badge badge-primary">${esc(nombres[u.rol] || u.rol)}</span></td><td>${u.rol === 'cliente' ? (u.empresa ? esc(u.empresa) : '<span class="badge badge-warning">Sin empresa</span>') : ''}</td><td><span class="badge ${esActivo(u.activo) ? 'badge-success' : 'badge-danger'}">${esActivo(u.activo) ? 'Activo' : 'Bloqueado'}</span></td><td><button class="btn btn-secondary btn-sm" onclick="abrirEditarUsuario(${jsArg(u.username)})">Editar</button></td></tr>`).join('');
+        }
+        function renderSolicitudes() {
+            document.getElementById('tabla-solicitudes').innerHTML = DB.solicitudes.length === 0 ? filaVacia(4, 'No hay solicitudes pendientes.') : DB.solicitudes.map((s, i) => `<tr><td class="font-mono">${esc(s.email)}</td><td>${esc(s.nombre_completo)}</td><td><select class="form-control" id="sol-rol-${i}"><option value="chofer">Transportista</option><option value="cliente">Cliente</option><option value="admin">Administrador</option></select></td><td style="display:flex; gap:8px;"><button class="btn btn-primary btn-sm" onclick="procesarSolicitud(${i}, true)">Aprobar</button><button class="btn btn-secondary btn-sm" onclick="procesarSolicitud(${i}, false)">Rechazar</button></td></tr>`).join('');
+        }
+        async function procesarSolicitud(i, aprobar) {
+            const s = DB.solicitudes[i];
+            if (await enviar('/api/admin/solicitudes/procesar', 'POST', { email: s.email, nombre_completo: s.nombre_completo, rol: valor('sol-rol-' + i), aprobar }, aprobar ? 'Usuario aprobado: ya puede entrar con su cuenta de Google.' : 'Solicitud rechazada.')) loadData();
+        }
+        async function crearUsuario(e) {
+            e.preventDefault();
+            const rol = valor('nu-rol');
+            const r = await enviar('/api/usuarios', 'POST', { username: valor('nu-username').trim(), password: valor('nu-password'), nombre_completo: valor('nu-nombre').trim(), rol, cliente_id: rol === 'cliente' && valor('nu-empresa') ? parseInt(valor('nu-empresa')) : null }, 'Usuario creado.');
+            if (r) { closeModal('modal-usuario'); document.getElementById('form-usuario').reset(); mostrarEmpresa('nu'); loadData(); }
+        }
+        function abrirEditarUsuario(username) {
+            const u = DB.usuarios.find(x => x.username === username); if (!u) return;
+            document.getElementById('eu-username').value = u.username; document.getElementById('eu-nombre').value = u.nombre_completo;
+            document.getElementById('eu-rol').value = u.rol; document.getElementById('eu-activo').value = esActivo(u.activo) ? 'true' : 'false';
+            document.getElementById('eu-empresa').value = u.cliente_id || ''; document.getElementById('eu-password').value = '';
+            mostrarEmpresa('eu'); openModal('modal-editar-usuario');
+        }
+        async function ejecutarEdicionUsuario(e) {
+            e.preventDefault();
+            const rol = valor('eu-rol');
+            const r = await enviar('/api/usuarios/' + encodeURIComponent(valor('eu-username')), 'PUT', { nombre_completo: valor('eu-nombre'), rol, activo: valor('eu-activo') === 'true', password: valor('eu-password') || null, cliente_id: rol === 'cliente' && valor('eu-empresa') ? parseInt(valor('eu-empresa')) : null }, 'Usuario actualizado.');
+            if (r) { closeModal('modal-editar-usuario'); loadData(); }
         }
 
+        // --- FLOTA ---
         function renderVehiculos() {
             let res = [...DB.vehiculos]; const st = GridState.vehiculos;
             if (!st.showInactive) res = res.filter(v => v.estado === 'activo');
             if (st.query) res = res.filter(v => (v.patente_identificador || '').toLowerCase().includes(st.query) || (v.marca_modelo || '').toLowerCase().includes(st.query));
             sortEngine(res, st.col, st.dir); updateArrows('vehiculos');
-            if (res.length === 0) { document.getElementById('tabla-vehiculos').innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted); font-style:italic; padding:20px;">No hay vehículos disponibles en la flota activa.</td></tr>`; return; }
-            document.getElementById('tabla-vehiculos').innerHTML = res.map(v=>`<tr><td><strong class="font-mono">${esc(v.patente_identificador || '')}</strong></td><td>${esc(v.marca_modelo || '')}</td><td>${esc((v.tipo || '').charAt(0).toUpperCase() + (v.tipo || '').slice(1))}</td><td>${esc(v.autonomia_maxima_km || 0)} KM</td><td>${esc(v.capacidad_volumen_m3 || 0)} m³</td><td><span class="badge badge-${v.estado==='activo'?'success':v.estado==='mantenimiento'?'warning':'danger'}">${esc((v.estado || '').charAt(0).toUpperCase() + (v.estado || '').slice(1))}</span></td><td><button class="btn btn-secondary" style="padding:6px 12px; font-size:0.8rem;" onclick="abrirEditarVehiculo(${v.id})">Editar</button></td></tr>`).join('');
+            document.getElementById('tabla-vehiculos').innerHTML = res.length === 0 ? filaVacia(9, 'No hay vehículos en la flota activa.') : res.map(v => `<tr><td><strong class="font-mono">${esc(v.patente_identificador)}</strong></td><td>${esc(v.marca_modelo)}</td><td>${v.tipo === 'electrico' ? 'Eléctrico' : 'Combustión'}</td><td>${v.usa_volumen ? esc(v.capacidad_volumen_m3) + ' m³' : '<span style="color:var(--text-muted);">No controla</span>'}</td><td>${esc(v.consumo_100km)} ${v.tipo === 'electrico' ? 'kWh' : 'L'}</td><td>${dinero(v.costo_km)}</td><td>${km(v.odometro_km)}</td><td><span class="badge badge-${v.estado === 'activo' ? 'success' : v.estado === 'mantenimiento' ? 'warning' : 'danger'}">${esc(capital(v.estado))}</span></td><td><button class="btn btn-secondary btn-sm" onclick="abrirVehiculo(${v.id})">Editar</button></td></tr>`).join('');
+        }
+        function etiquetaConsumo() { document.getElementById('veh-consumo-label').innerText = valor('veh-tipo') === 'electrico' ? 'Consumo (kWh cada 100 km)' : 'Consumo (litros cada 100 km)'; }
+        function abrirVehiculo(id) {
+            const v = DB.vehiculos.find(x => x.id === id) || { tipo: 'combustion', autonomia_maxima_km: 0, usa_volumen: false, capacidad_volumen_m3: 0, consumo_100km: 0, costo_km: 0, odometro_km: 0, estado: 'activo' };
+            document.getElementById('veh-titulo').innerText = id ? 'Modificar Vehículo' : 'Añadir Vehículo';
+            document.getElementById('veh-id').value = id || '';
+            document.getElementById('veh-patente').value = v.patente_identificador || ''; document.getElementById('veh-marca').value = v.marca_modelo || '';
+            document.getElementById('veh-tipo').value = v.tipo; document.getElementById('veh-autonomia').value = v.autonomia_maxima_km;
+            document.getElementById('veh-usa-volumen').checked = !!v.usa_volumen; document.getElementById('veh-volumen').value = v.capacidad_volumen_m3;
+            document.getElementById('veh-volumen-grupo').style.display = v.usa_volumen ? 'block' : 'none';
+            document.getElementById('veh-consumo').value = v.consumo_100km; document.getElementById('veh-costo-km').value = v.costo_km;
+            document.getElementById('veh-odometro').value = v.odometro_km; document.getElementById('veh-estado').value = v.estado;
+            document.getElementById('veh-estado-grupo').style.visibility = id ? 'visible' : 'hidden';
+            etiquetaConsumo(); openModal('modal-vehiculo');
+        }
+        async function guardarVehiculo(e) {
+            e.preventDefault();
+            const id = valor('veh-id');
+            const datos = { patente_identificador: valor('veh-patente').trim(), marca_modelo: valor('veh-marca').trim(), tipo: valor('veh-tipo'), autonomia_maxima_km: numero('veh-autonomia'),
+                            usa_volumen: document.getElementById('veh-usa-volumen').checked, capacidad_volumen_m3: numero('veh-volumen'), consumo_100km: numero('veh-consumo'),
+                            costo_km: numero('veh-costo-km'), odometro_km: numero('veh-odometro'), estado: valor('veh-estado') };
+            const r = await enviar(id ? '/api/vehiculos/' + id : '/api/vehiculos', id ? 'PUT' : 'POST', datos, 'Vehículo guardado.');
+            if (r) { closeModal('modal-vehiculo'); loadData(); }
         }
 
+        // --- SUCURSALES ---
         function renderSucursales() {
             let res = [...DB.sucursales]; const st = GridState.sucursales;
             if (!st.showInactive) res = res.filter(s => esActivo(s.activa));
             if (st.query) res = res.filter(s => (s.nombre || '').toLowerCase().includes(st.query) || (s.calle || '').toLowerCase().includes(st.query));
             sortEngine(res, st.col, st.dir); updateArrows('sucursales');
-            if (res.length === 0) { document.getElementById('tabla-sucursales').innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted); font-style:italic; padding:20px;">No hay bases operativas registradas.</td></tr>`; return; }
-            document.getElementById('tabla-sucursales').innerHTML = res.map(s=>`<tr><td><strong>${esc(s.nombre || '')}</strong></td><td>${esc(s.calle || '')} ${esc(s.altura || '')}</td><td>${esc(s.ciudad || '')}</td><td><span class="font-mono">${esc(s.codigo_postal || '')}</span></td><td><span class="badge badge-${esActivo(s.activa)?'success':'danger'}">${esActivo(s.activa) ? 'Activa':'Inactiva'}</span></td><td><button class="btn btn-secondary" style="padding:6px 12px; font-size:0.8rem;" onclick="abrirEditarSucursal(${s.id})">Editar</button></td></tr>`).join('');
+            document.getElementById('tabla-sucursales').innerHTML = res.length === 0 ? filaVacia(6, 'No hay bases registradas.') : res.map(s => `<tr><td><strong>${esc(s.nombre)}</strong></td><td>${esc(s.calle)} ${esc(s.altura)}</td><td>${esc(s.ciudad)}</td><td>${badgeUbicacion(s.latitud, s.longitud)}</td><td><span class="badge badge-${esActivo(s.activa) ? 'success' : 'danger'}">${esActivo(s.activa) ? 'Activa' : 'Inactiva'}</span></td><td><button class="btn btn-secondary btn-sm" onclick="abrirSucursal(${s.id})">Editar</button></td></tr>`).join('');
+        }
+        function abrirSucursal(id) {
+            const s = DB.sucursales.find(x => x.id === id) || { activa: true, ciudad: globalConfig.ciudad_defecto, provincia: globalConfig.provincia_defecto };
+            document.getElementById('suc-titulo').innerText = id ? 'Modificar Sucursal' : 'Crear Sucursal';
+            document.getElementById('suc-id').value = id || '';
+            [['suc-nombre', 'nombre'], ['suc-calle', 'calle'], ['suc-altura', 'altura'], ['suc-ciudad', 'ciudad'], ['suc-provincia', 'provincia'], ['suc-cp', 'codigo_postal']]
+                .forEach(([el, k]) => document.getElementById(el).value = s[k] || '');
+            document.getElementById('suc-ubicacion').value = textoCoords(s.latitud, s.longitud);
+            document.getElementById('suc-activa').value = esActivo(s.activa) ? 'true' : 'false';
+            document.getElementById('suc-activa-grupo').style.display = id ? 'block' : 'none';
+            openModal('modal-sucursal');
+        }
+        async function guardarSucursal(e) {
+            e.preventDefault();
+            let u; try { u = leerUbicacion(document.getElementById('suc-ubicacion')); } catch (x) { return alert(x.message); }
+            const id = valor('suc-id');
+            const datos = { nombre: valor('suc-nombre').trim(), calle: valor('suc-calle').trim(), altura: valor('suc-altura').trim(), ciudad: valor('suc-ciudad').trim(),
+                            provincia: valor('suc-provincia').trim(), codigo_postal: valor('suc-cp').trim(), latitud: u.lat, longitud: u.lon, activa: valor('suc-activa') === 'true' };
+            const r = await enviar(id ? '/api/sucursales/' + id : '/api/sucursales', id ? 'PUT' : 'POST', datos, 'Sucursal guardada.');
+            if (r) { closeModal('modal-sucursal'); loadData(); }
         }
 
+        // --- CLIENTES ---
         function renderClientes() {
             let res = [...DB.clientes]; const st = GridState.clientes;
             if (!st.showInactive) res = res.filter(c => esActivo(c.activo));
             if (st.query) res = res.filter(c => (c.razon_social || '').toLowerCase().includes(st.query) || (c.cuit_rut || '').includes(st.query));
             sortEngine(res, st.col, st.dir); updateArrows('clientes');
-            if (res.length === 0) { document.getElementById('tabla-clientes').innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--text-muted); font-style:italic; padding:20px;">No hay destinatarios cargados en el sistema.</td></tr>`; return; }
-            document.getElementById('tabla-clientes').innerHTML = res.map(c=>`<tr><td><strong>${esc(c.razon_social || '')}</strong></td><td><span class="font-mono">${esc(c.cuit_rut || '')}</span></td><td><button class="btn btn-secondary" style="padding:6px 12px; font-size:0.8rem;" onclick="abrirModalDirecciones(${c.id}, ${jsArg(c.razon_social || '')})">Direcciones</button></td></tr>`).join('');
+            document.getElementById('tabla-clientes').innerHTML = res.length === 0 ? filaVacia(4, 'No hay clientes cargados.') : res.map(c => {
+                const portal = DB.usuarios.filter(u => u.cliente_id === c.id).map(u => esc(u.username)).join(', ');
+                return `<tr><td><strong>${esc(c.razon_social)}</strong></td><td><span class="font-mono">${esc(c.cuit_rut)}</span></td><td>${portal || '<span style="color:var(--text-muted);">-</span>'}</td><td><button class="btn btn-secondary btn-sm" onclick="abrirModalDirecciones(${c.id}, ${jsArg(c.razon_social)})">Direcciones</button></td></tr>`;
+            }).join('');
+        }
+        async function crearCliente(e) {
+            e.preventDefault();
+            let u; try { u = leerUbicacion(document.getElementById('cli-ubicacion')); } catch (x) { return alert(x.message); }
+            const r = await enviar('/api/clientes', 'POST', { razon_social: valor('cli-razon').trim(), cuit_rut: valor('cli-cuit').trim(), alias: valor('cli-alias').trim(), calle: valor('cli-calle').trim(), altura: valor('cli-altura').trim(), codigo_postal: valor('cli-cp').trim(), latitud: u.lat, longitud: u.lon }, 'Cliente creado.');
+            if (r) { closeModal('modal-cliente'); document.getElementById('form-cliente').reset(); loadData(); }
+        }
+        async function abrirModalDirecciones(clienteId, razonSocial) {
+            document.getElementById('nombre-cliente-modal').innerText = razonSocial; document.getElementById('dir-cliente-id').value = clienteId;
+            document.getElementById('form-nueva-direccion').reset(); document.getElementById('dir-ciudad').value = globalConfig.ciudad_defecto || ''; document.getElementById('dir-provincia').value = globalConfig.provincia_defecto || '';
+            await cargarDireccionesEnModal(clienteId); openModal('modal-direcciones-cliente');
+        }
+        async function cargarDireccionesEnModal(clienteId) {
+            const dirs = await seguro(`/api/clientes/${clienteId}/direcciones`, []);
+            direccionesCache[clienteId] = dirs;
+            document.getElementById('tabla-direcciones-cliente').innerHTML = dirs.length === 0 ? filaVacia(4, 'Sin direcciones.') : dirs.map(d => `<tr><td><strong>${esc(d.alias)}</strong></td><td>${esc(d.calle)} ${esc(d.altura)}<br><small style="color:var(--text-muted);">${esc(d.ciudad)}</small></td><td>${badgeUbicacion(d.latitud, d.longitud)}</td><td><button class="btn btn-secondary btn-sm" onclick="ubicarDireccion(${clienteId}, ${d.id})">Ubicar</button></td></tr>`).join('');
+        }
+        async function ubicarDireccion(clienteId, dirId) {
+            const d = (direccionesCache[clienteId] || []).find(x => x.id === dirId); if (!d) return;
+            const texto = prompt('Pegue el link de Google Maps o las coordenadas ("lat, lon") de ' + d.alias + '.\nDéjelo vacío para dejarla sin ubicar.', textoCoords(d.latitud, d.longitud));
+            if (texto === null) return;
+            const c = texto.trim() ? parseCoords(texto) : { lat: null, lon: null };
+            if (!c) return alert('No se entiende la ubicación: pegue el link de Google Maps o "latitud, longitud".');
+            if (await enviar(`/api/clientes/${clienteId}/direcciones/${dirId}`, 'PUT', { alias: d.alias, calle: d.calle, altura: d.altura, ciudad: d.ciudad, codigo_postal: d.codigo_postal, provincia: d.provincia, latitud: c.lat, longitud: c.lon })) cargarDireccionesEnModal(clienteId);
+        }
+        async function guardarDireccionCliente(e) {
+            e.preventDefault();
+            let u; try { u = leerUbicacion(document.getElementById('dir-ubicacion')); } catch (x) { return alert(x.message); }
+            const clienteId = valor('dir-cliente-id');
+            const r = await enviar(`/api/clientes/${clienteId}/direcciones`, 'POST', { alias: valor('dir-alias').trim(), calle: valor('dir-calle').trim(), altura: valor('dir-altura').trim(), ciudad: valor('dir-ciudad').trim(), codigo_postal: valor('dir-cp').trim(), provincia: valor('dir-provincia').trim(), latitud: u.lat, longitud: u.lon }, 'Dirección agregada.');
+            if (r) { document.getElementById('form-nueva-direccion').reset(); cargarDireccionesEnModal(clienteId); }
         }
 
-        function abrirEditarVehiculo(id) {
-            const v = DB.vehiculos.find(x => x.id === id); if(!v) return;
-            document.getElementById('edit-veh-id').value = v.id; document.getElementById('edit-veh-patente').value = v.patente_identificador;
-            document.getElementById('edit-veh-marca').value = v.marca_modelo; document.getElementById('edit-veh-tipo').value = v.tipo;
-            document.getElementById('edit-veh-autonomia').value = v.autonomia_maxima_km; document.getElementById('edit-veh-volumen').value = v.capacidad_volumen_m3;
-            document.getElementById('edit-veh-estado').value = v.estado; openModal('modal-editar-vehiculo');
+        // --- TABLERO ---
+        function infoFlete(f) {
+            let t = `<strong>Origen:</strong> ${esc(f.origen || 'S/D')}<br><strong>Unidad:</strong> <span class="font-mono">${esc(f.patente_identificador || 'Sin asignar')}</span>`;
+            if (f.tipo === 'externo') t += `<br><strong>Cliente:</strong> ${esc(f.cliente || '-')}${f.precio != null ? ' · ' + dinero(f.precio) : ''}`;
+            if (f.chofer) t += `<br><strong>Chofer:</strong> ${esc(f.chofer)}`;
+            return t;
         }
-
-        async function ejecutarEdicionVehiculo(e) {
-            e.preventDefault(); const id = document.getElementById('edit-veh-id').value;
-            try {
-                const payload = { patente_identificador: document.getElementById('edit-veh-patente').value, marca_modelo: document.getElementById('edit-veh-marca').value, tipo: document.getElementById('edit-veh-tipo').value, autonomia_maxima_km: parseFloat(document.getElementById('edit-veh-autonomia').value), capacidad_volumen_m3: parseFloat(document.getElementById('edit-veh-volumen').value), estado: document.getElementById('edit-veh-estado').value };
-                const res = await fetch(`/api/vehiculos/${id}`, { method:'PUT', headers:{ 'Content-Type':'application/json', 'X-CSRF-Token':getCookie('csrf_token') }, body:JSON.stringify(payload) });
-                if (res.ok) { alert("¡Confirmado! Las características del vehículo se actualizaron correctamente."); closeModal('modal-editar-vehiculo'); loadData(); } 
-                else { alert("Error: Parámetros inválidos ingresados en la flota."); }
-            } catch(x) { alert("Error crítico de red: Sin respuesta del host local."); }
-        }
-
-        function abrirEditarUsuario(username) {
-            const u = DB.usuarios.find(x => x.username === username); if (!u) return;
-            document.getElementById('edit-user-username').value = u.username; document.getElementById('edit-user-nombre').value = u.nombre_completo;
-            document.getElementById('edit-user-rol').value = u.rol; document.getElementById('edit-user-activo').value = u.activo ? "true" : "false";
-            document.getElementById('edit-user-password').value = ""; openModal('modal-editar-usuario');
-        }
-
-        async function ejecutarEdicionUsuario(e) {
-            e.preventDefault(); const username = document.getElementById('edit-user-username').value;
-            try {
-                const payload = { nombre_completo: document.getElementById('edit-user-nombre').value, rol: document.getElementById('edit-user-rol').value, activo: document.getElementById('edit-user-activo').value === "true", password: document.getElementById('edit-user-password').value || null };
-                const res = await fetch(`/api/usuarios/${username}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCookie('csrf_token') }, body: JSON.stringify(payload) });
-                if(res.ok) { alert("¡Perfil de usuario reconfigurado exitosamente!"); closeModal('modal-editar-usuario'); loadData(); } 
-                else { alert("Error: Requisitos de complejidad de contraseña insatisfechos."); }
-            } catch(x) { alert("Error de red."); }
-        }
-
+        function badgeTipo(f) { return f.tipo === 'externo' ? '<span class="badge badge-externo">Externo</span>' : ''; }
         function renderKanban() {
             const container = document.getElementById('kanban-board'); container.innerHTML = '';
             const columnas = [{ id: 'pendiente', titulo: 'Pendiente Salida' }, { id: 'camino', titulo: 'En Tránsito' }, { id: 'completado', titulo: 'Completado' }, { id: 'problema', titulo: 'Incidencia' }];
             const maxTarjetas = 10;
             columnas.forEach(col => {
                 const colHTML = document.createElement('div'); colHTML.className = 'kanban-column';
-                const fletesFiltrados = DB.fletes.filter(f => f.estado === col.id);
-                const cardsHTML = fletesFiltrados.slice(0, maxTarjetas).map(f => `<div class="kanban-card"><div class="card-header"><span class="font-mono" style="font-weight:600; font-size:1.05rem;">#FLT-${String(f.id).padStart(6, '0')}</span><span class="badge badge-${f.prioridad==='alta'?'danger':'primary'}">${esc((f.prioridad || '').charAt(0).toUpperCase() + (f.prioridad || '').slice(1))}</span></div><div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px; line-height:1.5;"><strong>Origen:</strong> ${esc(f.origen || 'S/D')}<br><strong>Unidad:</strong> <span class="font-mono">${esc(f.patente_identificador || 'Sin asignar')}</span></div><div class="card-actions">${getBotonesAccion(f)}</div></div>`).join('');
-                
-                colHTML.innerHTML = `<h3><span>${col.titulo}</span><span class="kanban-column-count">${fletesFiltrados.length}</span></h3><div class="kanban-cards-container">${cardsHTML}</div>`;
-                if (fletesFiltrados.length > maxTarjetas) colHTML.innerHTML += `<button class="btn btn-secondary" style="width:100%; margin-top:12px; font-size:0.85rem;" onclick="abrirModalLista('${col.id}', '${col.titulo}')">Ver listado completo</button>`;
+                const fletes = DB.fletes.filter(f => f.estado === col.id);
+                const cards = fletes.slice(0, maxTarjetas).map(f => `<div class="kanban-card"><div class="card-header"><span class="font-mono" style="font-weight:600; font-size:1.05rem;">${numFlete(f.id)}</span><span style="display:flex; gap:6px;">${badgeTipo(f)}<span class="badge badge-${f.prioridad === 'alta' ? 'danger' : 'primary'}">${esc(capital(f.prioridad))}</span></span></div><div style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:12px; line-height:1.5;">${infoFlete(f)}</div><div class="card-actions">${getBotonesAccion(f)}</div></div>`).join('');
+                colHTML.innerHTML = `<h3><span>${col.titulo}</span><span class="kanban-column-count">${fletes.length}</span></h3><div class="kanban-cards-container">${cards}</div>`;
+                if (fletes.length > maxTarjetas) colHTML.innerHTML += `<button class="btn btn-secondary" style="width:100%; margin-top:12px; font-size:0.85rem;" onclick="abrirModalLista('${col.id}', '${col.titulo}')">Ver listado completo</button>`;
                 container.appendChild(colHTML);
             });
         }
-
         function getBotonesAccion(f) {
-            let acts = '';
-            if (f.estado === 'pendiente') acts += `<button class="btn btn-primary" style="padding:6px 12px; font-size:0.8rem; flex:1;" onclick="cambiarEstadoFlete(${f.id}, 'camino')">Despachar</button>`;
-            else if (f.estado === 'camino') acts += `<button class="btn btn-primary" style="padding:6px 12px; font-size:0.8rem; flex:1; background-color:var(--success);" onclick="cambiarEstadoFlete(${f.id}, 'completado')"><svg class="icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>Finalizar</button><button class="btn btn-secondary" style="padding:6px 12px; font-size:0.8rem; flex:1; color:var(--danger); border-color:var(--danger);" onclick="cambiarEstadoFlete(${f.id}, 'problema')"><svg class="icon" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>Incidencia</button>`;
-            else if (f.estado === 'problema') acts += `<button class="btn btn-secondary" style="padding:6px 12px; font-size:0.8rem; flex:1;" onclick="cambiarEstadoFlete(${f.id}, 'pendiente')">Re-procesar</button>`;
-            return acts;
+            if (f.estado === 'pendiente') return `<button class="btn btn-primary btn-sm" style="flex:1;" onclick="cambiarEstadoFlete(${f.id}, 'camino')">Despachar</button>`;
+            if (f.estado === 'camino') return `<button class="btn btn-primary btn-sm" style="flex:1; background-color:var(--success);" onclick="cambiarEstadoFlete(${f.id}, 'completado')">Finalizar</button><button class="btn btn-secondary btn-sm" style="flex:1; color:var(--danger); border-color:var(--danger);" onclick="cambiarEstadoFlete(${f.id}, 'problema')">Incidencia</button>`;
+            if (f.estado === 'problema') return `<button class="btn btn-secondary btn-sm" style="flex:1;" onclick="cambiarEstadoFlete(${f.id}, 'pendiente')">Re-procesar</button>`;
+            return `<button class="btn btn-secondary btn-sm" style="flex:1;" onclick="window.open('/api/fletes/imprimir?ids=${f.id}', '_blank')">Hoja de ruta</button>`;
         }
-
         function abrirModalLista(estadoId, titulo) {
-            const fletes = DB.fletes.filter(f => f.estado === estadoId);
-            document.getElementById('titulo-modal-estado').innerText = `${titulo}`;
-            document.getElementById('tabla-estado-mas').innerHTML = fletes.map(f => `<tr><td><strong class="font-mono">#FLT-${String(f.id).padStart(6, '0')}</strong></td><td><span class="badge badge-${f.prioridad==='alta'?'danger':'primary'}">${esc((f.prioridad || '').charAt(0).toUpperCase() + (f.prioridad || '').slice(1))}</span></td><td>${esc(f.origen || '')}</td><td><span class="font-mono">${esc(f.patente_identificador || '')}</span></td><td><div style="display:flex; gap:8px;">${getBotonesAccion(f)}</div></td></tr>`).join('');
+            document.getElementById('titulo-modal-estado').innerText = titulo;
+            document.getElementById('tabla-estado-mas').innerHTML = DB.fletes.filter(f => f.estado === estadoId).map(f => `<tr><td><strong class="font-mono">${numFlete(f.id)}</strong></td><td>${badgeTipo(f) || 'Interno'}</td><td>${esc(f.origen)}</td><td><span class="font-mono">${esc(f.patente_identificador || '')}</span></td><td><div style="display:flex; gap:8px;">${getBotonesAccion(f)}</div></td></tr>`).join('');
             openModal('modal-lista-estado');
         }
+        async function cambiarEstadoFlete(id, estado) { if (await enviar(`/api/fletes/${id}/estado`, 'POST', { estado })) { closeModal('modal-lista-estado'); loadData(); } }
 
-        async function cambiarEstadoFlete(id, estado) { const res = await fetch(`/api/fletes/${id}/estado`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCookie('csrf_token') }, body: JSON.stringify({ estado }) }); if (res.ok) { closeModal('modal-lista-estado'); loadData(); } }
-        function abrirEditarSucursal(id) { const s = DB.sucursales.find(x => x.id === id); if (!s) return; document.getElementById('edit-suc-id').value = s.id; document.getElementById('edit-suc-nombre').value = s.nombre; document.getElementById('edit-suc-calle').value = s.calle; document.getElementById('edit-suc-altura').value = s.altura || ''; document.getElementById('edit-suc-ciudad').value = s.ciudad || ''; document.getElementById('edit-suc-cp').value = s.codigo_postal || ''; document.getElementById('edit-suc-provincia').value = s.provincia || ''; openModal('modal-editar-sucursal'); }
-        
-        async function ejecutarEdicionSucursal(e) { 
-            e.preventDefault(); const id = document.getElementById('edit-suc-id').value; 
-            try {
-                const payload = { nombre: document.getElementById('edit-suc-nombre').value, calle: document.getElementById('edit-suc-calle').value, altura: document.getElementById('edit-suc-altura').value, ciudad: document.getElementById('edit-suc-ciudad').value, codigo_postal: document.getElementById('edit-suc-cp').value, provincia: document.getElementById('edit-suc-provincia').value, latitud: -34.6037, longitud: -58.3816, activa: document.getElementById('edit-suc-activa').value === "true" }; 
-                const res = await fetch(`/api/sucursales/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCookie('csrf_token') }, body: JSON.stringify(payload) }); 
-                if (res.ok) { alert("¡Cambios en base operativa guardados con éxito!"); closeModal('modal-editar-sucursal'); loadData(); } 
-                else { alert("Error: Fallo de consistencia fiscal."); }
-            } catch(x) { alert("Error de red."); }
-        }
-        
-        async function abrirModalDirecciones(clienteId, razonSocial) { document.getElementById('nombre-cliente-modal').innerText = razonSocial; document.getElementById('dir-cliente-id').value = clienteId; document.getElementById('form-nueva-direccion').reset(); document.getElementById('dir-ciudad').value=globalConfig.ciudad_defecto; document.getElementById('dir-provincia').value=globalConfig.provincia_defecto; await cargarDireccionesEnModal(clienteId); openModal('modal-direcciones-cliente'); }
-        async function cargarDireccionesEnModal(clienteId) { const res = await fetch(`/api/clientes/${clienteId}/direcciones`); if (res.ok) { const dirs = await res.json(); document.getElementById('tabla-direcciones-cliente').innerHTML = dirs.map(d => `<tr><td><strong>${esc(d.alias)}</strong></td><td>${esc(d.calle)} ${esc(d.altura)}</td><td>${esc(d.ciudad)}</td></tr>`).join(''); } }
-        async function guardarDireccionCliente() { 
-            try {
-                const clienteId = document.getElementById('dir-cliente-id').value; const payload = { alias: document.getElementById('dir-alias').value, calle: document.getElementById('dir-calle').value, altura: document.getElementById('dir-altura').value, ciudad: document.getElementById('dir-ciudad').value, codigo_postal: document.getElementById('dir-cp').value, provincia: document.getElementById('dir-provincia').value, latitud: -34.6037, longitud: -58.3816 }; 
-                const res = await fetch(`/api/clientes/${clienteId}/direcciones`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCookie('csrf_token') }, body: JSON.stringify(payload) }); 
-                if (res.ok) { alert("¡Dirección incorporada a la libreta logística con éxito!"); document.getElementById('form-nueva-direccion').reset(); cargarDireccionesEnModal(clienteId); delete direccionesCache[clienteId]; }
-            } catch(x) { alert("Error de comunicación."); }
-        }
-        
-        function openFletePanel() { openModal('panel-flete'); if (paradaCount === 0) addParada(); }
-        
+        // --- ARMADO DE FLETE ---
+        function openFletePanel() { openModal('panel-flete'); if (paradaCount === 0) addParada(); mostrarVolumenFlete(); }
+        function vehiculoElegido() { return DB.vehiculos.find(v => v.id == valor('flete-vehiculo')); }
+        function mostrarVolumenFlete() { const v = vehiculoElegido(); document.querySelectorAll('.p-vol-wrap').forEach(el => el.style.display = (v && v.usa_volumen) ? 'block' : 'none'); }
         function addParada() {
-            paradaCount++; const div = document.createElement('div'); div.className = 'parada-box'; div.id = 'parada-' + paradaCount; div.style = 'border:1px solid var(--border); padding:20px; margin-bottom:16px; border-radius:10px; background:var(--bg-page);';
-            let docOptions = '<option value="">Seleccione Tipo...</option>' + DB.tipos_docs.map(t=>`<option value="${esc(t.codigo)}">${esc(t.nombre)}</option>`).join('');
-            let volFieldHTML = globalConfig.manejar_volumenes ? `<div class="form-group"><label>Volumen Requerido (m³) <span style="color:var(--danger);">*</span></label><input type="number" step="0.01" class="form-control p-volumen" value="0.00" min="0.00"></div>` : `<input type="hidden" class="p-volumen" value="0.00">`;
-
+            paradaCount++; const div = document.createElement('div'); div.className = 'parada-box punto'; div.id = 'parada-' + paradaCount;
+            const docOptions = '<option value="">Seleccione Tipo...</option>' + DB.tipos_docs.map(t => `<option value="${esc(t.codigo)}">${esc(t.nombre)}</option>`).join('');
             div.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom: 1px solid var(--border); padding-bottom:12px;"><h4 style="margin:0; font-size:1rem; color:var(--text-primary);">Destino ${paradaCount}</h4><button class="btn btn-secondary" style="padding:4px 8px; font-size:0.75rem; color:var(--danger); border-color:var(--danger);" onclick="document.getElementById('${div.id}').remove()">Quitar</button></div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid var(--border); padding-bottom:12px;"><h4 style="margin:0; font-size:1rem;">Destino ${paradaCount}</h4><button class="btn btn-secondary btn-sm" style="color:var(--danger); border-color:var(--danger);" onclick="document.getElementById('${div.id}').remove()">Quitar</button></div>
                 <div class="form-group"><label>Documento <span style="color:var(--danger);">*</span></label><select class="form-control p-tipo" onchange="validarCampos(this)">${docOptions}</select></div>
                 <div style="display:flex; gap:12px;">
                     <div class="form-group c-id" style="flex:1"><label>ID <span style="color:var(--danger);">*</span></label><input type="text" class="form-control font-mono p-id"></div>
                     <div class="form-group c-pv" style="flex:1"><label>Pto. Venta <span style="color:var(--danger);">*</span></label><input type="text" class="form-control font-mono p-pv"></div>
                     <div class="form-group c-num" style="flex:1.5"><label>Número <span style="color:var(--danger);">*</span></label><input type="text" class="form-control font-mono p-num"></div>
                 </div>
-                <div class="form-group"><label>Cantidad de Bultos <span style="color:var(--danger);">*</span></label><input type="number" class="form-control p-bultos" value="1" min="1"></div>
-                ${volFieldHTML}
-                <div class="form-group"><label>Tipo de Destino <span style="color:var(--danger);">*</span></label><select class="form-control p-tipo-destino" onchange="conmutarTipoDestino(this)"><option value="">Seleccione tipo...</option><option value="sucursal">Sucursal Interna</option><option value="destinatario">Destinatario Registrado</option><option value="esporadico">Destinatario Manual (Esporádico)</option></select></div>
-                <div class="panel-sucursal" style="display:none;"><div class="form-group"><label>Seleccionar Sucursal <span style="color:var(--danger);">*</span></label><select class="form-control p-sucursal-select"></select></div></div>
-                <div class="panel-destinatario" style="display:none; position:relative;"><div class="form-group"><label>Buscar Destinatario Maestro <span style="color:var(--danger);">*</span></label><input type="text" class="form-control p-dest-search" placeholder="Escriba Razón Social..." oninput="filtrarDestinatariosPredictivo(this)"><input type="hidden" class="p-dest-id"><div class="autocomplete-results"></div></div><div class="panel-punto-entrega" style="display:none; background:rgba(41, 98, 255, 0.05); padding:16px; border-radius:8px; margin-bottom:12px; border:1px solid rgba(41, 98, 255, 0.2);"><div class="form-group" style="margin-bottom:0;"><label style="color:var(--accent);">Punto de Entrega Asociado <span style="color:var(--danger);">*</span></label><select class="form-control p-punto-select"></select></div></div></div>
-                <div class="panel-esporadico" style="display:none; background:rgba(0,0,0,0.02); padding:16px; border-radius:8px; margin-bottom:12px; border:1px solid var(--border);"><div class="form-group"><label>Nombre Destinatario <span style="color:var(--danger);">*</span></label><input type="text" class="form-control p-alias"></div><div style="display:flex; gap:12px;"><div class="form-group" style="flex:2;"><label>Calle <span style="color:var(--danger);">*</span></label><input type="text" class="form-control p-calle"></div><div class="form-group" style="flex:1;"><label>Altura <span style="color:var(--danger);">*</span></label><input type="text" class="form-control p-alt"></div></div><div style="display:flex; gap:12px;"><div class="form-group" style="flex:1;"><label>Ciudad <span style="color:var(--danger);">*</span></label><input type="text" class="form-control p-ciudad" value="${esc(globalConfig.ciudad_defecto || '')}"></div><div class="form-group" style="flex:1;"><label>Provincia <span style="color:var(--danger);">*</span></label><input type="text" class="form-control p-prov" value="${esc(globalConfig.provincia_defecto || '')}"></div></div></div>
-            `;
-            document.getElementById('paradas-container').appendChild(div); validarCampos(div.querySelector('.p-tipo'));
+                <div class="fila"><div class="form-group"><label>Bultos <span style="color:var(--danger);">*</span></label><input type="number" class="form-control p-bultos" value="1" min="1"></div><div class="form-group p-vol-wrap" style="display:none;"><label>Volumen (m³)</label><input type="number" step="0.01" class="form-control p-volumen" value="0" min="0"></div></div>
+                <div class="form-group"><label>Tipo de Destino <span style="color:var(--danger);">*</span></label><select class="form-control p-tipo-destino" onchange="conmutarTipoDestino(this)"><option value="">Seleccione tipo...</option><option value="sucursal">Sucursal Interna</option><option value="destinatario">Cliente / Destinatario Registrado</option><option value="esporadico">Dirección Manual (Esporádica)</option></select></div>
+                <div class="panel-sucursal" style="display:none;"><div class="form-group"><label>Sucursal <span style="color:var(--danger);">*</span></label><select class="form-control p-sucursal-select"></select></div></div>
+                <div class="panel-destinatario" style="display:none; position:relative;"><div class="form-group"><label>Buscar Cliente <span style="color:var(--danger);">*</span></label><input type="text" class="form-control p-dest-search" placeholder="Escriba Razón Social..." oninput="filtrarDestinatariosPredictivo(this)"><input type="hidden" class="p-dest-id"><div class="autocomplete-results"></div></div><div class="panel-punto-entrega" style="display:none; margin-bottom:12px;"><div class="form-group" style="margin-bottom:0;"><label style="color:var(--accent);">Punto de Entrega <span style="color:var(--danger);">*</span></label><select class="form-control p-punto-select"></select></div></div></div>
+                <div class="panel-esporadico" style="display:none;"><div class="form-group"><label>Nombre Destinatario <span style="color:var(--danger);">*</span></label><input type="text" class="form-control p-alias"></div><div style="display:flex; gap:12px;"><div class="form-group" style="flex:2;"><label>Calle <span style="color:var(--danger);">*</span></label><input type="text" class="form-control p-calle"></div><div class="form-group" style="flex:1;"><label>Altura <span style="color:var(--danger);">*</span></label><input type="text" class="form-control p-alt"></div></div><div style="display:flex; gap:12px;"><div class="form-group" style="flex:1;"><label>Ciudad</label><input type="text" class="form-control p-ciudad" value="${esc(globalConfig.ciudad_defecto || '')}"></div><div class="form-group" style="flex:1;"><label>Provincia</label><input type="text" class="form-control p-prov" value="${esc(globalConfig.provincia_defecto || '')}"></div></div><div class="form-group"><label>Ubicación (link de Google Maps o "lat, lon")</label><input type="text" class="form-control p-ubic"></div></div>`;
+            document.getElementById('paradas-container').appendChild(div); validarCampos(div.querySelector('.p-tipo')); mostrarVolumenFlete();
         }
-
-        function conmutarTipoDestino(sel) { 
-            const caja = sel.closest('.parada-box'); const tipo = sel.value; 
-            caja.querySelector('.panel-sucursal').style.display = (tipo === 'sucursal') ? 'block' : 'none'; 
-            caja.querySelector('.panel-destinatario').style.display = (tipo === 'destinatario') ? 'block' : 'none'; 
-            caja.querySelector('.panel-esporadico').style.display = (tipo === 'esporadico') ? 'block' : 'none'; 
-            if (tipo === 'sucursal') { 
-                caja.querySelector('.p-sucursal-select').innerHTML = DB.sucursales.filter(s=>esActivo(s.activa)).map(s=>`<option value="${s.id}">${esc(s.nombre)}</option>`).join(''); 
-            } 
+        function conmutarTipoDestino(sel) {
+            const caja = sel.closest('.parada-box'); const tipo = sel.value;
+            caja.querySelector('.panel-sucursal').style.display = tipo === 'sucursal' ? 'block' : 'none';
+            caja.querySelector('.panel-destinatario').style.display = tipo === 'destinatario' ? 'block' : 'none';
+            caja.querySelector('.panel-esporadico').style.display = tipo === 'esporadico' ? 'block' : 'none';
+            if (tipo === 'sucursal') caja.querySelector('.p-sucursal-select').innerHTML = DB.sucursales.filter(s => esActivo(s.activa)).map(s => `<option value="${s.id}">${esc(s.nombre)}</option>`).join('');
         }
-        function filtrarDestinatariosPredictivo(input) { const caja = input.closest('.parada-box'); const query = input.value.toLowerCase().trim(); const resultsDiv = caja.querySelector('.autocomplete-results'); if (!query) { resultsDiv.style.display = 'none'; return; } const filtrados = DB.clientes.filter(c => c.razon_social.toLowerCase().includes(query) || c.cuit_rut.includes(query)); if (filtrados.length === 0) { resultsDiv.innerHTML = '<div class="autocomplete-item" style="color:var(--text-muted); cursor:default;">Sin coincidencias</div>'; } else { resultsDiv.innerHTML = filtrados.map(c => `<div class="autocomplete-item" onclick="seleccionarDestinatarioOpcion(this, ${c.id}, ${jsArg(c.razon_social)})"><strong>${esc(c.razon_social)}</strong></div>`).join(''); } resultsDiv.style.display = 'block'; }
-        function seleccionarDestinatarioOpcion(item, id, nombre) { const caja = item.closest('.parada-box'); caja.querySelector('.p-dest-search').value = nombre; caja.querySelector('.p-dest-id').value = id; caja.querySelector('.autocomplete-results').style.display = 'none'; cargarPuntosEntregaParaFlete(id, caja.querySelector('.p-punto-select'), caja.querySelector('.panel-punto-entrega')); }
-        async function cargarPuntosEntregaParaFlete(clienteId, sel, panel) { sel.innerHTML = '<option value="">Cargando...</option>'; panel.style.display = 'block'; if (!direccionesCache[clienteId]) { const res = await fetch(`/api/clientes/${clienteId}/direcciones`); direccionesCache[clienteId] = res.ok ? await res.json() : []; } const dirs = direccionesCache[clienteId]; sel.innerHTML = dirs.length === 0 ? '<option value="">Sin direcciones</option>' : dirs.map(d => `<option value="${d.id}" data-calle="${esc(d.calle)}" data-altura="${esc(d.altura)}" data-ciudad="${esc(d.ciudad)}" data-provincia="${esc(d.provincia)}" data-alias="${esc(d.alias)}">${esc(d.alias)}</option>`).join(''); }
-        function validarCampos(sel) { const caja = sel.closest('.parada-box'); const r = DB.tipos_docs.find(t => t.codigo === sel.value); caja.querySelector('.c-id').style.display = (r && r.requiere_id) ? 'block' : 'none'; caja.querySelector('.c-pv').style.display = (r && r.requiere_pto_venta) ? 'block' : 'none'; caja.querySelector('.c-num').style.display = (r && r.requiere_numero) ? 'block' : 'none'; }
-        
+        function filtrarDestinatariosPredictivo(input) {
+            const caja = input.closest('.parada-box'); const q = input.value.toLowerCase().trim(); const res = caja.querySelector('.autocomplete-results');
+            if (!q) { res.style.display = 'none'; return; }
+            const filtrados = DB.clientes.filter(c => c.razon_social.toLowerCase().includes(q) || c.cuit_rut.includes(q));
+            res.innerHTML = filtrados.length === 0 ? '<div class="autocomplete-item" style="color:var(--text-muted); cursor:default;">Sin coincidencias</div>' : filtrados.map(c => `<div class="autocomplete-item" onclick="seleccionarDestinatarioOpcion(this, ${c.id}, ${jsArg(c.razon_social)})"><strong>${esc(c.razon_social)}</strong></div>`).join('');
+            res.style.display = 'block';
+        }
+        function seleccionarDestinatarioOpcion(item, id, nombre) {
+            const caja = item.closest('.parada-box'); caja.querySelector('.p-dest-search').value = nombre; caja.querySelector('.p-dest-id').value = id;
+            caja.querySelector('.autocomplete-results').style.display = 'none';
+            cargarPuntosEntregaParaFlete(id, caja.querySelector('.p-punto-select'), caja.querySelector('.panel-punto-entrega'));
+        }
+        async function cargarPuntosEntregaParaFlete(clienteId, sel, panel) {
+            sel.innerHTML = '<option value="">Cargando...</option>'; panel.style.display = 'block';
+            if (!direccionesCache[clienteId]) direccionesCache[clienteId] = await seguro(`/api/clientes/${clienteId}/direcciones`, []);
+            const dirs = direccionesCache[clienteId];
+            sel.innerHTML = dirs.length === 0 ? '<option value="">Sin direcciones</option>' : dirs.map(d => `<option value="${d.id}" data-calle="${esc(d.calle)}" data-altura="${esc(d.altura)}" data-ciudad="${esc(d.ciudad)}" data-provincia="${esc(d.provincia)}" data-alias="${esc(d.alias)}">${esc(d.alias)}${d.latitud == null ? ' (sin ubicar)' : ''}</option>`).join('');
+        }
+        function validarCampos(sel) {
+            const caja = sel.closest('.parada-box'); const r = DB.tipos_docs.find(t => t.codigo === sel.value);
+            caja.querySelector('.c-id').style.display = (r && r.requiere_id) ? 'block' : 'none';
+            caja.querySelector('.c-pv').style.display = (r && r.requiere_pto_venta) ? 'block' : 'none';
+            caja.querySelector('.c-num').style.display = (r && r.requiere_numero) ? 'block' : 'none';
+        }
         async function confirmarFlete() {
             document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid')); let errores = 0;
-            const vehiculoEl = document.getElementById('flete-vehiculo'); const origenEl = document.getElementById('flete-origen'); const prioridadEl = document.getElementById('flete-prioridad');
-            if (!vehiculoEl.value) { vehiculoEl.classList.add('is-invalid'); errores++; } if (!origenEl.value) { origenEl.classList.add('is-invalid'); errores++; } if (!prioridadEl.value) { prioridadEl.classList.add('is-invalid'); errores++; }
-            
-            const payload = { vehiculo_id: parseInt(vehiculoEl.value) || 0, origen_id: parseInt(origenEl.value) || 0, prioridad: prioridadEl.value, distancia_estimada_km: 0.0, documentos: [] };
-            const cajas = document.querySelectorAll('.parada-box'); if (cajas.length === 0) return alert("Añada al menos una parada.");
-            
-            for(let caja of cajas) {
-                const tipoDocEl = caja.querySelector('.p-tipo'); const bultosEl = caja.querySelector('.p-bultos'); const tipoDestinoSel = caja.querySelector('.p-tipo-destino'); const volInput = caja.querySelector('.p-volumen');
-                if (!tipoDocEl.value) { tipoDocEl.classList.add('is-invalid'); errores++; } if (!bultosEl.value || parseInt(bultosEl.value) < 1) { bultosEl.classList.add('is-invalid'); errores++; } if (!tipoDestinoSel.value) { tipoDestinoSel.classList.add('is-invalid'); errores++; }
-                if (!tipoDocEl.value || !tipoDestinoSel.value) continue;
-
-                let doc = { tipo_documento: tipoDocEl.value, doc_id: "", punto_venta: "", numero: "", destino_tipo: tipoDestinoSel.value, destino_id: 0, bultos: parseInt(bultosEl.value) || 1, volumen_m3: parseFloat(volInput.value) || 0.0 };
-                
-                const idEl = caja.querySelector('.p-id'); const pvEl = caja.querySelector('.p-pv'); const numEl = caja.querySelector('.p-num');
-                if (caja.querySelector('.c-id').style.display !== 'none') { if (!idEl.value) { idEl.classList.add('is-invalid'); errores++; } doc.doc_id = idEl.value; }
-                if (caja.querySelector('.c-pv').style.display !== 'none') { if (!pvEl.value) { pvEl.classList.add('is-invalid'); errores++; } doc.punto_venta = pvEl.value; }
-                if (caja.querySelector('.c-num').style.display !== 'none') { if (!numEl.value) { numEl.classList.add('is-invalid'); errores++; } doc.numero = numEl.value; }
-
-                if (tipoDestinoSel.value === 'sucursal') {
-                    const sucSel = caja.querySelector('.p-sucursal-select'); if (!sucSel.value) { errores++; sucSel.classList.add('is-invalid'); }
-                    const s = DB.sucursales.find(x => x.id == sucSel.value);
-                    if(s) { doc.destino_id = s.id; doc.destino_alias = s.nombre; doc.destino_calle = s.calle; doc.destino_altura = s.altura; doc.destino_ciudad = s.ciudad; doc.destino_provincia = s.provincia; }
-                } 
-                else if (tipoDestinoSel.value === 'destinatario') {
-                    const destSearchInput = caja.querySelector('.p-dest-search'); const hiddenDestId = caja.querySelector('.p-dest-id'); const puntoSel = caja.querySelector('.p-punto-select');
-                    if (!hiddenDestId.value) { destSearchInput.classList.add('is-invalid'); errores++; } if (!puntoSel.value) { puntoSel.classList.add('is-invalid'); errores++; }
-                    if (hiddenDestId.value && puntoSel.value) {
-                        const opt = puntoSel.options[puntoSel.selectedIndex]; doc.destino_id = parseInt(puntoSel.value); doc.destino_alias = opt.getAttribute('data-alias'); doc.destino_calle = opt.getAttribute('data-calle'); doc.destino_altura = opt.getAttribute('data-altura'); doc.destino_ciudad = opt.getAttribute('data-ciudad'); doc.destino_provincia = opt.getAttribute('data-provincia');
-                    }
-                } 
-                else if (tipoDestinoSel.value === 'esporadico') {
-                    const aliasEl = caja.querySelector('.p-alias'); const calleEl = caja.querySelector('.p-calle'); const altEl = caja.querySelector('.p-alt');
-                    if (!aliasEl.value) { aliasEl.classList.add('is-invalid'); errores++; } if (!calleEl.value) { calleEl.classList.add('is-invalid'); errores++; } if (!altEl.value) { altEl.classList.add('is-invalid'); errores++; }
-                    doc.destino_alias = aliasEl.value; doc.destino_calle = calleEl.value; doc.destino_altura = altEl.value; doc.destino_ciudad = caja.querySelector('.p-ciudad').value; doc.destino_provincia = caja.querySelector('.p-prov').value;
-                }   payload.documentos.push(doc);
+            const marcar = (el) => { el.classList.add('is-invalid'); errores++; };
+            const vehiculoEl = document.getElementById('flete-vehiculo'), origenEl = document.getElementById('flete-origen'), tipo = valor('flete-tipo');
+            if (!vehiculoEl.value) marcar(vehiculoEl); if (!origenEl.value) marcar(origenEl);
+            if (tipo === 'externo' && !valor('flete-cliente')) marcar(document.getElementById('flete-cliente'));
+            const payload = { vehiculo_id: parseInt(vehiculoEl.value) || 0, origen_id: parseInt(origenEl.value) || 0, prioridad: valor('flete-prioridad'), tipo,
+                              cliente_id: tipo === 'externo' ? (parseInt(valor('flete-cliente')) || null) : null, precio: tipo === 'externo' && valor('flete-precio') ? numero('flete-precio') : null, documentos: [] };
+            const cajas = document.querySelectorAll('#paradas-container .parada-box'); if (cajas.length === 0) return alert('Añada al menos una parada.');
+            for (const caja of cajas) {
+                const tipoDocEl = caja.querySelector('.p-tipo'), bultosEl = caja.querySelector('.p-bultos'), destSel = caja.querySelector('.p-tipo-destino');
+                if (!tipoDocEl.value) marcar(tipoDocEl); if (!bultosEl.value || parseInt(bultosEl.value) < 1) marcar(bultosEl); if (!destSel.value) marcar(destSel);
+                if (!tipoDocEl.value || !destSel.value) continue;
+                const doc = { tipo_documento: tipoDocEl.value, doc_id: '', punto_venta: '', numero: '', destino_tipo: destSel.value, destino_id: 0, bultos: parseInt(bultosEl.value) || 1, volumen_m3: parseFloat(caja.querySelector('.p-volumen').value) || 0 };
+                [['.c-id', '.p-id', 'doc_id'], ['.c-pv', '.p-pv', 'punto_venta'], ['.c-num', '.p-num', 'numero']].forEach(([grupo, campo, k]) => {
+                    if (caja.querySelector(grupo).style.display !== 'none') { const el = caja.querySelector(campo); if (!el.value) marcar(el); doc[k] = el.value; }
+                });
+                if (destSel.value === 'sucursal') {
+                    const s = DB.sucursales.find(x => x.id == caja.querySelector('.p-sucursal-select').value);
+                    if (!s) marcar(caja.querySelector('.p-sucursal-select'));
+                    else Object.assign(doc, { destino_id: s.id, destino_alias: s.nombre, destino_calle: s.calle, destino_altura: s.altura, destino_ciudad: s.ciudad, destino_provincia: s.provincia });
+                } else if (destSel.value === 'destinatario') {
+                    const puntoSel = caja.querySelector('.p-punto-select');
+                    if (!caja.querySelector('.p-dest-id').value) marcar(caja.querySelector('.p-dest-search'));
+                    if (!puntoSel.value) marcar(puntoSel);
+                    else { const o = puntoSel.options[puntoSel.selectedIndex]; Object.assign(doc, { destino_id: parseInt(puntoSel.value), destino_alias: o.getAttribute('data-alias'), destino_calle: o.getAttribute('data-calle'), destino_altura: o.getAttribute('data-altura'), destino_ciudad: o.getAttribute('data-ciudad'), destino_provincia: o.getAttribute('data-provincia') }); }
+                } else {
+                    const alias = caja.querySelector('.p-alias'), calle = caja.querySelector('.p-calle'), alt = caja.querySelector('.p-alt');
+                    if (!alias.value) marcar(alias); if (!calle.value) marcar(calle); if (!alt.value) marcar(alt);
+                    let u = { lat: null, lon: null }; try { u = leerUbicacion(caja.querySelector('.p-ubic')); } catch (x) { errores++; }
+                    Object.assign(doc, { destino_alias: alias.value, destino_calle: calle.value, destino_altura: alt.value, destino_ciudad: caja.querySelector('.p-ciudad').value, destino_provincia: caja.querySelector('.p-prov').value, destino_lat: u.lat, destino_lon: u.lon });
+                }
+                payload.documentos.push(doc);
             }
-
-            if (errores > 0) return alert("Complete los campos obligatorios.");
-            try {
-                const res = await fetch('/api/fletes', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCookie('csrf_token') }, body: JSON.stringify(payload) });
-                if (res.ok) { alert("¡Flete lanzado con éxito! La orden de carga ya se encuentra disponible para los transportistas."); closeModal('panel-flete'); document.getElementById('paradas-container').innerHTML = ''; paradaCount = 0; loadData(); } 
-                else { alert("Error de validación: " + (await res.json()).detail); }
-            } catch(x) { alert("Error de red: Imposible contactar con el servidor central."); }
+            if (errores > 0) return alert('Complete los campos marcados en rojo.');
+            if (await enviar('/api/fletes', 'POST', payload, 'Flete lanzado: ya está disponible para los transportistas.')) {
+                closeModal('panel-flete'); document.getElementById('paradas-container').innerHTML = ''; paradaCount = 0; loadData();
+            }
         }
 
-        async function guardarConfig(e) { 
-            e.preventDefault(); 
-            try {
-                const payload = {
-                    nombre_empresa: document.getElementById('conf-nombre').value, gps_polling_sec: parseInt(document.getElementById('conf-gps').value),
-                    ciudad_defecto: document.getElementById('conf-ciudad').value, provincia_defecto: document.getElementById('conf-provincia').value,
-                    pais_defecto: document.getElementById('conf-pais').value, manejar_volumenes: document.getElementById('conf-volumenes').value === "true",
-                    google_oauth_enabled: document.getElementById('conf-oauth-enabled').value === "true", google_client_id: document.getElementById('conf-client-id').value || null, google_client_secret: document.getElementById('conf-client-secret').value || null, google_redirect_url: document.getElementById('conf-redirect-url').value || null
-                };
-                const res = await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCookie('csrf_token') }, body: JSON.stringify(payload) }); 
-                if (res.ok) { alert("¡Configuración global guardada de forma segura!"); loadData(); } 
-                else { alert("Error al guardar parámetros: " + (await res.json()).detail); }
-            } catch (err) { alert("Fallo crítico de red: Revise la conectividad local de la PC."); }
+        // --- COTIZACIONES ---
+        const ESTADOS_COT = { solicitada: ['Solicitada', 'pending'], enviada: ['Enviada', 'primary'], aceptada: ['Aceptada', 'success'], rechazada: ['Rechazada', 'danger'] };
+        function badgeCot(estado) { const e = ESTADOS_COT[estado] || [estado, 'primary']; return `<span class="badge badge-${e[1]}">${e[0]}</span>`; }
+        function fecha(iso) { return iso ? new Date(iso).toLocaleDateString('es-AR') : '-'; }
+        function fechaViaje(f) { return f ? fecha(f + 'T12:00:00') : ''; }
+        function renderCotizaciones() {
+            document.getElementById('tabla-cotizaciones').innerHTML = DB.cotizaciones.length === 0 ? filaVacia(8, 'Todavía no hay cotizaciones.') : DB.cotizaciones.map(c => `<tr><td class="font-mono"><strong>COT-${String(c.id).padStart(5, '0')}</strong></td><td>${fecha(c.creado_en)}</td><td>${esc(c.cliente || '-')}</td><td>${esc(c.descripcion || '')}<br><small style="color:var(--text-muted);">${(c.paradas || []).length} destino(s)${c.fecha_viaje ? ' · viaje ' + fechaViaje(c.fecha_viaje) : ''}</small></td><td>${badgeCot(c.estado)}</td><td>${c.km_estimados ? km(c.km_estimados) : '<span style="color:var(--text-muted);">~' + km(c.km_sugeridos) + '</span>'}</td><td><strong>${c.total ? dinero(c.total) : '-'}</strong></td><td><button class="btn btn-${c.estado === 'solicitada' ? 'primary' : 'secondary'} btn-sm" onclick="abrirCotizacion(${c.id})">${c.estado === 'solicitada' ? 'Cotizar' : 'Ver'}</button></td></tr>`).join('');
         }
+        async function abrirNuevaCotizacion() {
+            document.getElementById('nc-cliente').value = ''; document.getElementById('nc-descripcion').value = ''; document.getElementById('nc-fecha').value = '';
+            await cargarPuntosCotizacion(); openModal('modal-nueva-cot');
+        }
+        async function cargarPuntosCotizacion() {
+            const clienteId = valor('nc-cliente');
+            const dirs = clienteId ? await seguro(`/api/clientes/${clienteId}/direcciones`, []) : [];
+            FUENTES_COT = [{ grupo: 'Direcciones del cliente', items: itemsDirecciones(dirs) }, { grupo: 'Sucursales propias', items: itemsSucursales(DB.sucursales.filter(s => esActivo(s.activa))) }];
+            PUNTOS_COT = {}; FUENTES_COT.forEach(f => f.items.forEach(i => PUNTOS_COT[i.id] = i));
+            document.getElementById('nc-puntos').innerHTML = `<h4 style="margin:16px 0 8px; font-size:1rem;">Origen (retiro)</h4><div class="punto" id="nc-origen">${htmlPunto(FUENTES_COT, false)}</div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin:16px 0 8px;"><h4 style="margin:0; font-size:1rem;">Destinos</h4><button class="btn btn-secondary btn-sm" onclick="agregarDestinoCot()">+ Destino</button></div><div id="nc-destinos"></div>`;
+            agregarDestinoCot();
+        }
+        function agregarDestinoCot() {
+            const div = document.createElement('div'); div.className = 'punto nc-destino';
+            div.innerHTML = `<div style="text-align:right; margin-bottom:8px;"><button class="btn btn-secondary btn-sm" style="color:var(--danger); border-color:var(--danger);" onclick="this.closest('.punto').remove()">Quitar</button></div>` + htmlPunto(FUENTES_COT, true);
+            document.getElementById('nc-destinos').appendChild(div);
+        }
+        async function crearCotizacion() {
+            document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+            if (!valor('nc-cliente')) { document.getElementById('nc-cliente').classList.add('is-invalid'); return alert('Elija el cliente.'); }
+            let origen, paradas;
+            try {
+                origen = leerPunto(document.getElementById('nc-origen'), PUNTOS_COT);
+                paradas = [...document.querySelectorAll('.nc-destino')].map(b => leerPunto(b, PUNTOS_COT));
+            } catch (x) { return alert(x.message); }
+            if (!paradas.length) return alert('Agregue al menos un destino.');
+            const r = await enviar('/api/cotizaciones', 'POST', { cliente_id: parseInt(valor('nc-cliente')), descripcion: valor('nc-descripcion').trim(), fecha_viaje: valor('nc-fecha') || null, origen, paradas });
+            if (r) { closeModal('modal-nueva-cot'); await loadData(); abrirCotizacion(r.id); }
+        }
+        function lineaPunto(p, i) {
+            const carga = p.bultos != null ? ` <small style="color:var(--text-muted);">· ${p.bultos} bulto(s)${p.volumen_m3 ? ' · ' + p.volumen_m3 + ' m³' : ''}</small>` : '';
+            return `<li style="margin-bottom:6px;"><strong>${i == null ? 'Origen:' : (i + 1) + '.'}</strong> ${esc(p.alias)} - ${esc(p.calle)} ${esc(p.altura)}${p.ciudad ? ', ' + esc(p.ciudad) : ''} ${badgeUbicacion(p.lat, p.lon)}${carga}</li>`;
+        }
+        function abrirCotizacion(id) {
+            const c = DB.cotizaciones.find(x => x.id === id); if (!c) return;
+            const editable = c.estado === 'solicitada' || c.estado === 'enviada';
+            const vehiculos = DB.vehiculos.filter(v => v.estado === 'activo').map(v => `<option value="${v.id}" ${v.id === c.vehiculo_id ? 'selected' : ''}>${esc(v.marca_modelo)} (${esc(v.patente_identificador)})${v.usa_volumen ? ' - ' + v.capacidad_volumen_m3 + ' m³' : ''}</option>`).join('');
+            const volumen = (c.paradas || []).reduce((t, p) => t + (p.volumen_m3 || 0), 0);
+            let html = `<h3 style="margin-bottom:4px;">Cotización COT-${String(c.id).padStart(5, '0')} ${badgeCot(c.estado)}</h3><div style="color:var(--text-secondary); margin-bottom:20px;">${esc(c.cliente || '')}${c.descripcion ? ' · ' + esc(c.descripcion) : ''}${c.fecha_viaje ? ' · viaje ' + fechaViaje(c.fecha_viaje) : ''}${volumen ? ' · ' + volumen + ' m³ en total' : ''}</div>
+                <ul style="list-style:none; padding:0; margin:0 0 16px;">${lineaPunto(c.origen || {}, null)}${(c.paradas || []).map((p, i) => lineaPunto(p, i)).join('')}</ul>`;
+            if (c.sin_ubicar && c.sin_ubicar.length) html += `<div class="aviso">Sin ubicación: ${c.sin_ubicar.map(esc).join(', ')}. Esos puntos no entran en los km sugeridos: cargue los km a mano o ubíquelos.</div>`;
+            if (editable) {
+                html += `<div style="border-top:1px solid var(--border); padding-top:16px;"><div class="fila"><div class="form-group" style="flex:2;"><label>Vehículo</label><select class="form-control" id="cot-vehiculo"><option value="">Seleccione...</option>${vehiculos}</select></div><div class="form-group"><label>Km del viaje</label><input type="number" min="0" step="0.1" class="form-control" id="cot-km" value="${c.km_estimados || c.km_sugeridos || 0}"><div class="ayuda">Sugeridos: ${km(c.km_sugeridos)}</div></div></div>
+                    <div class="fila"><div class="form-group"><label>Peajes ($)</label><input type="number" min="0" step="0.01" class="form-control" id="cot-peajes" value="${c.peajes || 0}"></div><div class="form-group"><label>Otros gastos ($)</label><input type="number" min="0" step="0.01" class="form-control" id="cot-otros" value="${c.otros_gastos || 0}"></div><div class="form-group"><label>Margen (%)</label><input type="number" min="0" step="0.1" class="form-control" id="cot-margen" value="${c.total ? c.margen_pct : (costos.margen_pct || 0)}"></div><div class="form-group"><label>IVA (%)</label><input type="number" min="0" step="0.1" class="form-control" id="cot-iva" value="${c.total ? c.iva_pct : (costos.iva_pct || 0)}"></div></div>
+                    <div class="form-group"><label>Notas para el cliente</label><input type="text" class="form-control" id="cot-notas" value="${esc(c.notas || '')}"></div>
+                    <button class="btn btn-secondary" style="width:100%;" onclick="calcularCotizacion(${c.id})">Calcular</button></div>`;
+            }
+            if (c.total) {
+                html += `<table class="desglose" style="width:100%; margin-top:20px;"><tbody>
+                    <tr><td>Combustible / energía (${km(c.km_estimados)})</td><td style="text-align:right;">${dinero(c.costo_energia)}</td></tr>
+                    <tr><td>Desgaste del vehículo</td><td style="text-align:right;">${dinero(c.costo_desgaste)}</td></tr>
+                    <tr><td>Chofer (${Number(c.horas_estimadas).toLocaleString('es-AR')} h)</td><td style="text-align:right;">${dinero(c.costo_chofer)}</td></tr>
+                    <tr><td>Peajes</td><td style="text-align:right;">${dinero(c.peajes)}</td></tr>
+                    <tr><td>Otros gastos</td><td style="text-align:right;">${dinero(c.otros_gastos)}</td></tr>
+                    <tr><td><strong>Costo</strong></td><td style="text-align:right;"><strong>${dinero(c.subtotal)}</strong></td></tr>
+                    <tr><td>Margen (${c.margen_pct}%)</td><td style="text-align:right;">${dinero(c.margen)}</td></tr>
+                    <tr><td>IVA (${c.iva_pct}%)</td><td style="text-align:right;">${dinero(c.iva)}</td></tr>
+                    <tr class="total"><td>Total para el cliente</td><td style="text-align:right;">${dinero(c.total)}</td></tr></tbody></table>`;
+            }
+            const acciones = [];
+            if (c.estado === 'solicitada' && c.total) acciones.push(`<button class="btn btn-primary" style="flex:1;" onclick="accionCotizacion(${c.id}, 'enviar', 'Cotización enviada: el cliente ya la ve en su portal.')">Enviar al cliente</button>`);
+            if (c.estado === 'enviada') acciones.push(`<button class="btn btn-primary" style="flex:1; background-color:var(--success);" onclick="if (confirm('¿Aceptar la cotización en nombre del cliente? Se crea el flete.')) accionCotizacion(${c.id}, 'aceptar', 'Cotización aceptada: el flete ya está pendiente de salida.')">Aceptar por el cliente</button>`);
+            if (editable) acciones.push(`<button class="btn btn-secondary" style="flex:1; color:var(--danger); border-color:var(--danger);" onclick="if (confirm('¿Rechazar la cotización?')) accionCotizacion(${c.id}, 'rechazar', 'Cotización rechazada.')">Rechazar</button>`);
+            if (c.flete_id) acciones.push(`<span class="badge badge-success" style="padding:10px;">Flete ${numFlete(c.flete_id)}</span>`);
+            if (acciones.length) html += `<div style="display:flex; gap:12px; margin-top:20px; align-items:center;">${acciones.join('')}</div>`;
+            document.getElementById('cot-detalle').innerHTML = html;
+            openModal('modal-cot');
+        }
+        async function calcularCotizacion(id) {
+            if (!valor('cot-vehiculo')) { document.getElementById('cot-vehiculo').classList.add('is-invalid'); return alert('Elija el vehículo.'); }
+            const r = await enviar(`/api/cotizaciones/${id}`, 'PUT', { vehiculo_id: parseInt(valor('cot-vehiculo')), km_estimados: numero('cot-km'), peajes: numero('cot-peajes'), otros_gastos: numero('cot-otros'), margen_pct: numero('cot-margen'), iva_pct: numero('cot-iva'), notas: valor('cot-notas') });
+            if (r) { await loadData(); abrirCotizacion(id); }
+        }
+        async function accionCotizacion(id, accion, mensaje) {
+            if (await enviar(`/api/cotizaciones/${id}/${accion}`, 'POST', undefined, mensaje)) { await loadData(); abrirCotizacion(id); }
+        }
+
+        // --- RUTAS ---
+        function renderRutas() {
+            document.getElementById('tabla-rutas').innerHTML = DB.rutas.length === 0 ? filaVacia(10, 'Todavía no hay rutas: se crean cuando un chofer consolida fletes.') : DB.rutas.map(r => {
+                const reales = r.km_odometro != null ? r.km_odometro : r.km_gps;
+                let desvio = '-';
+                if (reales != null && r.km_estimados) { const d = (reales - r.km_estimados) / r.km_estimados * 100; desvio = `<span class="badge badge-${Math.abs(d) <= 15 ? 'success' : 'warning'}">${d > 0 ? '+' : ''}${d.toFixed(0)}%</span>`; }
+                return `<tr><td class="font-mono">#${r.id}</td><td>${esc(r.chofer)}</td><td class="font-mono">${esc(r.patente_identificador || '-')}</td><td>${new Date(r.iniciada_en).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short', hour12: false })}</td><td>${r.finalizada_en ? '<span class="badge badge-success">Cerrada</span>' : '<span class="badge badge-primary">En curso</span>'}</td><td>${r.fletes}</td><td>${km(r.km_estimados)}</td><td>${km(r.km_odometro)}</td><td>${km(r.km_gps)}</td><td>${desvio}</td></tr>`;
+            }).join('');
+        }
+
+        // --- CONFIGURACION ---
+        async function guardarConfig(e) {
+            e.preventDefault();
+            const datos = { nombre_empresa: valor('conf-nombre'), gps_polling_sec: parseInt(valor('conf-gps')), ciudad_defecto: valor('conf-ciudad'), provincia_defecto: valor('conf-provincia'), pais_defecto: valor('conf-pais'),
+                            google_oauth_enabled: valor('conf-oauth-enabled') === 'true', google_client_id: valor('conf-client-id') || null, google_client_secret: valor('conf-client-secret') || null, google_redirect_url: valor('conf-redirect-url') || null };
+            if (await enviar('/api/config', 'POST', datos, 'Configuración guardada.')) { document.getElementById('conf-client-secret').value = ''; loadData(); }
+        }
+        async function guardarCostos(e) {
+            e.preventDefault();
+            const datos = { precio_litro: numero('cos-litro'), precio_kwh: numero('cos-kwh'), costo_chofer_hora: numero('cos-chofer'), velocidad_promedio_kmh: numero('cos-velocidad'),
+                            minutos_por_parada: numero('cos-parada'), margen_pct: numero('cos-margen'), iva_pct: numero('cos-iva'), factor_calle: numero('cos-factor') };
+            if (await enviar('/api/config/costos', 'POST', datos, 'Costos guardados.')) loadData();
+        }
+
         window.onload = loadData;
     </script>
 </body>

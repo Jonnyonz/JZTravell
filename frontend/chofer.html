@@ -181,205 +181,194 @@
 
         .system-footer a { color: var(--text-muted); text-decoration: none; font-weight: 600; }
         .watermark-logo { height: 16px; opacity: 0.5; }
+        .acciones-header { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+        .btn-chico { display: inline-flex; align-items: center; justify-content: center; padding: 6px 10px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; border: 1px solid var(--border); background: transparent; color: var(--text-primary); text-decoration: none; cursor: pointer; font-family: inherit; }
+        .btn-chico.peligro { color: var(--danger); border-color: var(--danger); }
+        .etiqueta { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; background: rgba(103, 58, 183, 0.15); color: #7e57c2; }
+        .ruta-datos { display: flex; gap: 12px; flex-wrap: wrap; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px; }
     </style>
+    <script src="/js/comun.js"></script>
 </head>
 <body>
     <script>
-        function getCookie(name) { let match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)')); return match ? match[2] : null; }
-        if (getCookie('user_rol') !== 'chofer') { window.location.href = "/index.html"; }
-        
-        // Auto-detectar preferencia del sistema pero forzar a oscuro por defecto en móvil para choferes
         document.addEventListener('DOMContentLoaded', () => {
-            const savedTheme = localStorage.getItem('jz_theme');
-            if (savedTheme) {
-                document.documentElement.setAttribute('data-theme', savedTheme);
-            }
+            try { const t = localStorage.getItem('jz_theme'); if (t) document.documentElement.setAttribute('data-theme', t); } catch (e) {}
         });
     </script>
-
     <div class="top-accent-bar"></div>
-
     <div class="header">
         <div class="brand-container">
             <svg class="icon" viewBox="0 0 24 24" style="color:var(--accent);"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
             <h1>JZTravell</h1>
         </div>
-        <div class="gps-status"><div class="dot" id="gps-dot"></div> <span id="gps-text" class="font-mono">Inactivo</span></div>
+        <div class="acciones-header">
+            <div class="gps-status"><div class="dot" id="gps-dot"></div> <span id="gps-text" class="font-mono">Inactivo</span></div>
+            <span id="barra-paneles" class="acciones-header"></span>
+            <button class="btn-chico peligro" onclick="cerrarSesion()">Salir</button>
+        </div>
     </div>
-
     <div class="container">
         <div id="viaje-actual-container"></div>
-        
         <div class="section-title">Envíos Pendientes</div>
         <button class="btn btn-consolidate" id="btn-consolidar-rutas" onclick="ejecutarConsolidacion()" style="display:none;">
             <svg class="icon" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
-            Consolidar Selección
+            <span id="txt-consolidar">Tomar y Consolidar Selección</span>
         </button>
         <div id="viajes-pendientes-container"></div>
     </div>
-
     <div class="system-footer">
         <svg class="watermark-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 203 281">
             <path d="M 73.0,261.5 L 62.0,261.5 L 49.0,256.5 L 45.5,253.0 L 43.5,247.0 L 45.5,237.0 L 51.0,232.5 L 61.0,231.5 L 68.5,236.0 L 78.0,252.5 L 86.0,252.5 L 92.5,240.0 L 94.5,219.0 L 47.0,218.5 L 44.5,216.0 L 44.5,212.0 L 89.0,146.5 L 89.5,188.0 L 74.5,210.0 L 94.5,210.0 L 94.5,83.0 L 74.0,86.5 L 63.0,92.5 L 54.5,103.0 L 50.5,114.0 L 46.0,114.5 L 44.5,113.0 L 44.5,80.0 L 52.0,73.5 L 94.5,73.0 L 93.5,33.0 L 91.5,29.0 L 87.0,26.5 L 70.0,24.5 L 70.0,19.5 L 140.0,19.5 L 141.0,24.5 L 127.0,27.5 L 123.5,34.0 L 123.5,73.0 L 158.0,73.5 L 161.5,76.0 L 161.5,80.0 L 129.0,128.5 L 128.5,88.0 L 132.5,81.0 L 123.5,81.0 L 122.5,208.0 L 137.0,206.5 L 148.0,200.5 L 158.5,183.0 L 160.5,175.0 L 166.0,173.5 L 166.5,214.0 L 163.0,218.5 L 121.0,218.5 L 113.5,238.0 L 101.0,251.5 L 88.0,258.5 L 73.0,261.5 Z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
         </svg>
         Powered by JZ Tech Solutions
     </div>
-
     <script>
-        // Escapa datos de la DB antes de innerHTML (direcciones/nombres cargados por clientes).
-        function esc(v){ return v==null ? '' : String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
-        var DB = { fletes: [] }; var myUserId = getCookie('user_id');
-        async function initApp() { await loadData(); iniciarMotorGPS(); }
-        async function loadData() { try { DB.fletes = await (await fetch('/api/fletes')).json(); renderUI(); } catch (e) { console.error(e); } }
+        var DB = { fletes: [], vehiculos: [] }; var YO = null; var RUTA = null;
+
+        async function initApp() {
+            try { YO = await quienSoy(); } catch (e) { return; }
+            if (YO.rol !== 'chofer' && YO.rol !== 'admin') { window.location.href = '/' + YO.rol + '.html'; return; }
+            document.getElementById('barra-paneles').innerHTML = barraPaneles('chofer', YO.rol).replace(/btn btn-secondary btn-panel/g, 'btn-chico');
+            await loadData();
+            iniciarMotorGPS();
+        }
+
+        async function loadData() {
+            try {
+                [DB.fletes, RUTA, DB.vehiculos] = await Promise.all([api('/api/fletes'), api('/api/rutas/actual'), api('/api/vehiculos')]);
+                renderUI();
+            } catch (e) { console.error(e); }
+        }
+
+        function lineaParada(p, i) {
+            return `<div class="parada-item">
+                <div style="font-weight:600; margin-bottom:4px; display:flex; justify-content:space-between;"><span>${i + 1}. ${esc(p.destino_alias)}</span><span style="color:var(--accent);">${esc(p.bultos)} Bultos</span></div>
+                <div style="color:var(--text-secondary); font-size:0.85rem; display:flex; gap:6px; align-items:flex-start;">
+                    <svg class="icon" style="width:14px; height:14px; flex-shrink:0; margin-top:2px;" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                    <span>${esc(p.destino_calle)} ${esc(p.destino_altura)}${p.destino_ciudad ? ', ' + esc(p.destino_ciudad) : ''}</span>
+                </div></div>`;
+        }
 
         function renderUI() {
-            const containerActual = document.getElementById('viaje-actual-container');
-            const containerPendientes = document.getElementById('viajes-pendientes-container');
-            containerActual.innerHTML = ''; containerPendientes.innerHTML = '';
-
-            const fletesActivos = DB.fletes.filter(f => f.estado === 'camino' && f.chofer_id === myUserId);
-            const fletesPendientes = DB.fletes.filter(f => f.estado === 'pendiente');
-
-            if (fletesActivos.length > 0) {
-                const fleteIds = fletesActivos.map(f => f.id).join(',');
-                let todasParadas = [];
-                fletesActivos.forEach(f => todasParadas = todasParadas.concat(f.paradas));
-                todasParadas.sort((a,b) => a.orden_ruta - b.orden_ruta);
-
-                containerActual.innerHTML = `
-                    <div class="section-title" style="color:var(--success);">Ruta Optimizada Activa</div>
+            const actual = document.getElementById('viaje-actual-container'), pendientes = document.getElementById('viajes-pendientes-container');
+            const fletesActivos = RUTA ? DB.fletes.filter(f => f.ruta_id === RUTA.id && f.estado === 'camino') : [];
+            const fletesPendientes = DB.fletes.filter(f => f.estado === 'pendiente' && !f.chofer_id);
+            actual.innerHTML = '';
+            if (RUTA) {
+                let paradas = []; fletesActivos.forEach(f => paradas = paradas.concat(f.paradas));
+                paradas.sort((a, b) => a.orden_ruta - b.orden_ruta);
+                const ids = fletesActivos.map(f => f.id).join(',');
+                actual.innerHTML = `
+                    <div class="section-title" style="color:var(--success);">Ruta en Curso #${RUTA.id}</div>
                     <div class="card active-trip">
-                        <div class="card-header"><span class="font-mono">#FLT-${String(fletesActivos[0].id).padStart(6, '0')}</span><span style="font-size:0.85rem; color:var(--success);">${fletesActivos.length} Entregas</span></div>
+                        <div class="card-header"><span class="font-mono">${fletesActivos.map(f => numFlete(f.id)).join(' · ') || 'Sin entregas pendientes'}</span><span style="font-size:0.85rem; color:var(--success);">${paradas.length} Paradas</span></div>
                         <div class="card-body">
-                            <p style="margin-top:0; color:var(--text-primary); font-weight:500;">Manifiesto de Carga:</p>
-                            ${todasParadas.map((p, i) => `
-                                <div class="parada-item">
-                                    <div style="font-weight:600; margin-bottom:4px; display:flex; justify-content:space-between;">
-                                        <span>${i+1}. ${esc(p.destino_alias)}</span>
-                                        <span style="color:var(--accent);">${esc(p.bultos)} Bultos</span>
-                                    </div>
-                                    <div style="color:var(--text-secondary); font-size:0.85rem; display:flex; gap:6px; align-items:flex-start;">
-                                        <svg class="icon" style="width:14px; height:14px; flex-shrink:0; margin-top:2px;" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                                        <span>${esc(p.destino_calle)} ${esc(p.destino_altura)}</span>
-                                    </div>
-                                </div>
-                            `).join('')}
+                            <div class="ruta-datos"><span>Estimado: <strong>${km(RUTA.km_estimados)}</strong></span>${RUTA.odometro_salida != null ? `<span>Salida: <strong>${km(RUTA.odometro_salida)}</strong></span>` : ''}<span>GPS: <strong>${RUTA.puntos_gps}</strong> puntos</span></div>
+                            ${paradas.map(lineaParada).join('')}
                         </div>
-                        <button class="btn btn-maps" onclick="abrirGoogleMapsMulti()">
-                            <svg class="icon" viewBox="0 0 24 24"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
-                            Navegar Ruta Completa
-                        </button>
-                        <button class="btn btn-print" onclick="descargarHojaRuta('${fleteIds}')">
-                            <svg class="icon" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-                            Imprimir Hoja de Ruta
-                        </button>
-                        <button class="btn btn-finish" onclick="finalizarRutaCompleta('${fleteIds}')">
-                            <svg class="icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                            Cerrar Ruta de Entrega
-                        </button>
-                    </div>
-                `;
-                document.getElementById('btn-consolidar-rutas').style.display = 'none';
-            } else {
-                document.getElementById('btn-consolidar-rutas').style.display = fletesPendientes.length > 0 ? 'flex' : 'none';
+                        ${paradas.length ? `<button class="btn btn-maps" onclick="abrirGoogleMapsMulti()"><svg class="icon" viewBox="0 0 24 24"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>Navegar Ruta Completa</button>` : ''}
+                        ${ids ? `<button class="btn btn-print" onclick="window.open('/api/fletes/imprimir?ids=${ids}', '_blank')"><svg class="icon" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>Imprimir Hoja de Ruta</button>` : ''}
+                        <button class="btn btn-finish" onclick="cerrarRuta()"><svg class="icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>Cerrar Ruta de Entrega</button>
+                    </div>`;
             }
-
-            if (fletesPendientes.length === 0 && fletesActivos.length === 0) {
-                containerPendientes.innerHTML = '<div style="text-align:center; padding:40px 20px; color:var(--text-muted); border:1px dashed var(--border); border-radius:10px;"><svg class="icon" style="width:48px;height:48px;margin-bottom:12px;opacity:0.5;" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg><br>No hay despachos disponibles.</div>';
-            } else {
-                containerPendientes.innerHTML = fletesPendientes.map(f => `
-                    <div class="card">
-                        <div class="checkbox-container"><input type="checkbox" class="flete-select" value="${f.id}" onchange="evaluarCheckboxes()" style="width:18px;height:18px;accent-color:var(--accent);"></div>
-                        <div class="card-header"><span class="font-mono">#FLT-${String(f.id).padStart(6, '0')}</span><span style="color:var(--accent); font-size:0.85rem;">${f.paradas.length} Paradas</span></div>
-                        <div class="card-body">
-                            <div style="display:flex; gap:8px; align-items:flex-start;">
-                                <svg class="icon" style="width:16px; height:16px; margin-top:2px; flex-shrink:0;" viewBox="0 0 24 24"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
-                                <span><strong>Base:</strong> ${esc(f.origen)}</span>
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
+            document.getElementById('btn-consolidar-rutas').style.display = (!RUTA && fletesPendientes.length > 0) ? 'flex' : 'none';
+            if (fletesPendientes.length === 0) {
+                pendientes.innerHTML = '<div style="text-align:center; padding:40px 20px; color:var(--text-muted); border:1px dashed var(--border); border-radius:10px;">No hay envíos pendientes.</div>';
+                return;
             }
+            pendientes.innerHTML = (RUTA ? '<p style="color:var(--text-muted); font-size:0.85rem;">Cierre la ruta en curso para tomar otros envíos.</p>' : '') + fletesPendientes.map(f => `
+                <div class="card">
+                    ${RUTA ? '' : `<div class="checkbox-container"><input type="checkbox" class="flete-select" value="${f.id}" onchange="evaluarCheckboxes()" style="width:18px;height:18px;accent-color:var(--accent);"></div>`}
+                    <div class="card-header"><span class="font-mono">${numFlete(f.id)} ${f.tipo === 'externo' ? '<span class="etiqueta">Externo</span>' : ''}</span><span style="color:var(--accent); font-size:0.85rem;">${f.paradas.length} Paradas</span></div>
+                    <div class="card-body">
+                        <div><strong>Retira en:</strong> ${esc(f.origen)}${f.origen_calle ? ' (' + esc(f.origen_calle) + ' ' + esc(f.origen_altura || '') + ')' : ''}</div>
+                        ${f.tipo === 'externo' && f.cliente ? `<div><strong>Cliente:</strong> ${esc(f.cliente)}</div>` : ''}
+                        <div><strong>Vehículo:</strong> ${esc(f.marca_modelo || '')} <span class="font-mono">${esc(f.patente_identificador || '')}</span></div>
+                        <div style="color:var(--text-secondary); font-size:0.85rem; margin-top:4px;">${f.paradas.map(p => esc(p.destino_alias)).join(' → ')}</div>
+                    </div>
+                </div>`).join('');
         }
 
         function evaluarCheckboxes() {
-            const seleccionados = document.querySelectorAll('.flete-select:checked').length;
-            const btn = document.getElementById('btn-consolidar-rutas');
-            if(seleccionados > 0) {
-                btn.innerHTML = `<svg class="icon" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg> Consolidar (${seleccionados}) Seleccionados`;
-            } else {
-                btn.innerHTML = `<svg class="icon" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg> Consolidar Selección`;
-            }
+            const n = document.querySelectorAll('.flete-select:checked').length;
+            document.getElementById('txt-consolidar').textContent = n > 0 ? `Tomar y Consolidar (${n})` : 'Tomar y Consolidar Selección';
+        }
+
+        // Odometro: opcional, pero con el los km reales salen exactos (si no, se usan los del GPS).
+        function pedirOdometro(mensaje, sugerido) {
+            const t = prompt(mensaje + '\n(Opcional: deje vacío si no lo tiene a mano.)', sugerido != null ? sugerido : '');
+            if (t === null) return undefined;          // cancelo
+            if (!t.trim()) return null;                // sin odometro
+            const v = parseFloat(t.replace(',', '.'));
+            if (isNaN(v) || v < 0) { alert('El odómetro tiene que ser un número de km.'); return undefined; }
+            return v;
         }
 
         async function ejecutarConsolidacion() {
-            const checks = document.querySelectorAll('.flete-select:checked');
-            if(checks.length === 0) return;
-            const ids = Array.from(checks).map(c => parseInt(c.value));
-            const res = await fetch('/api/fletes/consolidar', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCookie('csrf_token') }, body: JSON.stringify({ flete_ids: ids }) });
-            if (res.ok) loadData();
+            const ids = Array.from(document.querySelectorAll('.flete-select:checked')).map(c => parseInt(c.value));
+            if (ids.length === 0) return alert('Seleccione los envíos que va a llevar.');
+            const primero = DB.fletes.find(f => f.id === ids[0]);
+            const veh = DB.vehiculos.find(v => v.patente_identificador === primero.patente_identificador);
+            const odometro = pedirOdometro('Odómetro del vehículo al salir (km):', veh && veh.odometro_km ? veh.odometro_km : null);
+            if (odometro === undefined) return;
+            try {
+                const r = await api('/api/fletes/consolidar', 'POST', { flete_ids: ids, odometro_salida: odometro });
+                let msg = `Ruta armada: ${km(r.km_estimados)} estimados.`;
+                if (r.sin_ubicar && r.sin_ubicar.length) msg += `\nSin ubicación (no entran en el orden ni en los km): ${r.sin_ubicar.join(', ')}.`;
+                alert(msg);
+                loadData();
+            } catch (e) { alert(e.message); }
         }
 
-        function descargarHojaRuta(ids) { window.open(`/api/fletes/imprimir?ids=${ids}`, '_blank'); }
-
-        async function finalizarRutaCompleta(idsStr) {
-            const ids = idsStr.split(',');
-            for(let id of ids) { await fetch(`/api/fletes/${id}/estado`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCookie('csrf_token') }, body: JSON.stringify({ estado: 'completado' }) }); }
-            loadData();
+        async function cerrarRuta() {
+            if (!RUTA) return;
+            const odometro = pedirOdometro('Odómetro del vehículo al llegar (km):', RUTA.odometro_salida);
+            if (odometro === undefined) return;
+            try {
+                const r = await api(`/api/rutas/${RUTA.id}/finalizar`, 'POST', { odometro_llegada: odometro });
+                const partes = [`Ruta cerrada. Estimado: ${km(r.km_estimados)}`];
+                if (r.km_odometro != null) partes.push(`Odómetro: ${km(r.km_odometro)}`);
+                if (r.km_gps != null) partes.push(`GPS: ${km(r.km_gps)}`);
+                alert(partes.join(' · '));
+                loadData();
+            } catch (e) { alert(e.message); }
         }
 
         async function iniciarMotorGPS() {
-            try {
-                const conf = await (await fetch('/api/config')).json(); 
-                const pollingSec = conf.gps_polling_sec || 10;
-                if ("geolocation" in navigator) { 
-                    enviarPulsoGPS(); 
-                    setInterval(enviarPulsoGPS, pollingSec * 1000); 
-                }
-            } catch(e){}
+            let segundos = 10;
+            try { segundos = (await api('/api/config')).gps_polling_sec || 10; } catch (e) {}
+            if (!('geolocation' in navigator)) { document.getElementById('gps-text').innerText = 'Sin GPS'; return; }
+            enviarPulsoGPS();
+            setInterval(enviarPulsoGPS, segundos * 1000);
         }
-
         function enviarPulsoGPS() {
+            const texto = document.getElementById('gps-text');
             navigator.geolocation.getCurrentPosition(async (pos) => {
                 try {
-                    await fetch('/api/gps', { method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': getCookie('csrf_token')}, body: JSON.stringify({ lat: pos.coords.latitude, lon: pos.coords.longitude }) });
-                    document.getElementById('gps-dot').classList.add('active'); 
-                    document.getElementById('gps-text').innerText = "Coordenadas OK";
-                    document.getElementById('gps-text').style.color = "var(--success)";
+                    await api('/api/gps', 'POST', { lat: pos.coords.latitude, lon: pos.coords.longitude, precision: pos.coords.accuracy });
+                    document.getElementById('gps-dot').classList.add('active');
+                    texto.innerText = RUTA ? 'Registrando ruta' : 'Coordenadas OK'; texto.style.color = 'var(--success)';
                     setTimeout(() => document.getElementById('gps-dot').classList.remove('active'), 1000);
-                } catch (e) { 
-                    document.getElementById('gps-text').innerText = "Fallo Conexión"; 
-                    document.getElementById('gps-text').style.color = "var(--danger)";
-                }
-            }, (err) => { 
-                document.getElementById('gps-text').innerText = "GPS Bloqueado"; 
-                document.getElementById('gps-text').style.color = "var(--warning)";
-            }, { enableHighAccuracy: true });
+                } catch (e) { texto.innerText = 'Fallo Conexión'; texto.style.color = 'var(--danger)'; }
+            }, () => { texto.innerText = 'GPS Bloqueado'; texto.style.color = 'var(--warning)'; }, { enableHighAccuracy: true, maximumAge: 5000 });
         }
 
-        function abrirGoogleMapsMulti() { 
-            const fletesActivos = DB.fletes.filter(f => f.estado === 'camino' && f.chofer_id === myUserId); 
-            if(fletesActivos.length === 0) return;
-            let listaOrigenes = [];
-            fletesActivos.forEach(f => {
-                let origenDireccion = `${f.origen_calle || ''} ${f.origen_altura || ''}, ${f.origen_ciudad || ''}`;
-                if (origenDireccion.replace(/,/g, '').trim() !== '' && !listaOrigenes.includes(origenDireccion)) { listaOrigenes.push(origenDireccion); }
-            });
-            let paradasUnificadas = [];
-            fletesActivos.forEach(f => paradasUnificadas = paradasUnificadas.concat(f.paradas));
-            paradasUnificadas.sort((a,b) => a.orden_ruta - b.orden_ruta);
-            let listaDestinos = [];
-            paradasUnificadas.forEach(p => {
-                let destinoDireccion = `${p.destino_calle || ''} ${p.destino_altura || ''}, ${p.destino_ciudad || ''}`;
-                if (destinoDireccion.replace(/,/g, '').trim() !== '' && !listaDestinos.includes(destinoDireccion)) { listaDestinos.push(destinoDireccion); }
-            });
-            if (listaOrigenes.length === 0 || listaDestinos.length === 0) { return alert("Error: Faltan especificaciones de direcciones físicas."); }
-            const puntoPartidaInicial = listaOrigenes.shift(); const puntoDestinoFinal = listaDestinos.pop();
-            let puntosIntermedios = [...listaOrigenes, ...listaDestinos]; let cadenaWaypoints = puntosIntermedios.join('|');
-            let mapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(puntoPartidaInicial)}&destination=${encodeURIComponent(puntoDestinoFinal)}`;
-            if (cadenaWaypoints) { mapsUrl += `&waypoints=${encodeURIComponent(cadenaWaypoints)}`; }
-            window.open(mapsUrl, '_blank');
+        // Navegacion en Google Maps con las paradas en orden (coordenadas si las hay; si no, la direccion).
+        function abrirGoogleMapsMulti() {
+            const activos = RUTA ? DB.fletes.filter(f => f.ruta_id === RUTA.id && f.estado === 'camino') : [];
+            if (!activos.length) return;
+            const punto = (lat, lon, dir) => (lat != null && lon != null) ? `${lat},${lon}` : dir;
+            let paradas = []; activos.forEach(f => paradas = paradas.concat(f.paradas)); paradas.sort((a, b) => a.orden_ruta - b.orden_ruta);
+            const o = activos[0];
+            const origen = punto(o.origen_lat, o.origen_lon, `${o.origen_calle || ''} ${o.origen_altura || ''}, ${o.origen_ciudad || ''}`);
+            const destinos = paradas.map(p => punto(p.destino_lat, p.destino_lon, `${p.destino_calle || ''} ${p.destino_altura || ''}, ${p.destino_ciudad || ''}`)).filter(d => d.replace(/[ ,]/g, ''));
+            if (!destinos.length) return alert('Las paradas no tienen dirección cargada.');
+            const destino = destinos.pop();
+            let url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origen)}&destination=${encodeURIComponent(destino)}&travelmode=driving`;
+            if (destinos.length) url += `&waypoints=${encodeURIComponent(destinos.join('|'))}`;
+            window.open(url, '_blank');
         }
+
         window.onload = initApp;
     </script>
 </body>

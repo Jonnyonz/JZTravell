@@ -8,7 +8,7 @@ from jztech_core.security_headers import SecurityHeadersMiddleware
 configure_logging()
 
 from database import init_db_schema, close_db_pool
-from routers import auth, users, config, fleet, branches, clients, shipments
+from routers import auth, users, config, fleet, branches, clients, shipments, quotes
 
 
 @asynccontextmanager
@@ -31,6 +31,7 @@ app.include_router(fleet.router)
 app.include_router(branches.router)
 app.include_router(clients.router)
 app.include_router(shipments.router)
+app.include_router(quotes.router)
 
 
 # CSRF: lo valida get_current_user (database.py) en cada POST/PUT/DELETE con sesion, con un token
