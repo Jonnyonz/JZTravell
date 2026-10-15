@@ -1,6 +1,6 @@
 # Se construye desde la raiz del repo (ver docker-compose.yml: context "."). El codigo va dentro de la
 # imagen (no se monta): actualizar = reconstruir la imagen.
-FROM python:3.11-slim-bookworm
+FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1

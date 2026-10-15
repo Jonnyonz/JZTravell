@@ -39,12 +39,12 @@ Otras funciones: hoja de ruta imprimible (`/api/fletes/imprimir`), tipos de docu
 
 | Componente | Versión |
 |---|---|
-| Python | 3.11 a 3.13 (Docker: imagen `python:3.11-slim-bookworm`; sin Docker: el del sistema) |
-| FastAPI / Starlette | 0.141.1 / 1.7.0 |
+| Python | 3.11 a 3.13 (Docker: imagen `python:3.11-slim`; sin Docker: el del sistema) |
+| FastAPI / Starlette | 0.143.1 / 1.8.0 |
 | Uvicorn | 0.54.0 |
-| asyncpg | 0.31.0 (SQL directo, sin ORM) |
+| asyncpg | 0.32.0 (SQL directo, sin ORM) |
 | PostgreSQL | 15 (Docker, imagen `postgres:15-alpine`); sin Docker, el del sistema (15 a 17) |
-| [jztech-core](https://github.com/Jonnyonz/jztech-core) | 0.1.5 (librería de seguridad común de JZTech) |
+| [jztech-core](https://github.com/Jonnyonz/jztech-core) | 0.1.6 (librería de seguridad común de JZTech) |
 
 Todas las dependencias están fijadas con hash en `backend/requirements.txt` (se instalan con
 `pip install --require-hashes`).
@@ -330,7 +330,7 @@ de Windows y el build de Docker falla.
 
 ```bash
 cd backend
-docker run --rm -v "$PWD:/w" -w /w python:3.11-slim-bookworm sh -c \
+docker run --rm -v "$PWD:/w" -w /w python:3.11-slim sh -c \
   "pip install pip-tools==7.4.1 && pip-compile --allow-unsafe --generate-hashes \
    --output-file=requirements.txt requirements.in"
 ```
