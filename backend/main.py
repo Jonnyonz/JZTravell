@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from jztech_core.logging_setup import configure_logging, install_generic_error_handler
 from jztech_core.security_headers import SecurityHeadersMiddleware
+from jztech_core.ui import montar_ui
 
 # Antes de importar database: ese modulo ya puede loguear al cargarse.
 configure_logging()
@@ -53,5 +54,9 @@ app.add_middleware(
     permissions_policy="geolocation=(self), microphone=(), camera=()",
 )
 
+
+# Sistema visual comun de la suite: GET /jz/suite.css (paleta clara/oscura, reset, botones, badges) desde jztech-core;
+# antes del mount de /, que si no se la quedaria.
+montar_ui(app)
 
 app.mount("/", StaticFiles(directory="../frontend", html=True), name="frontend")

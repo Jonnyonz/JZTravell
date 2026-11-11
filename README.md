@@ -86,7 +86,7 @@ Otras funciones: hoja de ruta imprimible (`/api/fletes/imprimir`), tipos de docu
 | Uvicorn | 0.54.0 |
 | asyncpg | 0.32.0 (SQL directo, sin ORM) |
 | PostgreSQL | 15 (Docker, imagen `postgres:15-alpine`); sin Docker, el del sistema (15 a 17) |
-| [jztech-core](https://github.com/Jonnyonz/jztech-core) | 0.1.6 (librería de seguridad común de JZTech) |
+| [jztech-core](https://github.com/Jonnyonz/jztech-core) | 0.2.0 (librería de seguridad común de JZTech; sirve además el sistema visual de la suite en `/jz/suite.css`) |
 
 Todas las dependencias están fijadas con hash en `backend/requirements.txt` (se instalan con
 `pip install --require-hashes`).

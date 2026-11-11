@@ -2,6 +2,19 @@
 
 Cambios de JZTravell, del más nuevo al más viejo. Cada entrada corresponde a un push a `main`.
 
+## 1.4.0 — 2026-11-11
+
+Sin migración.
+
+### Cambiado
+- **jztech-core 0.1.6 → 0.2.0 y paleta de la suite.** El acceso, el panel, el portal del cliente y la pantalla del
+  chofer enlazan `/jz/suite.css` (servida por la librería) antes de su propio `<style>`: los tokens de JZTravell
+  (`--bg-page`, `--accent`, `--border`...) pasan a ser alias de la paleta común de JZTech Suite, la misma de JZPass,
+  Tracker360, el Escáner Flex y JZBill, en claro y en oscuro. En cada página quedan solo los tokens propios (`--info`,
+  medidas del riel, grosor de los iconos). Los botones y etiquetas siguen siendo los de JZTravell. Cambios visibles:
+  fondos y grises algo más fríos y enlaces sin subrayado. La página pública de seguimiento no cambia. Trae además el
+  arreglo del core 0.1.7 (deny-by-default recorre los routers incluidos con FastAPI 0.141+).
+
 ## 1.3.0 — 2026-10-15
 
 Migración `0003` (se aplica sola al arrancar).

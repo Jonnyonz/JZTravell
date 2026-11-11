@@ -4,43 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>JZTravell - Sistema de Gestión Logística</title>
+    <link rel="stylesheet" href="/jz/suite.css?v=0.2.0">
     <style>
-        :root { 
-            /* JZTech Suite Official Palette */
-            --bg-page: #f4f6f9; 
-            --bg-surface: #ffffff; 
-            --accent: #2962ff; 
-            --accent-hover: #1f4fd1;
-            --success: #00c853; 
-            --danger: #d50000; 
-            --warning: #ffc107; 
+        :root {
+            /* Paleta clara/oscura y tipografia: /jz/suite.css (jztech-core, sistema visual comun de JZTech Suite);
+               los tokens viejos (--bg-page, --accent, --border...) son alias que define esa hoja. Aca, solo lo propio. */
             --info: #00b0ff;
-            --text-primary: #212529; 
-            --text-secondary: #666666; 
-            --text-muted: #999999; 
-            --border: #e0e0e0;
-            
-            /* Typography */
-            --font-base: system-ui, -apple-system, sans-serif;
-            --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
-            
-            /* UI Metrics */
+            --font-base: var(--f);
+            --font-mono: var(--m);
             --rail-width: 68px;
             --top-bar-height: 4px;
             --icon-stroke: 1.5px;
         }
 
-        [data-theme="dark"] {
-            --bg-page: #121212;
-            --bg-surface: #1e1e1e;
-            --accent: #4477ff;
-            --accent-hover: #5588ff;
-            --text-primary: #e0e0e0;
-            --text-secondary: #aaaaaa;
-            --border: #333333;
-        }
 
-        * { box-sizing: border-box; }
         body { margin: 0; font-family: var(--font-base); display: flex; height: 100vh; background: var(--bg-page); color: var(--text-primary); overflow: hidden; transition: background-color 0.3s, color 0.3s; }
         
         .font-mono { font-family: var(--font-mono); letter-spacing: 0.5px; font-size: 0.9em;}
@@ -87,7 +64,7 @@
         [data-theme="dark"] .btn-secondary:hover { background-color: rgba(255,255,255,0.05); }
 
         /* Badges de Estado */
-        .badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; }
+        .badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; text-transform: none; letter-spacing: normal; }
         .badge-pending { background-color: #fff3cd; color: #856404; }
         .badge-success { background-color: #d4edda; color: #155724; }
         .badge-warning { background-color: #ffeeba; color: #856404; }

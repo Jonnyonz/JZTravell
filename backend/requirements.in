@@ -8,4 +8,4 @@ pydantic==2.14.1
 asyncpg==0.32.0
 bcrypt==5.0.0
 httpx==0.28.1
-jztech-core @ https://github.com/Jonnyonz/jztech-core/releases/download/v0.1.6/jztech_core-0.1.6-py3-none-any.whl
+jztech-core @ https://github.com/Jonnyonz/jztech-core/releases/download/v0.2.0/jztech_core-0.2.0-py3-none-any.whl

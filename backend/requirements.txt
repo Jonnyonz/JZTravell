@@ -350,8 +350,8 @@ idna==3.20 \
     # via
     #   anyio
     #   httpx
-jztech-core @ https://github.com/Jonnyonz/jztech-core/releases/download/v0.1.6/jztech_core-0.1.6-py3-none-any.whl \
-    --hash=sha256:5696e801c2f1556c31109fdfa3b45b56827f26f275dfa3df32e0b28d3e33eeae
+jztech-core @ https://github.com/Jonnyonz/jztech-core/releases/download/v0.2.0/jztech_core-0.2.0-py3-none-any.whl \
+    --hash=sha256:b12689ea2a7f8d4142e382ba6eed74b4343ccb0c129bad7c883dc451d63bdb0c
     # via -r requirements.in
 opentelemetry-api==1.45.1 \
     --hash=sha256:aa38ed19bcc084ba42782a73255b3582283eced7ad6dddbd6695189e69adfb75 \
