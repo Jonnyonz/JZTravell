@@ -2,6 +2,20 @@
 
 Cambios de JZTravell, del más nuevo al más viejo. Cada entrada corresponde a un push a `main`.
 
+## 1.5.0 — 2026-11-16
+
+Sin migración.
+
+### Agregado
+- **Política de Privacidad y Términos y Condiciones de Uso.** Dos páginas nuevas, `/privacy.html` y `/terms.html`,
+  con botón Volver (también con Esc), enlazadas desde el pie del acceso; el seguimiento público enlaza la de
+  privacidad. La política sigue la Ley 25.326 y dice lo que el sistema hace de verdad: qué datos guarda; que la
+  pantalla del chofer envía su posición mientras está abierta, tenga o no ruta en curso, y que con ruta se guarda el
+  recorrido; qué ve cualquiera que tenga un enlace de seguimiento (incluido el primer nombre del chofer y su
+  posición aproximada) y que ese enlace no vence; quién ve la firma y la foto de cada entrega; y que nada se borra
+  solo. Los términos aclaran que el transporte lo presta la organización, que los kilómetros por GPS son una
+  estimación y que la app no se usa mientras se conduce.
+
 ## 1.4.0 — 2026-11-11
 
 Sin migración.

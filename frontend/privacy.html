@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Política de Privacidad - JZTravell</title>
+<link rel="stylesheet" href="/jz/suite.css?v=0.2.0">
+<style>
+    /* Pagina de texto: tokens de /jz/suite.css; aca solo la columna de lectura. */
+    body { margin: 0; background: var(--bg); color: var(--tp); font: 400 15px/1.65 var(--f); }
+    .barra { display: flex; align-items: center; gap: 12px; padding: 14px 18px; background: var(--sf); border-bottom: 1px solid var(--ln); position: sticky; top: 0; }
+    .barra strong { flex: 1; font-size: 16px; }
+    main { max-width: 760px; margin: 0 auto; padding: 22px 18px 40px; }
+    h2 { font-size: 17px; line-height: 1.3; margin: 28px 0 8px; }
+    ul { padding-left: 20px; }
+    li + li { margin-top: 6px; }
+    a { color: var(--ac); }
+    .nota { padding: 12px 14px; border-left: 3px solid var(--ac); background: var(--acs); border-radius: 6px; font-size: 13px; }
+    footer { text-align: center; font-size: 12px; color: var(--tm); padding: 0 16px 28px; }
+</style>
+<script>
+    (function () { let t = 'light'; try { t = localStorage.getItem('jz_theme') || 'light'; } catch (e) {} document.documentElement.setAttribute('data-theme', t); })();
+    // Volver: a la pantalla anterior si la hay; si se abrio suelta, al inicio. Esc hace lo mismo.
+    function volver() { if (history.length > 1) history.back(); else location.href = '/'; return false; }
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') volver(); });
+</script>
+</head>
+<body>
+<header class="barra">
+    <a class="btn" href="/" onclick="return volver()">&larr; Volver</a>
+    <strong>Política de Privacidad</strong>
+</header>
+
+<main>
+    <p class="muted">Última actualización: noviembre de 2026.</p>
+    <p>JZTravell es un sistema de gestión de fletes y entregas que cada organización instala en su propio servidor. Esta política explica qué datos personales se tratan, para qué y qué derechos tienen las personas, conforme a la <strong>Ley 25.326 de Protección de los Datos Personales</strong>, su Decreto reglamentario 1558/2001 y las normas de la Agencia de Acceso a la Información Pública (AAIP).</p>
+    <ul>
+        <li><strong>Responsable de los datos:</strong> la organización que usa JZTravell para hacer sus fletes. Es la que decide qué datos se cargan, para qué y por cuánto tiempo, y ante quien se ejercen los derechos.</li>
+        <li><strong>JZ Tech Solutions</strong> provee el software, su instalación y el soporte técnico. Cuando accede a los datos para dar soporte o administra el servidor por cuenta de la organización, actúa como <strong>prestador de servicios de tratamiento</strong> (art. 25 de la Ley 25.326): los usa solo para esa tarea, los mantiene en reserva, no los cede a terceros y, al terminar el servicio, no conserva copias. JZ Tech Solutions es el nombre de fantasía (<strong>JZTech-Solutions</strong>) de Jonaiker Jimenez, CUIT 20-95803618-4, Responsable Monotributo, con domicilio en General Urquiza 1240, Ciudad Autónoma de Buenos Aires.</li>
+    </ul>
+
+    <h2>1. Qué datos se tratan</h2>
+    <ul>
+        <li><strong>Usuarios</strong> (administradores, choferes y usuarios de los clientes): nombre de usuario (el correo, si ingresa con Google), nombre, rol y, en los choferes, la fecha de vencimiento de la licencia de conducir. La contraseña nunca se guarda: se guarda solo su resumen protegido con Argon2id.</li>
+        <li><strong>Ingreso con Google</strong> (si la organización lo activa): el correo y el nombre que informa Google. El primer ingreso de una persona sin usuario crea con esos datos una solicitud de registro, que un administrador aprueba o rechaza.</li>
+        <li><strong>Clientes:</strong> razón social, CUIT y sus direcciones (nombre, calle, altura, ciudad, código postal, provincia y ubicación en el mapa).</li>
+        <li><strong>Fletes y cotizaciones:</strong> origen, destinos de cada parada (nombre, dirección y ubicación), descripción de la carga y notas.</li>
+        <li><strong>Vehículos:</strong> patente, marca y modelo, y vencimientos de la VTV, el seguro y la habilitación.</li>
+        <li><strong>Entregas:</strong> quién recibió (lo escribe el chofer), observaciones o motivo si no se pudo entregar, la <strong>firma</strong> de quien recibe y una <strong>foto</strong> como constancia, la ubicación del lugar, el chofer y la fecha y hora.</li>
+        <li><strong>Ubicación de los choferes:</strong> ver el punto 2.</li>
+    </ul>
+    <p>El sistema no pide teléfono, DNI ni imagen de la licencia o de otros documentos. JZTravell <strong>no está pensado para guardar datos sensibles</strong> (art. 2 de la Ley 25.326): la organización no debe cargarlos en campos de texto libre como notas u observaciones.</p>
+
+    <h2>2. Ubicación de los choferes (GPS)</h2>
+    <ul>
+        <li><strong>Mientras la pantalla del chofer está abierta</strong>, el dispositivo envía su posición al servidor cada pocos segundos (30 por defecto; la organización puede cambiarlo), tenga o no una ruta en curso. Al cerrar esa pantalla deja de enviarla.</li>
+        <li>El servidor guarda siempre la <strong>última posición</strong> de cada chofer con su hora.</li>
+        <li><strong>Con una ruta en curso</strong> guarda además el recorrido (posición, precisión y hora de cada punto), que se usa para calcular los kilómetros hechos.</li>
+        <li>Al registrar una entrega se toma la posición de ese momento.</li>
+        <li>El recorrido no se muestra en ninguna pantalla. La posición solo se ve, aproximada, en el seguimiento público (punto 3).</li>
+        <li>El dispositivo pide permiso para usar la ubicación.</li>
+    </ul>
+
+    <h2>3. Enlace de seguimiento</h2>
+    <p>Cada flete tiene un enlace de seguimiento que la organización puede compartir. <strong>Cualquiera que tenga el enlace</strong> ve, sin iniciar sesión:</p>
+    <ul>
+        <li>el nombre de la empresa, el número, el estado y la fecha del flete;</li>
+        <li>el primer nombre del chofer;</li>
+        <li>de cada parada, el nombre del destino, la ciudad, la franja horaria, el estado y la hora de entrega;</li>
+        <li>solo mientras el flete está en camino, la posición del chofer redondeada (a un kilómetro aproximadamente).</li>
+    </ul>
+    <p>No muestra la calle, quién recibió, la firma ni la foto. El enlace es largo y al azar, y <strong>no vence</strong>: conviene compartirlo solo con quien espera la entrega.</p>
+
+    <h2>4. Para qué se usan</h2>
+    <ul>
+        <li>Dar acceso a cada usuario según su rol.</li>
+        <li>Cotizar, programar y hacer los fletes, y avisar su estado.</li>
+        <li>Dejar constancia de cada entrega.</li>
+        <li>Calcular los kilómetros y los costos de cada ruta.</li>
+        <li>Avisar los vencimientos de la documentación de vehículos y choferes.</li>
+        <li>Proteger el sistema contra accesos no autorizados.</li>
+    </ul>
+    <p>Los datos no se usan para fines distintos de estos (art. 4 de la Ley 25.326): <strong>ni para publicidad ni para crear perfiles de las personas</strong>.</p>
+
+    <h2>5. Base del tratamiento</h2>
+    <p>Los datos de los usuarios y choferes se tratan porque son necesarios para la relación laboral o contractual que tienen con la organización; los de clientes y destinatarios, porque son necesarios para cumplir el transporte contratado. En esos casos la ley no exige un consentimiento aparte (art. 5, inc. 2, de la Ley 25.326). El ingreso con Google es optativo.</p>
+    <p>El registro de la ubicación de los choferes es un control de la actividad laboral: la organización debe informárselo y usarlo solo para la operación de los fletes (art. 6 de la Ley 25.326 y arts. 70 y 71 de la Ley 20.744 de Contrato de Trabajo).</p>
+
+    <h2>6. Quién ve los datos y con quién se comparten</h2>
+    <ul>
+        <li><strong>Los administradores</strong> ven todo.</li>
+        <li><strong>Cada chofer</strong> ve sus fletes y los pendientes sin chofer asignado, con las direcciones, el cliente y el precio.</li>
+        <li><strong>Cada cliente</strong> ve los fletes de su empresa, con quién recibió, la firma y la foto de cada entrega, y el nombre del chofer y la patente.</li>
+    </ul>
+    <p>Los datos quedan en el servidor de la organización. <strong>No se venden, no se alquilan y no se ceden a terceros con fines comerciales o publicitarios.</strong> Solo salen del servidor en estos casos:</p>
+    <ul>
+        <li><strong>Enlace de seguimiento</strong>, como explica el punto 3.</li>
+        <li><strong>Google</strong>, si se usa el ingreso con Google, para verificar la identidad. Google puede tratar esos datos fuera de la Argentina, según sus propias políticas.</li>
+        <li><strong>Google Maps:</strong> los botones para ver un destino o una ruta abren Google Maps con esas direcciones o ubicaciones. JZTravell no le envía nada a Google hasta que alguien toca el botón.</li>
+        <li><strong>Soporte técnico:</strong> JZ Tech Solutions puede acceder a los datos solo cuando la organización lo pide para resolver un problema, en las condiciones del art. 25 indicadas arriba.</li>
+        <li><strong>Autoridades:</strong> cuando lo ordene un juez o lo exija una ley.</li>
+    </ul>
+    <p>JZTravell no envía correos ni mensajes y no carga recursos de otros sitios (mapas embebidos, fuentes, medición de visitas).</p>
+
+    <h2>7. Cookies y almacenamiento en el navegador</h2>
+    <ul>
+        <li><strong>Cookie de sesión:</strong> identifica la sesión iniciada. Es <code>HttpOnly</code>, <code>Secure</code> y <code>SameSite=Strict</code>, y dura 8 horas.</li>
+        <li><strong>Cookies de protección CSRF y de rol:</strong> impiden que otro sitio haga acciones en nombre del usuario y le indican a la página qué pantalla mostrar.</li>
+        <li><strong>Cookie del ingreso con Google:</strong> dura 10 minutos y solo protege ese paso.</li>
+        <li><strong>Preferencia de tema</strong> (claro u oscuro), guardada en el navegador.</li>
+    </ul>
+    <p>Son técnicas, necesarias para que el sistema funcione. <strong>No se usan cookies publicitarias, de análisis ni de seguimiento.</strong></p>
+
+    <h2>8. Seguridad y confidencialidad</h2>
+    <p>JZTravell incluye estas medidas técnicas para proteger los datos (arts. 9 y 10 de la Ley 25.326):</p>
+    <ul>
+        <li>Contraseñas protegidas con Argon2id, con requisitos mínimos de longitud y composición.</li>
+        <li>Bloqueo de la cuenta por 15 minutos tras 5 intentos fallidos, y límite de intentos por dirección IP.</li>
+        <li>Sesiones guardadas en el servidor solo como resumen, que se revocan al desactivar un usuario, y protección contra CSRF.</li>
+        <li>Las firmas y las fotos se entregan solo al administrador, al chofer asignado y al cliente de ese flete.</li>
+        <li>Acceso según el rol de cada usuario.</li>
+    </ul>
+    <p>La conexión cifrada (HTTPS) y la seguridad del servidor (accesos, copias de respaldo, actualizaciones) están a cargo de la organización o de quien ella designe. <strong>La base de datos no se cifra en el disco:</strong> su protección depende de la del servidor. Como guía se recomiendan las medidas de la Resolución AAIP 47/2018. Quienes acceden a los datos deben guardar secreto sobre ellos, aun después de terminada su relación con la organización (art. 10).</p>
+
+    <h2>9. Cuánto tiempo se conservan</h2>
+    <ul>
+        <li>El sistema <strong>no borra datos de la operación por su cuenta</strong>: fletes, entregas con su firma y su foto, y recorridos quedan guardados. La organización define cuánto los conserva, solo mientras sean necesarios para la finalidad por la que se cargaron (art. 4, inc. 7, de la Ley 25.326) o mientras lo exija otra norma.</li>
+        <li>Los usuarios se desactivan, no se borran; los vehículos se dan de baja.</li>
+        <li>La dirección IP de un ingreso fallido se borra al ingresar bien.</li>
+        <li>Las copias de la base previas a cada actualización quedan en el servidor e incluyen firmas y fotos. En la instalación nativa se guardan las últimas 10; en la instalación con Docker las depura la organización.</li>
+        <li>Las sesiones vencen a las 8 horas y al cerrar sesión.</li>
+    </ul>
+
+    <h2>10. Derechos de las personas</h2>
+    <p>Toda persona cuyos datos estén en el sistema puede pedirle a la organización que usa JZTravell:</p>
+    <ul>
+        <li><strong>Acceso:</strong> saber qué datos suyos hay y para qué se usan. Es gratuito si se pide a intervalos no menores a seis meses, y la respuesta debe darse dentro de los diez días corridos (art. 14).</li>
+        <li><strong>Rectificación, actualización o supresión</strong> de los datos que sean inexactos, estén incompletos o ya no sean necesarios. La organización debe resolverlo dentro de los cinco días hábiles (art. 16), salvo que una norma la obligue a conservarlos.</li>
+    </ul>
+    <p class="nota"><strong>El titular de los datos personales tiene la facultad de ejercer el derecho de acceso a los mismos en forma gratuita a intervalos no inferiores a seis meses, salvo que se acredite un interés legítimo al efecto conforme lo establecido en el artículo 14, inciso 3 de la Ley Nº 25.326. La AGENCIA DE ACCESO A LA INFORMACIÓN PÚBLICA, en su carácter de Órgano de Control de la Ley Nº 25.326, tiene la atribución de atender las denuncias y reclamos que interpongan quienes resulten afectados en sus derechos por incumplimiento de las normas vigentes en materia de protección de datos personales.</strong> (<a href="https://www.argentina.gob.ar/aaip" target="_blank" rel="noopener">www.argentina.gob.ar/aaip</a>)</p>
+
+    <h2>11. Qué le corresponde a la organización</h2>
+    <ul>
+        <li>Informar a sus choferes, clientes y destinatarios que sus datos se cargan en el sistema y para qué, en especial el registro de la ubicación y la firma y la foto de cada entrega (art. 6).</li>
+        <li>Inscribir sus bases de datos en el Registro Nacional de Bases de Datos de la AAIP cuando corresponda (art. 21).</li>
+        <li>Atender los pedidos de acceso, rectificación y supresión en los plazos de la ley.</li>
+        <li>Cargar solo los datos necesarios, compartir los enlaces de seguimiento con cuidado y mantener el servidor seguro y actualizado.</li>
+    </ul>
+
+    <h2>12. Cambios y contacto</h2>
+    <p>Esta política puede actualizarse cuando cambie el sistema o la normativa; la fecha de arriba indica la última versión. Los pedidos sobre datos personales se dirigen a la organización que usa JZTravell. Para consultas técnicas sobre el tratamiento de los datos en el sistema: <a href="mailto:jonaiker.jimenez.g@gmail.com?subject=Privacidad%20JZTravell">jonaiker.jimenez.g@gmail.com</a>.</p>
+    <p>Ver también los <a href="/terms.html">Términos y Condiciones de Uso</a>.</p>
+</main>
+<footer>JZTravell · Powered by JZ Tech Solutions</footer>
+</body>
+</html>

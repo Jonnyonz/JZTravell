@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Términos y Condiciones de Uso - JZTravell</title>
+<link rel="stylesheet" href="/jz/suite.css?v=0.2.0">
+<style>
+    /* Pagina de texto: tokens de /jz/suite.css; aca solo la columna de lectura. */
+    body { margin: 0; background: var(--bg); color: var(--tp); font: 400 15px/1.65 var(--f); }
+    .barra { display: flex; align-items: center; gap: 12px; padding: 14px 18px; background: var(--sf); border-bottom: 1px solid var(--ln); position: sticky; top: 0; }
+    .barra strong { flex: 1; font-size: 16px; }
+    main { max-width: 760px; margin: 0 auto; padding: 22px 18px 40px; }
+    h2 { font-size: 17px; line-height: 1.3; margin: 28px 0 8px; }
+    ul { padding-left: 20px; }
+    li + li { margin-top: 6px; }
+    a { color: var(--ac); }
+    footer { text-align: center; font-size: 12px; color: var(--tm); padding: 0 16px 28px; }
+</style>
+<script>
+    (function () { let t = 'light'; try { t = localStorage.getItem('jz_theme') || 'light'; } catch (e) {} document.documentElement.setAttribute('data-theme', t); })();
+    // Volver: a la pantalla anterior si la hay; si se abrio suelta, al inicio. Esc hace lo mismo.
+    function volver() { if (history.length > 1) history.back(); else location.href = '/'; return false; }
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') volver(); });
+</script>
+</head>
+<body>
+<header class="barra">
+    <a class="btn" href="/" onclick="return volver()">&larr; Volver</a>
+    <strong>Términos y Condiciones de Uso</strong>
+</header>
+
+<main>
+    <p class="muted">Última actualización: noviembre de 2026.</p>
+    <p>Estos términos regulan el uso de JZTravell, el sistema de gestión de fletes y entregas desarrollado por JZ Tech Solutions, por parte de la organización que lo instala y de quienes lo usan: administradores, choferes y clientes. Se rigen por las leyes de la República Argentina.</p>
+    <p>JZ Tech Solutions es el nombre de fantasía (<strong>JZTech-Solutions</strong>) de Jonaiker Jimenez, CUIT 20-95803618-4, Responsable Monotributo, con domicilio en General Urquiza 1240, Ciudad Autónoma de Buenos Aires.</p>
+
+    <h2>1. Aceptación</h2>
+    <p>Al ingresar y usar JZTravell, la organización y cada usuario aceptan estos términos y la <a href="/privacy.html">Política de Privacidad</a>. Quien no esté de acuerdo no debe usar el sistema.</p>
+
+    <h2>2. Licencia y propiedad intelectual</h2>
+    <p>JZTravell es software libre, distribuido bajo la <strong>Licencia Pública General Affero de GNU, versión 3 (GNU AGPLv3)</strong>. Se puede usar, estudiar, modificar y redistribuir según esa licencia. Si se ofrece una versión modificada para que otros la usen a través de la red, hay que poner a su disposición el código fuente de esa versión.</p>
+    <p>El software está protegido por la Ley 11.723 de Propiedad Intelectual; la licencia no transfiere la titularidad del código ni el uso de los nombres y logos de JZTravell y JZ Tech Solutions para identificar productos o versiones de terceros.</p>
+
+    <h2>3. Quién presta el transporte</h2>
+    <p>JZTravell es una herramienta. <strong>El transporte lo presta la organización que usa el sistema</strong>, no JZ Tech Solutions. Los precios, los plazos, los seguros y la responsabilidad por la carga se rigen por lo que acuerden la organización y su cliente. Una cotización hecha en el sistema obliga a la organización en los términos que ella misma defina.</p>
+
+    <h2>4. Cuentas de usuario</h2>
+    <ul>
+        <li>Cada usuario es responsable de mantener en reserva su contraseña y de las acciones hechas con su cuenta.</li>
+        <li>Las cuentas son personales: no se comparten.</li>
+        <li>La organización decide quién accede y con qué rol, aprueba o rechaza las solicitudes de registro y desactiva las cuentas que ya no correspondan.</li>
+    </ul>
+
+    <h2>5. Choferes</h2>
+    <ul>
+        <li>La pantalla del chofer usa la ubicación del dispositivo, como explica la <a href="/privacy.html">Política de Privacidad</a>.</li>
+        <li><strong>No se debe usar la aplicación mientras se conduce.</strong> Los avisos y los registros se hacen con el vehículo detenido.</li>
+        <li>Lo que se registra de una entrega (quién recibió, la firma, la foto, el motivo si no se pudo entregar) debe ser verdadero. La foto debe mostrar la entrega, no a personas que no tienen que ver con ella.</li>
+    </ul>
+
+    <h2>6. Responsabilidades de la organización</h2>
+    <ul>
+        <li>Es responsable de los datos que carga y de que su uso cumpla la ley, en especial la Ley 25.326 de Protección de los Datos Personales y la legislación laboral: informar a sus choferes que se registra su ubicación y para qué.</li>
+        <li>Los kilómetros calculados con el GPS y los costos de cada ruta son <strong>estimaciones</strong>: dependen de la señal y del dispositivo.</li>
+        <li>Los avisos de vencimiento (licencia, VTV, seguro, habilitación) son una ayuda. Tener la documentación al día es responsabilidad de la organización y de cada chofer.</li>
+        <li>Las constancias de entrega y los demás documentos que genera JZTravell son de uso operativo: <strong>no reemplazan a los comprobantes fiscales ni a la documentación de transporte que exija la ley</strong>.</li>
+        <li>El enlace de seguimiento lo ve cualquiera que lo tenga: la organización decide con quién lo comparte.</li>
+        <li>La organización es responsable de mantener su servidor seguro, con conexión cifrada (HTTPS), copias de respaldo y actualizado.</li>
+    </ul>
+
+    <h2>7. Servicios de terceros</h2>
+    <p>El ingreso con Google y los enlaces a Google Maps se rigen también por los términos de Google. JZTravell no controla la disponibilidad ni los cambios de esos servicios.</p>
+
+    <h2>8. Soporte y actualizaciones</h2>
+    <p>JZ Tech Solutions publica actualizaciones con mejoras y correcciones de seguridad. Se recomienda mantener el sistema actualizado. El soporte, la instalación y otros servicios que se contraten aparte se rigen por lo que se acuerde con cada organización.</p>
+
+    <h2>9. Garantía y responsabilidad</h2>
+    <p>Como establece la licencia GNU AGPLv3, el software se entrega "tal cual", sin garantías de ningún tipo, <strong>en la medida en que lo permita la ley argentina</strong>. JZ Tech Solutions no será responsable por daños a la carga, demoras en las entregas, daños indirectos o pérdida de ventas, ni por interrupciones causadas por fallas de red, de hardware, de la ubicación que informa el dispositivo, de servicios de terceros o por el uso del sistema contrario a estos términos.</p>
+    <p>Nada de lo anterior limita la responsabilidad por dolo o culpa grave (art. 1743 del Código Civil y Comercial) ni los derechos que la Ley 24.240 de Defensa del Consumidor reconoce de forma irrenunciable, cuando esa ley sea aplicable.</p>
+
+    <h2>10. Cambios</h2>
+    <p>Estos términos pueden actualizarse cuando cambie el sistema o la normativa. La versión vigente es la publicada en esta página, con su fecha; los cambios importantes se informan en las notas de cada versión (CHANGELOG). Seguir usando el sistema después de un cambio implica aceptarlo.</p>
+
+    <h2>11. Ley aplicable y jurisdicción</h2>
+    <p>Estos términos se rigen por las leyes de la República Argentina. Ante cualquier diferencia, las partes intentarán resolverla de buena fe por el medio de contacto indicado abajo; si no se logra, intervendrán los tribunales ordinarios competentes según la ley. Cuando quien reclama sea consumidor en los términos de la Ley 24.240, será competente el tribunal de su domicilio.</p>
+
+    <h2>12. Contacto</h2>
+    <p>Las consultas sobre un flete o una entrega se dirigen a la organización que lo presta. Por el sistema: <a href="mailto:jonaiker.jimenez.g@gmail.com?subject=JZTravell">jonaiker.jimenez.g@gmail.com</a>.</p>
+</main>
+<footer>JZTravell · Powered by JZ Tech Solutions</footer>
+</body>
+</html>
